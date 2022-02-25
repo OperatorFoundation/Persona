@@ -129,12 +129,12 @@ public class Persona: Universe
                     throw PersonaError.packetNotIPv4(data)
                 }
 
-                if let tcp = packet.tcp
-                {
-                    // FIXME - implement TCP
-                    return
-                }
-                else if let udp = packet.udp
+//                if let tcp = packet.tcp
+//                {
+//                    // FIXME - implement TCP
+//                    return
+//                }
+                /*else*/ if let udp = packet.udp
                 {
                     guard let ipv4 = IPv4Address(data: ipv4.destinationAddress) else
                     {
