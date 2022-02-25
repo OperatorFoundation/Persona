@@ -8,9 +8,9 @@
 import Flower
 import Foundation
 import InternetProtocols
+import Net
 import TransmissionTypes
 import Universe
-import Network
 
 public class Persona: Universe
 {
