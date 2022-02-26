@@ -19,6 +19,7 @@ public class Persona: Universe
 
     public override func main() throws
     {
+        display("listening on 127.0.0.1 1234")
         let listener = try self.listen("127.0.0.1", 1234)
 
         while true
