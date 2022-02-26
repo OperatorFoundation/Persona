@@ -8,16 +8,14 @@ func main()
     let simulation = Simulation(capabilities: Capabilities(display: true, networkConnect: true, networkListen: true))
     let universe = Persona(effects: simulation.effects, events: simulation.events)
 
-    let lock = DispatchGroup()
-
-    Task
+    do
     {
-        lock.enter()
-        try await universe.run()
-        lock.leave()
+        try universe.run()
     }
-
-    lock.wait()
+    catch
+    {
+        print(error)
+    }
 }
 
 main()
