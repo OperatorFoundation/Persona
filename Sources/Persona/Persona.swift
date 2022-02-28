@@ -166,6 +166,7 @@ public class Persona: Universe
 
     func handleParsedMessage(_ message: Message) throws
     {
+        print("handleParsedMessage(\(message.description))")
         switch message
         {
             case .UDPDataV4(let endpoint, let data):
