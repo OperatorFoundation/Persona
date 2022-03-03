@@ -9,6 +9,7 @@ import Flower
 import Foundation
 import InternetProtocols
 import Net
+// transmission, but with effects under the hood
 import TransmissionTypes
 import Universe
 
@@ -38,6 +39,7 @@ public class Persona: Universe
         }
     }
 
+    // takes a transmission connection and wraps as a flower connection
     func handleIncomingConnection(_ connection: TransmissionTypes.Connection)
     {
         // FIXME - add logging
@@ -65,6 +67,7 @@ public class Persona: Universe
         }
     }
 
+    // deals with IP assignment
     func handleFirstMessage(_ flowerConnection: FlowerConnection) throws
     {
         guard let message = flowerConnection.readMessage() else
@@ -116,6 +119,10 @@ public class Persona: Universe
         }
     }
 
+    // processes raw packets from the Network Extension or raw packets
+    // uses IP library to parse to use the right proxy
+    // FIXME: currently only UDP has been implemented
+    // after parsing and identifying, pass on to handleParsedMessage()
     func handleNextMessage(_ flowerConnection: FlowerConnection) throws
     {
         guard let message = flowerConnection.readMessage() else
@@ -186,6 +193,9 @@ public class Persona: Universe
         }
     }
 
+    // handles the specifics of the packet types
+    // connects to the address that the packet tries connecting to
+    // wraps into a new packet with same destination and data and server's source address
     func handleParsedMessage(_ message: Message) throws
     {
         print("handleParsedMessage(\(message.description))")
