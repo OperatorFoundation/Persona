@@ -6,6 +6,7 @@
 //
 
 import Foundation
+import InternetProtocols
 import Net
 import SwiftQueue
 
@@ -18,7 +19,7 @@ public class TransmissionControlBlock
     let unspecifiedRemoteAddress: Bool
     var sendBuffer: Data = Data()
     var receiveBuffer: Data = Data()
-    var retransmitQueue = Queue<TCP>()
+    var retransmissionQueue: [InternetProtocols.TCP] = []
 
     let sndUna: SequenceNumber = SequenceNumber(0)
     let sndNxt: SequenceNumber = SequenceNumber(0)
@@ -28,7 +29,7 @@ public class TransmissionControlBlock
     let sndWl2: SequenceNumber = SequenceNumber(0)
     let iss: SequenceNumber = SequenceNumber(0)
 
-    let rcvNext: SequenceNumber = SequenceNumber(0)
+    let rcvNxt: SequenceNumber = SequenceNumber(0)
     let rcvWnd: UInt32 = 0
     let rcvUp: UInt16 = 0
     let irs: SequenceNumber = SequenceNumber(0)
@@ -75,6 +76,28 @@ public class TransmissionControlBlock
         }
     }
 
+    static public func sequenceLength(_ tcp: InternetProtocols.TCP) -> UInt32
+    {
+        var length: UInt32 = 0
+
+        if tcp.syn
+        {
+            length += 1
+        }
+
+        if tcp.fin
+        {
+            length += 1
+        }
+
+        if let payload = tcp.payload
+        {
+            length += UInt32(payload.count)
+        }
+
+        return length
+    }
+
     public init(local: NWEndpoint, remote: NWEndpoint, style: OpenStyle) throws
     {
         self.style = style
@@ -103,9 +126,52 @@ public class TransmissionControlBlock
         }
     }
 
+    public func inWindow(_ tcp: InternetProtocols.TCP) -> Bool
+    {
+        let rcvLast = self.rcvNxt.add(Int(self.rcvWnd))
+        let segSeq = SequenceNumber(tcp.sequenceNumber)
+        let seqLen = TransmissionControlBlock.sequenceLength(tcp)
+        let segLast = segSeq.add(Int(seqLen) - 1)
+
+        if segLen == 0
+        {
+            if self.rcvWnd == 0
+            {
+                return segSeq == self.rcvNxt
+            }
+            else // rcvWnd > 0
+            {
+                return (self.rcvNxt <= segSeq) && (segSeq < rcvLast)
+            }
+        }
+        else // seqLen > 0
+        {
+            if self.rcvWnd == 0
+            {
+                return false
+            }
+            else // rcvWnd > 0
+            {
+                return (self.rcvNxt <=  segSeq) && (segSeq  < rcvLast) ||
+                       (self.rcvNxt <= segLast) && (segLast < rcvLast)
+            }
+        }
+    }
+
     public func acceptableAck(_ ack: SequenceNumber) -> Bool
     {
         return (self.sndUna < ack) && (ack <= self.sndNxt)
+    }
+
+    public func filterRetransmissions(_ ack: SequenceNumber)
+    {
+        self.retransmissionQueue = self.retransmissionQueue.filter
+        {
+            (tcp: InternetProtocols.TCP) -> Bool in
+
+            let expectedAck = SequenceNumber(tcp.sequenceNumber).add(Int(TransmissionControlBlock.sequenceLength(tcp)))
+            return ack < expectedAck // Keep packets which have not been acked
+        }
     }
 }
 
