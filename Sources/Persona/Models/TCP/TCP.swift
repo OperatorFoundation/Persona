@@ -14,11 +14,13 @@ import SwiftQueue
 public class TCP
 {
     static let maximumSegmentLifetime = TimeInterval(integerLiteral: 2 * 60) // 2 minutes
+    static var quietTimeLock: DispatchSemaphore = DispatchSemaphore(value: 0)
     static var quietTime: Timer? = Timer(timeInterval: TCP.maximumSegmentLifetime, repeats: false)
     {
         timer in
 
         TCP.quietTime = nil
+        TCP.quietTimeLock.signal()
     }
 
     public enum States
