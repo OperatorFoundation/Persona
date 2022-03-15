@@ -199,17 +199,12 @@ public class TcpProxy
                 }
                 else if tcp.ack
                 {
-                    let ack = try InternetProtocols.TCP(sourcePort: sourcePort, destinationPort: destinationPort, sequenceNumber: SequenceNumber(tcp.acknowledgementNumber), rst: true)
-                    let packet = try IPv4(sourceAddress: sourceAddress, destinationAddress: destinationAddress, tcp: ack)
-                    let message = Message.IPDataV4(packet.data)
-                    conduit.flowerConnection.writeMessage(message: message)
+                    try self.sendPacket(conduit: conduit, sourceAddress: sourceAddress, sourcePort: sourcePort, destinationAddress: destinationAddress, destinationPort: destinationPort, sequenceNumber: SequenceNumber(tcp.acknowledgementNumber))
                 }
                 else
                 {
-                    let ack = try InternetProtocols.TCP(sourcePort: sourcePort, destinationPort: destinationPort, sequenceNumber: SequenceNumber(0), acknowledgementNumber: SequenceNumber(tcp.sequenceNumber).add(TransmissionControlBlock.sequenceLength(tcp)), ack: true, rst: true)
-                    let packet = try IPv4(sourceAddress: sourceAddress, destinationAddress: destinationAddress, tcp: ack)
-                    let message = Message.IPDataV4(packet.data)
-                    conduit.flowerConnection.writeMessage(message: message)
+                    let acknowledgementNumber = SequenceNumber(tcp.sequenceNumber).add(TransmissionControlBlock.sequenceLength(tcp))
+                    try self.sendPacket(conduit: conduit, sourceAddress: sourceAddress, sourcePort: sourcePort, destinationAddress: destinationAddress, destinationPort: destinationPort, acknowledgementNumber: acknowledgementNumber, ack: true)
                 }
             case .listen:
                 if tcp.ack
@@ -223,10 +218,7 @@ public class TcpProxy
                      <SEQ=SEG.ACK><CTL=RST>
                      */
 
-                    let ack = try InternetProtocols.TCP(sourcePort: sourcePort, destinationPort: destinationPort, sequenceNumber: SequenceNumber(tcp.acknowledgementNumber), rst: true)
-                    let packet = try IPv4(sourceAddress: sourceAddress, destinationAddress: destinationAddress, tcp: ack)
-                    let message = Message.IPDataV4(packet.data)
-                    conduit.flowerConnection.writeMessage(message: message)
+                    try self.sendPacket(conduit: conduit, sourceAddress: sourceAddress, sourcePort: sourcePort, destinationAddress: destinationAddress, destinationPort: destinationPort, sequenceNumber: SequenceNumber(tcp.acknowledgementNumber), ack: true)
                 }
                 else
                 {
@@ -236,5 +228,16 @@ public class TcpProxy
             default:
                 return
         }
+    }
+
+    func sendPacket(conduit: Conduit, sourceAddress: IPv4Address, sourcePort: UInt16, destinationAddress: IPv4Address, destinationPort: UInt16, sequenceNumber: SequenceNumber = SequenceNumber(0), acknowledgementNumber: SequenceNumber = SequenceNumber(0), ack: Bool = false) throws
+    {
+        guard let ipv4 = try IPv4(sourceAddress: sourceAddress, destinationAddress: destinationAddress, sourcePort: sourcePort, destinationPort: destinationPort, sequenceNumber: sequenceNumber, acknowledgementNumber: acknowledgementNumber, syn: false, ack: ack, fin: false, rst: true, windowSize: 0, payload: nil) else
+        {
+            throw TcpProxyError.badIpv4Packet
+        }
+
+        let message = Message.IPDataV4(ipv4.data)
+        conduit.flowerConnection.writeMessage(message: message)
     }
 }

@@ -14,4 +14,5 @@ public enum TcpProxyError: Error
     case invalidAddress(Data)
     case notIPv4Packet(Packet)
     case notTcpPacket(Packet)
+    case badIpv4Packet
 }
