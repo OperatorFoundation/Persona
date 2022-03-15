@@ -19,6 +19,7 @@ let package = Package(
         .package(url: "https://github.com/OperatorFoundation/Flower", branch: "main"),
         .package(url: "https://github.com/OperatorFoundation/InternetProtocols", branch: "main"),
         .package(url: "https://github.com/OperatorFoundation/Spacetime", branch: "main"),
+        .package(url: "https://github.com/OperatorFoundation/SwiftHexTools", branch: "main"),
         .package(url: "https://github.com/OperatorFoundation/TransmissionTypes", branch: "main"),
     ],
     targets: [
@@ -30,6 +31,7 @@ let package = Package(
                 "Datable",
                 "Flower",
                 "InternetProtocols",
+                "SwiftHexTools",
                 "TransmissionTypes",
                 .product(name: "Simulation", package: "Spacetime"),
                 .product(name: "Spacetime", package: "Spacetime"),
