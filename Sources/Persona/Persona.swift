@@ -17,11 +17,14 @@ public class Persona: Universe
 {
     var pool = AddressPool()
     var conduitCollection = ConduitCollection()
+    
+    var listenAddr = "0.0.0.0"
+    var listenPort = 1234
 
     public override func main() throws
     {
-        display("listening on 127.0.0.1 1234")
-        let listener = try self.listen("127.0.0.1", 1234)
+        display("listening on \(listenAddr) \(listenPort)")
+        let listener = try self.listen(listenAddr, listenPort)
 
         while true
         {
