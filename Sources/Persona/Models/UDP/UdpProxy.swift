@@ -148,13 +148,27 @@ class UdpProxyConnection
 
     func processRemoteData(_ data: Data)
     {
-        // FIXME - add new InternetProtocols constructors
-//        let udp = InternetProtocols.UDP(sourcePort: self.remotePort, destinationPort: self.localPort, payload: data)
-//        let ipv4 = InternetProtocols.IPv4(sourceAddress: self.remoteAddress, destinationAddress: self.localAddress, payload: udp.data)
-//        let message = Message.IPDataV4(ipv4.data)
-//        self.conduit.flowerConnection.writeMessage(message: message)
+        guard let udp = InternetProtocols.UDP(sourcePort: self.remotePort, destinationPort: self.localPort, payload: data) else
+        {
+            return
+        }
 
-        self.lastUsed = Date() // now
+        do
+        {
+            guard let ipv4 = try InternetProtocols.IPv4(sourceAddress: self.remoteAddress, destinationAddress: self.localAddress, payload: udp.data, protocolNumber: InternetProtocols.IPprotocolNumber.UDP) else
+            {
+                return
+            }
+            
+            let message = Message.IPDataV4(ipv4.data)
+            self.conduit.flowerConnection.writeMessage(message: message)
+
+            self.lastUsed = Date() // now
+        }
+        catch
+        {
+            return
+        }
     }
 }
 
