@@ -6,7 +6,7 @@ import Simulation
 // run in one XCode window while you run the flower test in another
 func main()
 {
-    let simulation = Simulation(capabilities: Capabilities(display: true, networkConnect: true, networkListen: true))
+    let simulation = Simulation(capabilities: Capabilities(.display, .networkConnect, .networkListen))
     // effects are outputs
     // events are inputs
     let universe = Persona(effects: simulation.effects, events: simulation.events)
