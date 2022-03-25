@@ -5,11 +5,12 @@
 //  Created by Dr. Brandon Wiley on 2/24/22.
 //
 
+import Chord
 import Flower
 import Foundation
 import InternetProtocols
 import Net
-// transmission, but with effects under the hood
+import Spacetime
 import TransmissionTypes
 import Universe
 
@@ -20,6 +21,15 @@ public class Persona: Universe
     
     var listenAddr = "0.0.0.0"
     var listenPort = 1234
+
+    var udpProxy: UdpProxy! = nil
+
+    public override init(effects: BlockingQueue<Effect>, events: BlockingQueue<Event>)
+    {
+        super.init(effects: effects, events: events)
+
+        self.udpProxy = UdpProxy(universe: self)
+    }
 
     public override func main() throws
     {
@@ -48,9 +58,10 @@ public class Persona: Universe
         // FIXME - add logging
         let flowerConnection = FlowerConnection(connection: connection, log: nil)
 
+        let address: IPv4Address
         do
         {
-            try self.handleFirstMessage(flowerConnection)
+            address = try self.handleFirstMessage(flowerConnection)
         }
         catch
         {
@@ -61,7 +72,7 @@ public class Persona: Universe
         {
             do
             {
-                try self.handleNextMessage(flowerConnection)
+                try self.handleNextMessage(address, flowerConnection)
             }
             catch
             {
@@ -71,7 +82,7 @@ public class Persona: Universe
     }
 
     // deals with IP assignment
-    func handleFirstMessage(_ flowerConnection: FlowerConnection) throws
+    func handleFirstMessage(_ flowerConnection: FlowerConnection) throws -> IPv4Address
     {
         guard let message = flowerConnection.readMessage() else
         {
@@ -99,7 +110,7 @@ public class Persona: Universe
 
                 flowerConnection.writeMessage(message: .IPAssignV4(ipv4))
 
-                return
+                return IPv4Address(address)!
             case .IPRequestV6:
                 // FIXME - support IPv6
                 throw PersonaError.unsupportedFirstMessage(message)
@@ -126,7 +137,7 @@ public class Persona: Universe
     // uses IP library to parse to use the right proxy
     // FIXME: currently only UDP has been implemented
     // after parsing and identifying, pass on to handleParsedMessage()
-    func handleNextMessage(_ flowerConnection: FlowerConnection) throws
+    func handleNextMessage(_ address: IPv4Address, _ flowerConnection: FlowerConnection) throws
     {
         guard let message = flowerConnection.readMessage() else
         {
@@ -183,7 +194,7 @@ public class Persona: Universe
                     }
 
                     let parsedMessage: Message = .UDPDataV4(endpoint, payload)
-                    try self.handleParsedMessage(parsedMessage)
+                    try self.handleParsedMessage(address, parsedMessage, packet)
                 }
                 else
                 {
@@ -199,23 +210,28 @@ public class Persona: Universe
     // handles the specifics of the packet types
     // connects to the address that the packet tries connecting to
     // wraps into a new packet with same destination and data and server's source address
-    func handleParsedMessage(_ message: Message) throws
+    func handleParsedMessage(_ address: IPv4Address, _ message: Message, _ packet: Packet) throws
     {
         print("handleParsedMessage(\(message.description))")
         switch message
         {
             case .UDPDataV4(let endpoint, let data):
-                let addressData = endpoint.host.rawValue
-                let addressString = "\(addressData[0]).\(addressData[1]).\(addressData[2]).\(addressData[3])"
-                let port = Int(endpoint.port.rawValue)
-                let connection = try self.connect(addressString, port, ConnectionType.udp)
-                let success = connection.write(data: data)
-                if !success
+                guard let conduit = self.conduitCollection.getConduit(with: address.string) else
                 {
-                    print("Failed write")
+                    print("Unknown conduit address \(address)")
+                    return
                 }
 
-                // FIXME - close connection
+                try self.udpProxy.processLocalPacket(conduit, packet)
+//                let addressData = endpoint.host.rawValue
+//                let addressString = "\(addressData[0]).\(addressData[1]).\(addressData[2]).\(addressData[3])"
+//                let port = Int(endpoint.port.rawValue)
+//                let connection = try self.connect(addressString, port, ConnectionType.udp)
+//                let success = connection.write(data: data)
+//                if !success
+//                {
+//                    print("Failed write")
+//                }
 
             case .UDPDataV6(_, _):
                 throw PersonaError.unsupportedParsedMessage(message)

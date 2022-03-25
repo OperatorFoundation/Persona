@@ -26,6 +26,7 @@ public class UdpProxy
     {
         guard let ipv4 = packet.ipv4 else
         {
+            print(packet)
             throw UdpProxyError.notIPv4Packet(packet)
         }
 
@@ -103,6 +104,7 @@ class UdpProxyConnection
     let connection: Transmission.Connection
 
     var lastUsed: Date
+    let queue = DispatchQueue(label: "UdpProxyConnection")
 
     public init(localAddress: IPv4Address, localPort: UInt16, remoteAddress: IPv4Address, remotePort: UInt16, conduit: Conduit, connection: Transmission.Connection)
     {
@@ -116,6 +118,11 @@ class UdpProxyConnection
         self.connection = connection
 
         lastUsed = Date() // now
+
+        self.queue.async
+        {
+            self.pumpRemote()
+        }
     }
 
     func pumpRemote()
