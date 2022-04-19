@@ -166,7 +166,9 @@ class UdpProxyConnection
             {
                 return
             }
-            
+
+            print(ipv4)
+
             let message = Message.IPDataV4(ipv4.data)
             self.conduit.flowerConnection.writeMessage(message: message)
 
