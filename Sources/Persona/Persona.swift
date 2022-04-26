@@ -91,12 +91,11 @@ public class Persona: Universe
             throw PersonaError.connectionClosed
         }
 
-        print("Persona.handleFirstMessage: received a \(message.description)")
+        print("Persona.handleFirstMessage: received an \(message.description)")
         
         switch message
         {
             case .IPRequestV4:
-                print("Persona.handleFirstMessage: received an IPV4 request")
                 guard let address = pool.allocate() else
                 {
                     // FIXME - close connection
