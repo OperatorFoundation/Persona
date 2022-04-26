@@ -148,7 +148,9 @@ public class Persona: Universe
             print("Connection closed")
             throw PersonaError.connectionClosed
         }
-
+        
+        print("Persona.handleNextMessage: received a \(message.description)")
+        
         switch message
         {
             case .IPDataV4(let data):
@@ -161,6 +163,7 @@ public class Persona: Universe
 
                 if let tcp = packet.tcp
                 {
+                    print("Persona.handleNextMessage: Received a TCP packet but this is not yet supported.")
                     if tcp.syn
                     {
 
