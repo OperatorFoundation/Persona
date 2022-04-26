@@ -140,6 +140,7 @@ class UdpProxyConnection
 
     public func processLocalPacket(_ udp: UDP)
     {
+        print("Persona.UdpProxy.processLocalPacket() called")
         guard let payload = udp.payload else
         {
             return
