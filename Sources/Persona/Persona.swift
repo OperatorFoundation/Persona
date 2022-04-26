@@ -84,6 +84,7 @@ public class Persona: Universe
     // deals with IP assignment
     func handleFirstMessage(_ flowerConnection: FlowerConnection) throws -> IPv4Address
     {
+        print("Persona.handleFirstMessage() called")
         guard let message = flowerConnection.readMessage() else
         {
             print("Connection closed")
@@ -93,6 +94,7 @@ public class Persona: Universe
         switch message
         {
             case .IPRequestV4:
+                print("Persona.handleFirstMessage: received an IPV4 request")
                 guard let address = pool.allocate() else
                 {
                     // FIXME - close connection
@@ -108,6 +110,7 @@ public class Persona: Universe
 
                 conduitCollection.addConduit(address: address, flowerConnection: flowerConnection)
 
+                print("Persona.handleFirstMessage: calling flowerConnection.writeMessage()")
                 flowerConnection.writeMessage(message: .IPAssignV4(ipv4))
 
                 return IPv4Address(address)!
@@ -139,6 +142,7 @@ public class Persona: Universe
     // after parsing and identifying, pass on to handleParsedMessage()
     func handleNextMessage(_ address: IPv4Address, _ flowerConnection: FlowerConnection) throws
     {
+        print("Persona.handleNextMessage() called")
         guard let message = flowerConnection.readMessage() else
         {
             print("Connection closed")
