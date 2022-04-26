@@ -91,6 +91,8 @@ public class Persona: Universe
             throw PersonaError.connectionClosed
         }
 
+        print("Persona.handleFirstMessage: received a \(message.description)")
+        
         switch message
         {
             case .IPRequestV4:
