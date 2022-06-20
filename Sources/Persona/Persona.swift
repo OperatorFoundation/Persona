@@ -52,12 +52,18 @@ public class Persona: Universe
     // takes a transmission connection and wraps as a flower connection
     func handleIncomingConnection(_ connection: TransmissionTypes.Connection)
     {
+        print("Persona.handleIncomingConnection() called.")
+        
         // FIXME - add logging
         let flowerConnection = FlowerConnection(connection: connection, log: nil)
+        
+        print("Persona created a Flower connection from incoming connection.")
 
         let address: IPv4Address
         do
         {
+            print("Persona.handleIncomingConnection: Calling handleFirstMessage()")
+            
             address = try self.handleFirstMessage(flowerConnection)
         }
         catch
