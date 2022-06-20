@@ -38,10 +38,7 @@ public class Persona: Universe
 
         while true
         {
-            guard let connection = listener.accept() else
-            {
-                continue
-            }
+            let connection = try listener.accept()
 
             display("New connection")
 
@@ -223,7 +220,7 @@ public class Persona: Universe
         print("handleParsedMessage(\(message.description))")
         switch message
         {
-            case .UDPDataV4(let endpoint, let data):
+            case .UDPDataV4(_, _):
                 guard let conduit = self.conduitCollection.getConduit(with: address.string) else
                 {
                     print("Unknown conduit address \(address)")
