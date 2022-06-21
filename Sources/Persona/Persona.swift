@@ -55,6 +55,8 @@ public class Persona: Universe
 
         while true
         {
+            display("Waiting to accept a connection.")
+            
             let connection = try listener.accept()
 
             display("New connection")
