@@ -17,6 +17,9 @@ import Universe
 
 public class Persona: Universe
 {
+    let connectionsQueue = DispatchQueue(label: "ConnectionsQueue")
+    let echoQueue = DispatchQueue(label: "EchoQueue")
+    
     var pool = AddressPool()
     var conduitCollection = ConduitCollection()
     
@@ -41,9 +44,10 @@ public class Persona: Universe
             throw PersonaError.echoListenerFailure
         }
         
-        Task
+        // MARK: async cannot be replaces with Task because it is not currently supported on Linux
+        echoQueue.async
         {
-            handleEchoListener(echoListener: echoListener)
+            self.handleEchoListener(echoListener: echoListener)
         }
         
         display("listening on \(listenAddr) \(listenPort)")
@@ -54,10 +58,11 @@ public class Persona: Universe
             let connection = try listener.accept()
 
             display("New connection")
-
-            Task
+            
+            // MARK: async cannot be replaces with Task because it is not currently supported on Linux
+            connectionsQueue.async
             {
-                handleIncomingConnection(connection)
+                self.handleIncomingConnection(connection)
             }
         }
     }
