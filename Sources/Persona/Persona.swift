@@ -11,6 +11,7 @@ import Foundation
 import InternetProtocols
 import Net
 import Spacetime
+import Transmission
 import TransmissionTypes
 import Universe
 
@@ -21,6 +22,7 @@ public class Persona: Universe
     
     var listenAddr = "0.0.0.0"
     var listenPort = 1234
+    var echoPort = 2233
 
     var udpProxy: UdpProxy! = nil
 
@@ -33,6 +35,17 @@ public class Persona: Universe
 
     public override func main() throws
     {
+        // TODO: Implement a logger
+        guard let echoListener = TransmissionListener(port: echoPort, type: .udp, logger: nil) else
+        {
+            throw PersonaError.echoListenerFailure
+        }
+        
+        Task
+        {
+            handleEchoListener(echoListener: echoListener)
+        }
+        
         display("listening on \(listenAddr) \(listenPort)")
         let listener = try self.listen(listenAddr, listenPort)
 
@@ -48,7 +61,30 @@ public class Persona: Universe
             }
         }
     }
-
+    
+    func handleEchoListener(echoListener: TransmissionListener)
+    {
+        while true
+        {
+            let connection = echoListener.accept()
+            display("New echo connection")
+            
+            guard let received = connection.read(size: 19) else
+            {
+                display("Echo server failed ot read 19 bytes, continuing with this connection")
+                continue
+            }
+            
+            display("Echo received a message: \(received.string)")
+            
+            guard connection.write(string: "Hello catbus ᓚᘏᗢ") else
+            {
+                display("Echo server failed to write a response, continuing with this connection.")
+                continue
+            }
+        }
+    }
+    
     // takes a transmission connection and wraps as a flower connection
     func handleIncomingConnection(_ connection: TransmissionTypes.Connection)
     {
@@ -265,4 +301,5 @@ public enum PersonaError: Error
     case packetNotIPv4(Data)
     case unsupportedPacketType(Data)
     case emptyPayload
+    case echoListenerFailure
 }
