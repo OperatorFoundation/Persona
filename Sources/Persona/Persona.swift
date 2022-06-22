@@ -38,16 +38,19 @@ public class Persona: Universe
 
     public override func main() throws
     {
-        // TODO: Implement a logger
-        guard let echoListener = TransmissionListener(port: echoPort, type: .udp, logger: nil) else
-        {
-            throw PersonaError.echoListenerFailure
-        }
-        
+        let echoListener = try self.listen(listenAddr, echoPort, type: .udp)
+
         // MARK: async cannot be replaces with Task because it is not currently supported on Linux
         echoQueue.async
         {
-            self.handleEchoListener(echoListener: echoListener)
+            do
+            {
+                try self.handleEchoListener(echoListener: echoListener)
+            }
+            catch
+            {
+                print("echo listener failed")
+            }
         }
         
         display("listening on \(listenAddr) \(listenPort)")
@@ -69,11 +72,11 @@ public class Persona: Universe
         }
     }
     
-    func handleEchoListener(echoListener: TransmissionListener)
+    func handleEchoListener(echoListener: TransmissionTypes.Listener) throws
     {
         while true
         {
-            let connection = echoListener.accept()
+            let connection = try echoListener.accept()
             display("New echo connection")
             
             guard let received = connection.read(size: 19) else
