@@ -81,9 +81,21 @@ public class Persona: Universe
             
             guard let received = connection.read(size: 19) else
             {
-                display("Echo server failed ot read 19 bytes, continuing with this connection")
+                display("Echo server failed to read 19 bytes, continuing with this connection")
                 continue
             }
+            
+            #if os(Linux)
+            if let transmissionConnection = connection as? TransmissionConnection
+            {
+                
+                if let sourceAddress = transmissionConnection.udpOutgoingAddress
+                {
+                    print("The source address for this udp packet is: \(sourceAddress)")
+                }
+                
+            }
+            #endif
             
             display("Echo received a message: \(received.string)")
             
