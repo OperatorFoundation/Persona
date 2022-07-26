@@ -126,6 +126,7 @@ public class Persona: Universe
         }
         catch
         {
+            flowerConnection.connection.close()
             return
         }
 
