@@ -29,14 +29,14 @@ public class TcpProxy
 
     public func processLocalPacket(_ conduit: Conduit, _ packet: Packet) throws
     {
-        guard let ipv4 = packet.ipv4 else
+        guard let ipv4Packet = packet.ipv4 else
         {
             throw TcpProxyError.notIPv4Packet(packet)
         }
 
-        guard let sourceAddress = IPv4Address(ipv4.sourceAddress) else
+        guard let sourceAddress = IPv4Address(ipv4Packet.sourceAddress) else
         {
-            throw TcpProxyError.invalidAddress(ipv4.sourceAddress)
+            throw TcpProxyError.invalidAddress(ipv4Packet.sourceAddress)
         }
 
         guard sourceAddress.string == conduit.address else
@@ -44,9 +44,9 @@ public class TcpProxy
             throw TcpProxyError.addressMismatch(sourceAddress.string, conduit.address)
         }
 
-        guard let destinationAddress = IPv4Address(ipv4.destinationAddress) else
+        guard let destinationAddress = IPv4Address(ipv4Packet.destinationAddress) else
         {
-            throw TcpProxyError.invalidAddress(ipv4.destinationAddress)
+            throw TcpProxyError.invalidAddress(ipv4Packet.destinationAddress)
         }
 
         guard let tcp = packet.tcp else
@@ -118,6 +118,7 @@ public class TcpProxy
             do
             {
                 try self.addConnection(proxy: self, localAddress: sourceAddress, localPort: sourcePort, remoteAddress: destinationAddress, remotePort: destinationPort, conduit: conduit, connection: networkConnection, irs: SequenceNumber(tcp.sequenceNumber))
+                
             }
             catch
             {
