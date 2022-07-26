@@ -259,11 +259,6 @@ public class Persona: Universe
                     let sourcePort = NWEndpoint.Port(integerLiteral: tcp.sourcePort)
                     let sourceEndpoint = EndpointV4(host: ipv4Source, port: sourcePort)
                     
-                    guard let payload = tcp.payload else
-                    {
-                        throw PersonaError.emptyPayload
-                    }
-                    
                     let streamID = generateStreamID(source: sourceEndpoint, destination: destinationEndpoint)
                     let parsedMessage: Message
                     
@@ -277,6 +272,11 @@ public class Persona: Universe
                     }
                     else
                     {
+                        guard let payload = tcp.payload else
+                        {
+                            throw PersonaError.emptyPayload
+                        }
+                        
                         parsedMessage = .TCPData(streamID, payload)
                     }
                     
