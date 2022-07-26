@@ -11,6 +11,7 @@ import Foundation
 import InternetProtocols
 import Net
 import Spacetime
+import SwiftHexTools
 import Transmission
 import TransmissionTypes
 import Universe
@@ -113,7 +114,7 @@ public class Persona: Universe
         print("Persona.handleIncomingConnection() called.")
         
         // FIXME - add logging
-        let flowerConnection = FlowerConnection(connection: connection, log: nil)
+        let flowerConnection = FlowerConnection(connection: connection, log: nil, logReads: true, logWrites: true)
         
         print("Persona created a Flower connection from incoming connection.")
 
@@ -208,7 +209,19 @@ public class Persona: Universe
         print("Persona.handleNextMessage() called")
         guard let message = flowerConnection.readMessage() else
         {
-            print("Connection closed")
+            print("Failed to read message")
+
+            if let logs = flowerConnection.readLog
+            {
+                print("Readlogs:")
+                print("******************")
+                for log in logs
+                {
+                    print(log.hex)
+                }
+                print("******************")
+            }
+
             throw PersonaError.connectionClosed
         }
         
