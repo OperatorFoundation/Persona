@@ -29,12 +29,14 @@ public class Persona: Universe
     var echoPort = 2233
 
     var udpProxy: UdpProxy! = nil
+    var tcpProxy: TcpProxy! = nil
 
     public override init(effects: BlockingQueue<Effect>, events: BlockingQueue<Event>)
     {
         super.init(effects: effects, events: events)
 
         self.udpProxy = UdpProxy(universe: self)
+        self.tcpProxy = TcpProxy(universe: self, quietTime: false)
     }
 
     public override func main() throws
@@ -231,7 +233,7 @@ public class Persona: Universe
         {
             case .IPDataV4(let data):
                 let packet = Packet(ipv4Bytes: data, timestamp: Date(), debugPrints: true)
-                guard let ipv4 = packet.ipv4 else
+                guard let ipv4Packet = packet.ipv4 else
                 {
                     // Drop this packet, but then continue processing more packets
                     throw PersonaError.packetNotIPv4(data)
@@ -239,38 +241,57 @@ public class Persona: Universe
 
                 if let tcp = packet.tcp
                 {
-                    print("Persona.handleNextMessage: Received a TCP packet but this is not yet supported.")
+                    guard let ipv4Destination = IPv4Address(data: ipv4Packet.destinationAddress) else
+                    {
+                        // Drop this packet, but then continue processing more packets
+                        throw PersonaError.addressDataIsNotIPv4(ipv4Packet.destinationAddress)
+                    }
+                    
+                    guard let ipv4Source = IPv4Address(data: ipv4Packet.sourceAddress) else
+                    {
+                        // Drop this packet, but then continue processing more packets
+                        throw PersonaError.addressDataIsNotIPv4(ipv4Packet.destinationAddress)
+                    }
+
+                    let destinationPort = NWEndpoint.Port(integerLiteral: tcp.destinationPort)
+                    let destinationEndpoint = EndpointV4(host: ipv4Destination, port: destinationPort)
+                    
+                    let sourcePort = NWEndpoint.Port(integerLiteral: tcp.sourcePort)
+                    let sourceEndpoint = EndpointV4(host: ipv4Source, port: sourcePort)
+                    
+                    guard let payload = tcp.payload else
+                    {
+                        throw PersonaError.emptyPayload
+                    }
+                    
+                    let streamID = generateStreamID(source: sourceEndpoint, destination: destinationEndpoint)
+                    let parsedMessage: Message
+                    
                     if tcp.syn
                     {
-
-                    }
-                    else if tcp.ack
-                    {
-
-                    }
-                    else if tcp.fin
-                    {
-
+                        parsedMessage = .TCPOpenV4(destinationEndpoint, streamID)
                     }
                     else if tcp.rst
                     {
-
+                        parsedMessage = .TCPClose(streamID)
                     }
                     else
                     {
-                        
+                        parsedMessage = .TCPData(streamID, payload)
                     }
+                    
+                    try self.handleParsedMessage(address, parsedMessage, packet)
                 }
                 if let udp = packet.udp
                 {
-                    guard let ipv4 = IPv4Address(data: ipv4.destinationAddress) else
+                    guard let ipv4Destination = IPv4Address(data: ipv4Packet.destinationAddress) else
                     {
                         // Drop this packet, but then continue processing more packets
-                        throw PersonaError.addressDataIsNotIPv4(ipv4.destinationAddress)
+                        throw PersonaError.addressDataIsNotIPv4(ipv4Packet.destinationAddress)
                     }
 
                     let port = NWEndpoint.Port(integerLiteral: udp.destinationPort)
-                    let endpoint = EndpointV4(host: ipv4, port: port)
+                    let endpoint = EndpointV4(host: ipv4Destination, port: port)
                     guard let payload = udp.payload else
                     {
                         throw PersonaError.emptyPayload
@@ -318,7 +339,16 @@ public class Persona: Universe
 
             case .UDPDataV6(_, _):
                 throw PersonaError.unsupportedParsedMessage(message)
-
+                
+            case .TCPOpenV4(_, _), .TCPData(_, _), .TCPClose(_):
+                guard let conduit = self.conduitCollection.getConduit(with: address.string) else
+                {
+                    print("Unknown conduit address \(address)")
+                    return
+                }
+                
+                try self.tcpProxy.processLocalPacket(conduit, packet)
+                
             default:
                 throw PersonaError.unsupportedParsedMessage(message)
         }
