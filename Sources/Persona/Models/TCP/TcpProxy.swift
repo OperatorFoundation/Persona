@@ -107,6 +107,7 @@ public class TcpProxy
         }
         else if tcp.syn // A new connection requires a SYN packet
         {
+            // connect() automatically send a syn-ack back for the syn internally
             guard let networkConnection = try? self.universe.connect(destinationAddress.string, Int(destinationPort), ConnectionType.tcp) else
             {
                 // Connection failed.

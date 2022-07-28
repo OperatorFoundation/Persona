@@ -78,6 +78,7 @@ class TcpProxyConnection: Equatable
     var timeWaitTimer: Timer? = nil
     var retransmissionTimer: Timer? = nil
 
+    // init() automatically send a syn-ack back for the syn (we only open a connect on receiving a syn)
     public init(proxy: TcpProxy, localAddress: IPv4Address, localPort: UInt16, remoteAddress: IPv4Address, remotePort: UInt16, conduit: Conduit, connection: Transmission.Connection, irs: SequenceNumber) throws
     {
         self.proxy = proxy
@@ -103,11 +104,15 @@ class TcpProxyConnection: Equatable
         self.sndWl2 = nil
         self.rcvWnd = 0
 
+        // FIXME - handle the case where we receive an unusual SYN packets which carries a payload
         try self.sendSynAck(conduit)
     }
 
+    // This is called for everything except the first syn received.
     public func processLocalPacket(_ tcp: InternetProtocols.TCP) throws
     {
+        // For the most part, we can only handle packets that are inside the TCP window.
+        // Otherwise, they might be old packets from a previous connection or redundant retransmissions.
         if self.inWindow(tcp)
         {
             if tcp.rst
@@ -265,9 +270,16 @@ class TcpProxyConnection: Equatable
 
                                 if let payload = tcp.payload
                                 {
+                                    // If a write to the server fails, the the server connection is closed.
+                                    // Start closing the client connection.
                                     guard self.connection.write(data: payload) else
                                     {
                                         // Connection is closed.
+
+                                        // Fully close the server connection and let users know that the connection is closed if they try to send data.
+                                        self.close()
+
+                                        // Start closing the client connection.
                                         try self.startClose(sequenceNumber: self.sndNxt, acknowledgementNumber: SequenceNumber(tcp.sequenceNumber))
                                         return
                                     }
@@ -379,10 +391,20 @@ class TcpProxyConnection: Equatable
                         return
                 }
 
+                // The client has closed the connection.
+                // The client will send no more data after this packet.
+                // However, the FIN packet may have its own payload.
                 if tcp.fin
                 {
+                    // Closing the client TCP connection takes a while.
+                    // We will close the connection to the server when we have finished closing the connection to the client.
+                    // In the meantime, tidy up the loose ends of closing the connection:
+                    // - send our own fin to the client, if necessary
+                    // - retransmit un-acked data
+                    // - ack incoming fin packets
                     switch self.state
                     {
+                        // FIXME - don't we need to send a fin?
                         case .synReceived, .established:
                             self.state = .closeWait
 
@@ -521,10 +543,16 @@ class TcpProxyConnection: Equatable
     {
         while self.open
         {
+            // If a read from the server connection fails, the the server connection is closed.
             guard let data = self.connection.read(maxSize: 3000) else
             {
-                // Remote side closed connection
+                // Fully close the server connection and let users know the connection is closed if they try to write data.
                 self.close()
+
+                // Start to close the client connection.
+                // FIXME - find the right acknowledgeNumber for this.
+//                try self.startClose(sequenceNumber: self.sndNxt, acknowledgementNumber: SequenceNumber(tcp.sequenceNumber))
+
                 return
             }
 

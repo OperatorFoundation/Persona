@@ -19,8 +19,10 @@ import Universe
 public class Persona: Universe
 {
     let connectionsQueue = DispatchQueue(label: "ConnectionsQueue")
-    let echoQueue = DispatchQueue(label: "EchoQueue")
-    
+    let echoUdpQueue = DispatchQueue(label: "EchoUdpQueue")
+    let echoTcpQueue = DispatchQueue(label: "EchoTcpQueue")
+    let echoTcpConnectionQueue = DispatchQueue(label: "EchoTcpConnectionQueue")
+
     var pool = AddressPool()
     var conduitCollection = ConduitCollection()
     
@@ -41,18 +43,32 @@ public class Persona: Universe
 
     public override func main() throws
     {
-        let echoListener = try self.listen(listenAddr, echoPort, type: .udp)
+        let echoUdpListener = try self.listen(listenAddr, echoPort, type: .udp)
 
         // MARK: async cannot be replaces with Task because it is not currently supported on Linux
-        echoQueue.async
+        echoUdpQueue.async
         {
             do
             {
-                try self.handleEchoListener(echoListener: echoListener)
+                try self.handleUdpEchoListener(echoListener: echoUdpListener)
             }
             catch
             {
                 print("echo listener failed")
+            }
+        }
+
+        let echoTcpListener = try self.listen(listenAddr, echoPort + 1, type: .tcp)
+
+        echoTcpQueue.async
+        {
+            do
+            {
+                try self.handleTcpEchoListener(echoListener: echoTcpListener)
+            }
+            catch
+            {
+                print("TCP echo listener failed")
             }
         }
         
@@ -75,7 +91,7 @@ public class Persona: Universe
         }
     }
     
-    func handleEchoListener(echoListener: TransmissionTypes.Listener) throws
+    func handleUdpEchoListener(echoListener: TransmissionTypes.Listener) throws
     {
         while true
         {
@@ -107,6 +123,39 @@ public class Persona: Universe
                 display("Echo server failed to write a response, continuing with this connection.")
                 continue
             }
+        }
+    }
+
+    func handleTcpEchoListener(echoListener: TransmissionTypes.Listener) throws
+    {
+        while true
+        {
+            let connection = try echoListener.accept()
+            display("New echo connection")
+
+            self.echoTcpConnectionQueue.async
+            {
+                self.handleTcpEchoConnection(connection: connection)
+            }
+        }
+    }
+
+    func handleTcpEchoConnection(connection: TransmissionTypes.Connection)
+    {
+        guard let received = connection.read(maxSize: 1024) else
+        {
+            display("TCP Echo server failed to read bytes, continuing with this connection, closing")
+            connection.close()
+            return
+        }
+
+        display("Echo received a message: \(received) - \(received.hex)")
+
+        guard connection.write(data: received) else
+        {
+            display("TCP Echo server failed to write a response, continuing with this connection, closing")
+            connection.close()
+            return
         }
     }
     
