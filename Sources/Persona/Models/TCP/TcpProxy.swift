@@ -115,7 +115,8 @@ public class TcpProxy
                 try self.sendRst(sourceAddress: sourceAddress, sourcePort: sourcePort, destinationAddress: destinationAddress, destinationPort: destinationPort, conduit, tcp, .closed)
                 return
             }
-
+            
+            print(" * Persona connected to the destination server (tcp.syn).")
             do
             {
                 try self.addConnection(proxy: self, localAddress: sourceAddress, localPort: sourcePort, remoteAddress: destinationAddress, remotePort: destinationPort, conduit: conduit, connection: networkConnection, irs: SequenceNumber(tcp.sequenceNumber))
@@ -142,8 +143,10 @@ public class TcpProxy
 
     func addConnection(proxy: TcpProxy, localAddress: IPv4Address, localPort: UInt16, remoteAddress: IPv4Address, remotePort: UInt16, conduit: Conduit, connection: Transmission.Connection, irs: SequenceNumber) throws
     {
+        print(" * Making a TcpProxyConnection")
         let connection = try TcpProxyConnection(proxy: proxy, localAddress: localAddress, localPort: localPort, remoteAddress: remoteAddress, remotePort: remotePort, conduit: conduit, connection: connection, irs: irs)
         self.connections.append(connection)
+        print(" * Created a TcpProxyConnection")
     }
 
     func findConnection(localAddress: IPv4Address, localPort: UInt16, remoteAddress: IPv4Address, remotePort: UInt16, tcp: InternetProtocols.TCP) -> TcpProxyConnection?

@@ -81,6 +81,7 @@ class TcpProxyConnection: Equatable
     // init() automatically send a syn-ack back for the syn (we only open a connect on receiving a syn)
     public init(proxy: TcpProxy, localAddress: IPv4Address, localPort: UInt16, remoteAddress: IPv4Address, remotePort: UInt16, conduit: Conduit, connection: Transmission.Connection, irs: SequenceNumber) throws
     {
+        print(" * TCPProxy init")
         self.proxy = proxy
         self.localAddress = localAddress
         self.localPort = localPort
@@ -106,6 +107,8 @@ class TcpProxyConnection: Equatable
 
         // FIXME - handle the case where we receive an unusual SYN packets which carries a payload
         try self.sendSynAck(conduit)
+        
+        print(" * TCPProxy init complete")
     }
 
     // This is called for everything except the first syn received.
@@ -573,6 +576,7 @@ class TcpProxyConnection: Equatable
 
     func sendSynAck(_ conduit: Conduit) throws
     {
+        print(" * sendSynAck called")
         try self.sendPacket(sequenceNumber: self.iss, acknowledgementNumber: self.rcvNxt, syn: true, ack: true)
     }
 
