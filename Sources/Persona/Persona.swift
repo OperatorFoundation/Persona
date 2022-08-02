@@ -306,7 +306,7 @@ public class Persona: Universe
                     print(" * ipv4Source: \(ipv4Source.string)")
                     
                     let destinationPort = NWEndpoint.Port(integerLiteral: tcp.destinationPort)
-                    print(" * destinationPort: \(destinationPort.debugDescription)")
+                    print(" * destinationPort: \(destinationPort)")
                     
                     let destinationEndpoint = EndpointV4(host: ipv4Destination, port: destinationPort)
                     print(" * destinationEndpoint: \(destinationEndpoint.host):\(destinationEndpoint.port)")
