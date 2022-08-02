@@ -296,29 +296,39 @@ public class Persona: Universe
                         // Drop this packet, but then continue processing more packets
                         throw PersonaError.addressDataIsNotIPv4(ipv4Packet.destinationAddress)
                     }
+                    print(" * ipv4Destination: \(ipv4Destination.string)")
                     
                     guard let ipv4Source = IPv4Address(data: ipv4Packet.sourceAddress) else
                     {
                         // Drop this packet, but then continue processing more packets
                         throw PersonaError.addressDataIsNotIPv4(ipv4Packet.destinationAddress)
                     }
-
+                    print(" * ipv4Source: \(ipv4Source.string)")
+                    
                     let destinationPort = NWEndpoint.Port(integerLiteral: tcp.destinationPort)
+                    print(" * destinationPort: \(destinationPort.debugDescription)")
+                    
                     let destinationEndpoint = EndpointV4(host: ipv4Destination, port: destinationPort)
+                    print(" * destinationEndpoint: \(destinationEndpoint.host):\(destinationEndpoint.port)")
                     
                     let sourcePort = NWEndpoint.Port(integerLiteral: tcp.sourcePort)
                     let sourceEndpoint = EndpointV4(host: ipv4Source, port: sourcePort)
+                    print(" * sourceEndpoint: \(sourceEndpoint.host):\(sourceEndpoint.port)")
                     
                     let streamID = generateStreamID(source: sourceEndpoint, destination: destinationEndpoint)
+                    print(" * streamID: \(streamID)")
+                    
                     let parsedMessage: Message
                     
                     if tcp.syn
                     {
                         parsedMessage = .TCPOpenV4(destinationEndpoint, streamID)
+                        print(" * syn parsedMessage: \(parsedMessage.description)")
                     }
                     else if tcp.rst
                     {
                         parsedMessage = .TCPClose(streamID)
+                        print(" * rst parsedMessage: \(parsedMessage.description)")
                     }
                     else
                     {
@@ -328,6 +338,7 @@ public class Persona: Universe
                         }
                         
                         parsedMessage = .TCPData(streamID, payload)
+                        print(" * parsedMessage: \(parsedMessage.description)")
                     }
                     
                     try self.handleParsedMessage(address, parsedMessage, packet)
