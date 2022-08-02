@@ -282,6 +282,7 @@ public class Persona: Universe
         {
             case .IPDataV4(let data):
                 let packet = Packet(ipv4Bytes: data, timestamp: Date(), debugPrints: true)
+                print(" * handleNextMessage created an IPV4 packet")
                 guard let ipv4Packet = packet.ipv4 else
                 {
                     // Drop this packet, but then continue processing more packets
