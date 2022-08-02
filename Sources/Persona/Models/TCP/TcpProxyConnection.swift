@@ -43,7 +43,8 @@ class TcpProxyConnection: Equatable
         let epochTimeIntervalInSeconds = Date().timeIntervalSince1970
         let microseconds = epochTimeIntervalInSeconds * 1000000
         let fourMicroseconds = microseconds / 4
-        let uint32 = UInt32(fourMicroseconds)
+        let wholeMicroseconds = fourMicroseconds.truncatingRemainder(dividingBy: Double(UInt32.max))
+        let uint32 = UInt32(wholeMicroseconds)
         return SequenceNumber(uint32)
     }
 
