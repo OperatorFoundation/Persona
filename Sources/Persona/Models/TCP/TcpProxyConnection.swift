@@ -656,15 +656,24 @@ class TcpProxyConnection: Equatable
 
     func sendPacket(sequenceNumber: SequenceNumber = SequenceNumber(0), acknowledgementNumber: SequenceNumber = SequenceNumber(0), syn: Bool = false, ack: Bool = false, fin: Bool = false, rst: Bool = false) throws
     {
-        print("sendPacket() called...")
+        print(" * sendPacket() called...")
         
-        guard let ipv4 = try IPv4(sourceAddress: self.remoteAddress, destinationAddress: self.localAddress, sourcePort: self.remotePort, destinationPort: self.localPort, sequenceNumber: sequenceNumber, acknowledgementNumber: acknowledgementNumber, syn: false, ack: ack, fin: false, rst: true, windowSize: 0, payload: nil) else
+        do
         {
-            throw TcpProxyError.badIpv4Packet
+            guard let ipv4 = try IPv4(sourceAddress: self.remoteAddress, destinationAddress: self.localAddress, sourcePort: self.remotePort, destinationPort: self.localPort, sequenceNumber: sequenceNumber, acknowledgementNumber: acknowledgementNumber, syn: false, ack: ack, fin: false, rst: true, windowSize: 0, payload: nil) else
+            {
+                print(" * sendPacket() failed to initialize IPv4 packet.")
+                throw TcpProxyError.badIpv4Packet
+            }
+            
+            let message = Message.IPDataV4(ipv4.data)
+            self.conduit.flowerConnection.writeMessage(message: message)
         }
-
-        let message = Message.IPDataV4(ipv4.data)
-        self.conduit.flowerConnection.writeMessage(message: message)
+        catch
+        {
+            print(" * sendPacket() failed to initialize IPv4 packet. Received an error: \(error)")
+            throw error
+        }
     }
 
     func startTimeWaitTimer()
