@@ -124,6 +124,8 @@ public class TcpProxy
             }
             catch
             {
+                print(" * Failed to add the connection. Trying sendRst() instead.")
+                
                 try self.sendRst(sourceAddress: sourceAddress, sourcePort: sourcePort, destinationAddress: destinationAddress, destinationPort: destinationPort, conduit, tcp, .closed)
                 return
             }
@@ -144,9 +146,17 @@ public class TcpProxy
     func addConnection(proxy: TcpProxy, localAddress: IPv4Address, localPort: UInt16, remoteAddress: IPv4Address, remotePort: UInt16, conduit: Conduit, connection: Transmission.Connection, irs: SequenceNumber) throws
     {
         print(" * Making a TcpProxyConnection")
-        let connection = try TcpProxyConnection(proxy: proxy, localAddress: localAddress, localPort: localPort, remoteAddress: remoteAddress, remotePort: remotePort, conduit: conduit, connection: connection, irs: irs)
-        self.connections.append(connection)
-        print(" * Created a TcpProxyConnection")
+        do
+        {
+            let connection = try TcpProxyConnection(proxy: proxy, localAddress: localAddress, localPort: localPort, remoteAddress: remoteAddress, remotePort: remotePort, conduit: conduit, connection: connection, irs: irs)
+            self.connections.append(connection)
+            print(" * Created a TcpProxyConnection")
+        }
+        catch
+        {
+            print(" * Failed to initialize a TcpProxyConnection: \(error)")
+            throw error
+        }
     }
 
     func findConnection(localAddress: IPv4Address, localPort: UInt16, remoteAddress: IPv4Address, remotePort: UInt16, tcp: InternetProtocols.TCP) -> TcpProxyConnection?
@@ -237,8 +247,9 @@ public class TcpProxy
 
     func sendPacket(conduit: Conduit, sourceAddress: IPv4Address, sourcePort: UInt16, destinationAddress: IPv4Address, destinationPort: UInt16, sequenceNumber: SequenceNumber = SequenceNumber(0), acknowledgementNumber: SequenceNumber = SequenceNumber(0), ack: Bool = false) throws
     {
-        guard let ipv4 = try IPv4(sourceAddress: sourceAddress, destinationAddress: destinationAddress, sourcePort: sourcePort, destinationPort: destinationPort, sequenceNumber: sequenceNumber, acknowledgementNumber: acknowledgementNumber, syn: false, ack: ack, fin: false, rst: true, windowSize: 0, payload: nil) else
+        guard let ipv4 = try? IPv4(sourceAddress: sourceAddress, destinationAddress: destinationAddress, sourcePort: sourcePort, destinationPort: destinationPort, sequenceNumber: sequenceNumber, acknowledgementNumber: acknowledgementNumber, syn: false, ack: ack, fin: false, rst: true, windowSize: 0, payload: nil) else
         {
+            print(" * sendPacket() failed to create an IPV4packet")
             throw TcpProxyError.badIpv4Packet
         }
 
