@@ -667,9 +667,12 @@ class TcpProxyConnection: Equatable
             print(" * destinationPort: \(self.localPort)")
             print(" * sequenceNumber: \(sequenceNumber)")
             print(" * acknowledgementNumber: \(acknowledgementNumber)")
+            print(" * syn: \(syn)")
             print(" * ack: \(ack)")
+            print(" * fin: \(fin)")
+            print(" * rst: \(rst)")
 
-            guard let ipv4 = try IPv4(sourceAddress: self.remoteAddress, destinationAddress: self.localAddress, sourcePort: self.remotePort, destinationPort: self.localPort, sequenceNumber: sequenceNumber, acknowledgementNumber: acknowledgementNumber, syn: false, ack: ack, fin: false, rst: true, windowSize: 0, payload: nil) else
+            guard let ipv4 = try IPv4(sourceAddress: self.remoteAddress, destinationAddress: self.localAddress, sourcePort: self.remotePort, destinationPort: self.localPort, sequenceNumber: sequenceNumber, acknowledgementNumber: acknowledgementNumber, syn: syn, ack: ack, fin: fin, rst: rst, windowSize: 0, payload: nil) else
             {
                 print(" * sendPacket() failed to initialize IPv4 packet.")
                 throw TcpProxyError.badIpv4Packet
