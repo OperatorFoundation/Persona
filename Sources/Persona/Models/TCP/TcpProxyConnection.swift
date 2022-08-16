@@ -660,13 +660,26 @@ class TcpProxyConnection: Equatable
         
         do
         {
+            print(" * Creating an IPv4 packet:")
+            print(" * sourceAddress: \(self.remoteAddress)")
+            print(" * destinationAddress: \(self.localAddress)")
+            print(" * sourcePort: \(self.remotePort)")
+            print(" * destinationPort: \(self.localPort)")
+            print(" * sequenceNumber: \(sequenceNumber)")
+            print(" * acknowledgementNumber: \(acknowledgementNumber)")
+            print(" * ack: \(ack)")
+
             guard let ipv4 = try IPv4(sourceAddress: self.remoteAddress, destinationAddress: self.localAddress, sourcePort: self.remotePort, destinationPort: self.localPort, sequenceNumber: sequenceNumber, acknowledgementNumber: acknowledgementNumber, syn: false, ack: ack, fin: false, rst: true, windowSize: 0, payload: nil) else
             {
                 print(" * sendPacket() failed to initialize IPv4 packet.")
                 throw TcpProxyError.badIpv4Packet
             }
             
+            print(" * IPv4 Packet created 💖")
+            
             let message = Message.IPDataV4(ipv4.data)
+            
+            print(" * IPDataV4 Message created: \(message)")
             self.conduit.flowerConnection.writeMessage(message: message)
         }
         catch
