@@ -324,12 +324,12 @@ public class Persona: Universe
                     if tcp.syn
                     {
                         parsedMessage = .TCPOpenV4(destinationEndpoint, streamID)
-                        print(" * syn parsedMessage: \(parsedMessage.description)")
+                        print(" * tcp.syn received parsed the message as TCPOpenV4")
                     }
                     else if tcp.rst
                     {
                         parsedMessage = .TCPClose(streamID)
-                        print(" * rst parsedMessage: \(parsedMessage.description)")
+                        print(" * tcp.rst received, parsed the message as TCPClose")
                     }
                     else
                     {
@@ -339,7 +339,7 @@ public class Persona: Universe
                         }
                         
                         parsedMessage = .TCPData(streamID, payload)
-                        print(" * parsedMessage: \(parsedMessage.description)")
+                        print(" * parsed the message as TCPData")
                     }
                     
                     try self.handleParsedMessage(address, parsedMessage, packet)

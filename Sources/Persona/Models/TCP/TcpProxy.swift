@@ -121,7 +121,7 @@ public class TcpProxy
             guard let networkConnection = try? self.universe.connect(destinationAddress.string, Int(destinationPort), ConnectionType.tcp) else
             {
                 // Connection failed.
-                
+                print("* Persona failed to connect to the destination address \(destinationAddress.string): \(destinationPort)")
                 try self.sendRst(sourceAddress: sourceAddress, sourcePort: sourcePort, destinationAddress: destinationAddress, destinationPort: destinationPort, conduit, tcp, .closed)
                 return
             }
@@ -194,6 +194,7 @@ public class TcpProxy
 
     func sendRst(sourceAddress: IPv4Address, sourcePort: UInt16, destinationAddress: IPv4Address, destinationPort: UInt16, _ conduit: Conduit, _ tcp: InternetProtocols.TCP, _ state: TCP.States) throws
     {
+        print(" * Persona sendRst called")
         switch state
         {
             case .closed:
@@ -217,21 +218,27 @@ public class TcpProxy
 
                  Return.
                  */
-
+                
+                print(" * TCP state is closed")
+                
                 if tcp.rst
                 {
+                    print(" * received tcp.reset, doing nothing")
                     return
                 }
                 else if tcp.ack
                 {
-                    try self.sendPacket(conduit: conduit, sourceAddress: sourceAddress, sourcePort: sourcePort, destinationAddress: destinationAddress, destinationPort: destinationPort, sequenceNumber: SequenceNumber(tcp.acknowledgementNumber))
+                    print(" * received tcp.ack, calling send packet with tcp.acknowledgementNumber, and ack: true")
+                    try self.sendPacket(conduit: conduit, sourceAddress: sourceAddress, sourcePort: sourcePort, destinationAddress: destinationAddress, destinationPort: destinationPort, sequenceNumber: SequenceNumber(tcp.acknowledgementNumber), ack: true)
                 }
                 else
                 {
+                    print(" * calling send packet with tcp.sequenceNumber + TransmissionControlBlock.sequenceLength(tcp), and ack: true")
                     let acknowledgementNumber = SequenceNumber(tcp.sequenceNumber).add(TransmissionControlBlock.sequenceLength(tcp))
                     try self.sendPacket(conduit: conduit, sourceAddress: sourceAddress, sourcePort: sourcePort, destinationAddress: destinationAddress, destinationPort: destinationPort, acknowledgementNumber: acknowledgementNumber, ack: true)
                 }
             case .listen:
+                print(" * TCP state is listen")
                 if tcp.ack
                 {
                     /*
@@ -242,15 +249,19 @@ public class TcpProxy
 
                      <SEQ=SEG.ACK><CTL=RST>
                      */
+                    
+                    print(" * received tcp.ack, calling send packet with tcp.acknowledgementNumber, and ack: true")
 
                     try self.sendPacket(conduit: conduit, sourceAddress: sourceAddress, sourcePort: sourcePort, destinationAddress: destinationAddress, destinationPort: destinationPort, sequenceNumber: SequenceNumber(tcp.acknowledgementNumber), ack: true)
                 }
                 else
                 {
+                    print(" * no tcp.ack received, doing nothing")
                     return
                 }
 
             default:
+                print(" * TCP state is an unexpected value, doing nothing")
                 return
         }
     }
@@ -264,6 +275,8 @@ public class TcpProxy
         }
 
         let message = Message.IPDataV4(ipv4.data)
+        
+        print("* Created an IPDataV4 message, asking flower to write the message...")
         conduit.flowerConnection.writeMessage(message: message)
     }
 }
