@@ -257,10 +257,9 @@ public class Persona: Universe
     // after parsing and identifying, pass on to handleParsedMessage()
     func handleNextMessage(_ address: IPv4Address, _ flowerConnection: FlowerConnection) throws
     {
-        print("Persona.handleNextMessage() called")
         guard let message = flowerConnection.readMessage() else
         {
-            print("Failed to read message")
+            print("\n* Persona.handleNextMessage Failed to read a flower message. The connection is probably closed.")
 
             if let logs = flowerConnection.readLog
             {
@@ -276,18 +275,20 @@ public class Persona: Universe
             throw PersonaError.connectionClosed
         }
         
-        print("Persona.handleNextMessage: received a \(message.description)")
+        print("\n* Persona.handleNextMessage: received a \(message.description)")
         
         switch message
         {
             case .IPDataV4(let data):
                 let packet = Packet(ipv4Bytes: data, timestamp: Date(), debugPrints: true)
-                print(" * handleNextMessage created an IPV4 packet")
                 guard let ipv4Packet = packet.ipv4 else
                 {
                     // Drop this packet, but then continue processing more packets
+                    print(" * Persona.handleNextMessage: received data was not an IPV4 packet, ignoring this packet.")
                     throw PersonaError.packetNotIPv4(data)
                 }
+                
+                print(" * Persona.handleNextMessage: received an IPV4 packet")
 
                 if let tcp = packet.tcp
                 {
@@ -364,6 +365,7 @@ public class Persona: Universe
                 else
                 {
                     // Drop this packet, but then continue processing more packets
+                    print(" * Persona.handleNextMessage: received a packet that is not UDP, currently only UDP is supported.")
                     throw PersonaError.unsupportedPacketType(data)
                 }
             default:
@@ -377,13 +379,14 @@ public class Persona: Universe
     // wraps into a new packet with same destination and data and server's source address
     func handleParsedMessage(_ address: IPv4Address, _ message: Message, _ packet: Packet) throws
     {
-        print("handleParsedMessage(\(message.description))")
+        print("\n* Persona.handleParsedMessage()")
         switch message
         {
             case .UDPDataV4(_, _):
+                print("* Persona received a UPDataV4 type message")
                 guard let conduit = self.conduitCollection.getConduit(with: address.string) else
                 {
-                    print("Unknown conduit address \(address)")
+                    print("* Unknown conduit address \(address)")
                     return
                 }
 
@@ -399,12 +402,14 @@ public class Persona: Universe
 //                }
 
             case .UDPDataV6(_, _):
+                print("* Persona received a UDPDataV6 type message. This is not currently supported.")
                 throw PersonaError.unsupportedParsedMessage(message)
                 
             case .TCPOpenV4(_, _), .TCPData(_, _), .TCPClose(_):
+                print("* Persona received a TCP message")
                 guard let conduit = self.conduitCollection.getConduit(with: address.string) else
                 {
-                    print("Unknown conduit address \(address)")
+                    print("* Unknown conduit address \(address)")
                     return
                 }
                 

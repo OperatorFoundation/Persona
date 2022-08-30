@@ -29,6 +29,8 @@ public class TcpProxy
 
     public func processLocalPacket(_ conduit: Conduit, _ packet: Packet) throws
     {
+        print("\n* Persona.TcpProxy: Attempting to process a TCP packet.")
+        
         guard let ipv4Packet = packet.ipv4 else
         {
             throw TcpProxyError.notIPv4Packet(packet)
@@ -38,6 +40,7 @@ public class TcpProxy
         {
             throw TcpProxyError.invalidAddress(ipv4Packet.sourceAddress)
         }
+        print("* Source Address: \(sourceAddress.string)")
 
         guard sourceAddress.string == conduit.address else
         {
@@ -48,6 +51,7 @@ public class TcpProxy
         {
             throw TcpProxyError.invalidAddress(ipv4Packet.destinationAddress)
         }
+        print("* Destination Address: \(destinationAddress)")
 
         guard let tcp = packet.tcp else
         {
@@ -55,14 +59,19 @@ public class TcpProxy
         }
 
         let sourcePort = tcp.sourcePort
+        print("* Source Port: \(sourcePort)")
+        
         let destinationPort = tcp.destinationPort
+        print("* Destination Port: \(destinationPort)")
 
         if let proxyConnection = self.findConnection(localAddress: sourceAddress, localPort: sourcePort, remoteAddress: destinationAddress, remotePort: destinationPort, tcp: tcp)
         {
+            print("* This is an existing proxy connection, calling proxyConnection.processLocalPacket(tcp)")
             try proxyConnection.processLocalPacket(tcp)
         }
         else
         {
+            print("* This is a new destination, calling handleNewConnection()")
             try self.handleNewConnection(tcp: tcp, sourceAddress: sourceAddress, sourcePort: sourcePort, destinationAddress: destinationAddress, destinationPort: destinationPort, conduit: conduit)
         }
     }
@@ -84,7 +93,7 @@ public class TcpProxy
 
              An incoming RST should be ignored.  Return.
              */
-
+            
             return
         }
         else if tcp.ack
@@ -107,16 +116,17 @@ public class TcpProxy
         }
         else if tcp.syn // A new connection requires a SYN packet
         {
+            print("* handleNewConnection received a syn")
             // connect() automatically send a syn-ack back for the syn internally
             guard let networkConnection = try? self.universe.connect(destinationAddress.string, Int(destinationPort), ConnectionType.tcp) else
             {
                 // Connection failed.
-
+                
                 try self.sendRst(sourceAddress: sourceAddress, sourcePort: sourcePort, destinationAddress: destinationAddress, destinationPort: destinationPort, conduit, tcp, .closed)
                 return
             }
             
-            print(" * Persona connected to the destination server (tcp.syn).")
+            print(" * Persona connected to the new destination server (tcp.syn).")
             do
             {
                 try self.addConnection(proxy: self, localAddress: sourceAddress, localPort: sourcePort, remoteAddress: destinationAddress, remotePort: destinationPort, conduit: conduit, connection: networkConnection, irs: SequenceNumber(tcp.sequenceNumber))

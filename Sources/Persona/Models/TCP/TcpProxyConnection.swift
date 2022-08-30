@@ -583,11 +583,13 @@ class TcpProxyConnection: Equatable
 
     func sendAck(_ tcp: InternetProtocols.TCP, _ state: TCP.States) throws
     {
+        print(" * sendAck called")
         try self.sendPacket(sequenceNumber: self.iss, acknowledgementNumber: self.rcvNxt, syn: true, ack: true)
     }
 
     func sendRst(_ conduit: Conduit, _ tcp: InternetProtocols.TCP, _ state: TCP.States) throws
     {
+        print(" * sendRst called")
         switch state
         {
             case .closed:
@@ -656,8 +658,6 @@ class TcpProxyConnection: Equatable
 
     func sendPacket(sequenceNumber: SequenceNumber = SequenceNumber(0), acknowledgementNumber: SequenceNumber = SequenceNumber(0), syn: Bool = false, ack: Bool = false, fin: Bool = false, rst: Bool = false) throws
     {
-        print(" * sendPacket() called...")
-        
         do
         {
             print(" * Creating an IPv4 packet:")

@@ -607,47 +607,57 @@ public class TCP
     public func createTCB()
     {
         // FIXME - implement
+        print("* createTCB not implemented")
     }
 
     public func deleteTCB()
     {
         // FIXME - implement
+        print("* deleteTCB not implemented")
     }
 
     public func sndSyn()
     {
         // FIXME - implement
         self.sendSequenceNumber = self.sendSequenceNumber.increment()
+        print("* sndSyn not implemented")
     }
 
     public func sndSynAck(_ tcp: InternetProtocols.TCP)
     {
         // FIXME - implement
+        print("* sndSynAck not implemented")
     }
 
     public func sndAck(_ tcp: InternetProtocols.TCP)
     {
+        print("* sndAck not implemented")
         // FIXME - implement
     }
 
     public func sndFin()
     {
+        
         // FIXME - implement
+        print("* sndFin not implemented")
     }
 
     public func sndRst(sequenceNumber: SequenceNumber, acknowledgementNumber: SequenceNumber)
     {
         // FIXME - implement
+        print("* sndRst not implemented")
     }
 
     public func sndData(data: Data)
     {
         // FIXME - implement
+        print("* sndData not implemented")
     }
 
     public func flushSendQueue()
     {
         // FIXME - implement
+        print("* flushSendQueue not implemented")
     }
 
     public func handleOptions(_ data: Data)
