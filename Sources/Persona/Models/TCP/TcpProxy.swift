@@ -233,8 +233,9 @@ public class TcpProxy
                 }
                 else
                 {
-                    print("* calling send packet with acknowledgement#: tcp.sequenceNumber + TransmissionControlBlock.sequenceLength(tcp), and ack: true")
+                    print("* calling send packet with acknowledgement#: tcp.sequenceNumber + TransmissionControlBlock.sequenceLength(tcp)")
                     let acknowledgementNumber = SequenceNumber(tcp.sequenceNumber).add(TransmissionControlBlock.sequenceLength(tcp))
+                    
                     try self.sendPacket(conduit: conduit, sourceAddress: sourceAddress, sourcePort: sourcePort, destinationAddress: destinationAddress, destinationPort: destinationPort, acknowledgementNumber: acknowledgementNumber)
                 }
             case .listen:
