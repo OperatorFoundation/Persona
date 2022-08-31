@@ -284,11 +284,11 @@ public class Persona: Universe
                 guard let ipv4Packet = packet.ipv4 else
                 {
                     // Drop this packet, but then continue processing more packets
-                    print(" * Persona.handleNextMessage: received data was not an IPV4 packet, ignoring this packet.")
+                    print("* Persona.handleNextMessage: received data was not an IPV4 packet, ignoring this packet.")
                     throw PersonaError.packetNotIPv4(data)
                 }
                 
-                print(" * Persona.handleNextMessage: received an IPV4 packet")
+                print("* Persona.handleNextMessage: received an IPV4 packet")
 
                 if let tcp = packet.tcp
                 {
@@ -297,39 +297,39 @@ public class Persona: Universe
                         // Drop this packet, but then continue processing more packets
                         throw PersonaError.addressDataIsNotIPv4(ipv4Packet.destinationAddress)
                     }
-                    print(" * ipv4Destination: \(ipv4Destination.string)")
+                    print("* ipv4Destination: \(ipv4Destination.string)")
                     
                     guard let ipv4Source = IPv4Address(data: ipv4Packet.sourceAddress) else
                     {
                         // Drop this packet, but then continue processing more packets
                         throw PersonaError.addressDataIsNotIPv4(ipv4Packet.destinationAddress)
                     }
-                    print(" * ipv4Source: \(ipv4Source.string)")
+                    print("* ipv4Source: \(ipv4Source.string)")
                     
                     let destinationPort = NWEndpoint.Port(integerLiteral: tcp.destinationPort)
-                    print(" * destinationPort: \(destinationPort)")
+                    print("* destinationPort: \(destinationPort)")
                     
                     let destinationEndpoint = EndpointV4(host: ipv4Destination, port: destinationPort)
-                    print(" * destinationEndpoint: \(destinationEndpoint.host):\(destinationEndpoint.port)")
+                    print("* destinationEndpoint: \(destinationEndpoint.host):\(destinationEndpoint.port)")
                     
                     let sourcePort = NWEndpoint.Port(integerLiteral: tcp.sourcePort)
                     let sourceEndpoint = EndpointV4(host: ipv4Source, port: sourcePort)
-                    print(" * sourceEndpoint: \(sourceEndpoint.host):\(sourceEndpoint.port)")
+                    print("* sourceEndpoint: \(sourceEndpoint.host):\(sourceEndpoint.port)")
                     
                     let streamID = generateStreamID(source: sourceEndpoint, destination: destinationEndpoint)
-                    print(" * streamID: \(streamID)")
+                    print("* streamID: \(streamID)")
                     
                     let parsedMessage: Message
                     
                     if tcp.syn
                     {
                         parsedMessage = .TCPOpenV4(destinationEndpoint, streamID)
-                        print(" * tcp.syn received parsed the message as TCPOpenV4")
+                        print("* tcp.syn received parsed the message as TCPOpenV4")
                     }
                     else if tcp.rst
                     {
                         parsedMessage = .TCPClose(streamID)
-                        print(" * tcp.rst received, parsed the message as TCPClose")
+                        print("* tcp.rst received, parsed the message as TCPClose")
                     }
                     else
                     {
@@ -339,7 +339,7 @@ public class Persona: Universe
                         }
                         
                         parsedMessage = .TCPData(streamID, payload)
-                        print(" * parsed the message as TCPData")
+                        print("* parsed the message as TCPData")
                     }
                     
                     try self.handleParsedMessage(address, parsedMessage, packet)
@@ -365,7 +365,7 @@ public class Persona: Universe
                 else
                 {
                     // Drop this packet, but then continue processing more packets
-                    print(" * Persona.handleNextMessage: received a packet that is not UDP, currently only UDP is supported.")
+                    print("* Persona.handleNextMessage: received a packet that is not UDP, currently only UDP is supported.")
                     throw PersonaError.unsupportedPacketType(data)
                 }
             default:

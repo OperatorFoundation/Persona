@@ -82,7 +82,7 @@ class TcpProxyConnection: Equatable
     // init() automatically send a syn-ack back for the syn (we only open a connect on receiving a syn)
     public init(proxy: TcpProxy, localAddress: IPv4Address, localPort: UInt16, remoteAddress: IPv4Address, remotePort: UInt16, conduit: Conduit, connection: Transmission.Connection, irs: SequenceNumber) throws
     {
-        print(" * TCPProxy init")
+        print("* TCPProxy init")
         self.proxy = proxy
         self.localAddress = localAddress
         self.localPort = localPort
@@ -109,7 +109,7 @@ class TcpProxyConnection: Equatable
         // FIXME - handle the case where we receive an unusual SYN packets which carries a payload
         try self.sendSynAck(conduit)
         
-        print(" * TCPProxy init complete")
+        print("* TCPProxy init complete")
     }
 
     // This is called for everything except the first syn received.
@@ -577,19 +577,19 @@ class TcpProxyConnection: Equatable
 
     func sendSynAck(_ conduit: Conduit) throws
     {
-        print(" * sendSynAck called")
+        print("* sendSynAck called")
         try self.sendPacket(sequenceNumber: self.iss, acknowledgementNumber: self.rcvNxt, syn: true, ack: true)
     }
 
     func sendAck(_ tcp: InternetProtocols.TCP, _ state: TCP.States) throws
     {
-        print(" * sendAck called")
+        print("* sendAck called")
         try self.sendPacket(sequenceNumber: self.iss, acknowledgementNumber: self.rcvNxt, syn: true, ack: true)
     }
 
     func sendRst(_ conduit: Conduit, _ tcp: InternetProtocols.TCP, _ state: TCP.States) throws
     {
-        print(" * sendRst called")
+        print("* sendRst called")
         switch state
         {
             case .closed:
@@ -660,34 +660,34 @@ class TcpProxyConnection: Equatable
     {
         do
         {
-            print(" * Creating an IPv4 packet:")
-            print(" * sourceAddress: \(self.remoteAddress)")
-            print(" * destinationAddress: \(self.localAddress)")
-            print(" * sourcePort: \(self.remotePort)")
-            print(" * destinationPort: \(self.localPort)")
-            print(" * sequenceNumber: \(sequenceNumber)")
-            print(" * acknowledgementNumber: \(acknowledgementNumber)")
-            print(" * syn: \(syn)")
-            print(" * ack: \(ack)")
-            print(" * fin: \(fin)")
-            print(" * rst: \(rst)")
+            print("* Creating an IPv4 packet:")
+            print("* sourceAddress: \(self.remoteAddress)")
+            print("* destinationAddress: \(self.localAddress)")
+            print("* sourcePort: \(self.remotePort)")
+            print("* destinationPort: \(self.localPort)")
+            print("* sequenceNumber: \(sequenceNumber)")
+            print("* acknowledgementNumber: \(acknowledgementNumber)")
+            print("* syn: \(syn)")
+            print("* ack: \(ack)")
+            print("* fin: \(fin)")
+            print("* rst: \(rst)")
 
             guard let ipv4 = try IPv4(sourceAddress: self.remoteAddress, destinationAddress: self.localAddress, sourcePort: self.remotePort, destinationPort: self.localPort, sequenceNumber: sequenceNumber, acknowledgementNumber: acknowledgementNumber, syn: syn, ack: ack, fin: fin, rst: rst, windowSize: 0, payload: nil) else
             {
-                print(" * sendPacket() failed to initialize IPv4 packet.")
+                print("* sendPacket() failed to initialize IPv4 packet.")
                 throw TcpProxyError.badIpv4Packet
             }
             
-            print(" * IPv4 Packet created 💖")
+            print("* IPv4 Packet created 💖")
             
             let message = Message.IPDataV4(ipv4.data)
             
-            print(" * IPDataV4 Message created: \(message)")
+            print("* IPDataV4 Message created: \(message)")
             self.conduit.flowerConnection.writeMessage(message: message)
         }
         catch
         {
-            print(" * sendPacket() failed to initialize IPv4 packet. Received an error: \(error)")
+            print("* sendPacket() failed to initialize IPv4 packet. Received an error: \(error)")
             throw error
         }
     }
