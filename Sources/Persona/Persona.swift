@@ -54,7 +54,7 @@ public class Persona: Universe
             }
             catch
             {
-                print("echo listener failed")
+                print("UDP echo listener failed")
             }
         }
 
@@ -96,12 +96,12 @@ public class Persona: Universe
         while true
         {
             let connection = try echoListener.accept()
-            display("New echo connection")
+            print("New UDP echo connection")
             
             // We are expecting to receive a specific message from MoonbounceAndroid: ᓚᘏᗢ Catbus is UDP tops! ᓚᘏᗢ
             guard let received = connection.read(size: 39) else
             {
-                display("Echo server failed to read 39 bytes, continuing with this connection")
+                print("UDP Echo server failed to read 39 bytes, continuing with this connection")
                 continue
             }
             
@@ -117,13 +117,15 @@ public class Persona: Universe
             }
             #endif
             
-            display("Echo received a message: \(received.string)")
+            print("UDP Echo received a message: \(received.string)")
             
-            guard connection.write(string: "Hello catbus ᓚᘏᗢ") else
+            guard connection.write(string: received.string) else
             {
-                display("Echo server failed to write a response, continuing with this connection.")
+                print("UDP Echo server failed to write a response, continuing with this connection.")
                 continue
             }
+            
+            print("UDP Echo server sent a response: \(received.string)")
         }
     }
 
@@ -132,7 +134,7 @@ public class Persona: Universe
         while true
         {
             let connection = try echoListener.accept()
-            display("New echo connection")
+            print("New TCP echo connection")
 
             self.echoTcpConnectionQueue.async
             {
@@ -145,19 +147,21 @@ public class Persona: Universe
     {
         guard let received = connection.read(maxSize: 1024) else
         {
-            display("TCP Echo server failed to read bytes, continuing with this connection, closing")
+            print("TCP Echo server failed to read bytes, continuing with this connection, closing")
             connection.close()
             return
         }
 
-        display("Echo received a message: \(received) - \(received.hex)")
+        print("TCP Echo received a message: \(received) - \(received.hex)")
 
         guard connection.write(data: received) else
         {
-            display("TCP Echo server failed to write a response, continuing with this connection, closing")
+            print("TCP Echo server failed to write a response, continuing with this connection, closing")
             connection.close()
             return
         }
+        
+        print("TCP Echo server sent a response: \(received.string)")
     }
     
     // takes a transmission connection and wraps as a flower connection
