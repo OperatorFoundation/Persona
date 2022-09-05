@@ -98,9 +98,10 @@ public class Persona: Universe
             let connection = try echoListener.accept()
             display("New echo connection")
             
-            guard let received = connection.read(size: 19) else
+            // We are expecting to receive a specific message from MoonbounceAndroid: ᓚᘏᗢ Catbus is UDP tops! ᓚᘏᗢ
+            guard let received = connection.read(size: 39) else
             {
-                display("Echo server failed to read 19 bytes, continuing with this connection")
+                display("Echo server failed to read 39 bytes, continuing with this connection")
                 continue
             }
             
