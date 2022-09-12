@@ -340,6 +340,7 @@ public class Persona: Universe
                     {
                         guard let payload = tcp.payload else
                         {
+                            print("* error: payload is nil")
                             throw PersonaError.emptyPayload
                         }
                         
