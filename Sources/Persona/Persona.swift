@@ -367,12 +367,12 @@ public class Persona: Universe
                     let parsedMessage: Message = .UDPDataV4(endpoint, payload)
                     try self.handleParsedMessage(address, parsedMessage, packet)
                 }
-                else
-                {
-                    // Drop this packet, but then continue processing more packets
-                    print("* Persona.handleNextMessage: received a packet that is not UDP, currently only UDP is supported.")
-                    throw PersonaError.unsupportedPacketType(data)
-                }
+//                else
+//                {
+//                    // Drop this packet, but then continue processing more packets
+//                    print("* Persona.handleNextMessage: received a packet that is not UDP, currently only UDP is supported.")
+//                    throw PersonaError.unsupportedPacketType(data)
+//                }
             default:
                 // Drop this message, but then continue processing more messages
                 throw PersonaError.unsupportedNextMessage(message)
