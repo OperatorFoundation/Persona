@@ -145,23 +145,23 @@ public class Persona: Universe
 
     func handleTcpEchoConnection(connection: TransmissionTypes.Connection)
     {
-        guard let received = connection.read(maxSize: 1024) else
+        guard let received = connection.read(maxSize: 41) else
         {
-            print("TCP Echo server failed to read bytes, continuing with this connection, closing")
+            print("❌ TCP Echo server failed to read bytes, continuing with this connection, closing")
             connection.close()
             return
         }
 
-        print("TCP Echo received a message: \(received) - \(received.hex)")
+        print("🐈 TCP Echo received a message: \(received) - \(received.hex)")
 
         guard connection.write(data: received) else
         {
-            print("TCP Echo server failed to write a response, continuing with this connection, closing")
+            print("❌ TCP Echo server failed to write a response, continuing with this connection, closing")
             connection.close()
             return
         }
-        
-        print("TCP Echo server sent a response: \(received.string)")
+       
+        print("🐈 TCP Echo server sent a response: \(received.string)")
     }
     
     // takes a transmission connection and wraps as a flower connection
