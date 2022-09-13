@@ -517,19 +517,19 @@ class TcpProxyConnection: Equatable
     func inWindow(_ tcp: InternetProtocols.TCP) -> Bool
     {
         print("* Persona.inWindow called")
+        print("* Persona.inWindow: rcvNxt = \(rcvNxt)")
+        print("* Persona.inWindow: rcvWnd = \(rcvWnd)")
+        print("* Persona.inWindow: tcp.sequenceNumber = \(tcp.sequenceNumber)")
         
         let rcvLast = self.rcvNxt.add(Int(self.rcvWnd))
-        print("* Persona.inWindow: rcvLast - \(rcvLast)")
+        print("* Persona.inWindow: rcvLast = \(rcvLast)")
         
         let segSeq = SequenceNumber(tcp.sequenceNumber)
-        print("* Persona.inWindow: segSeq - \(segSeq)")
+        print("* Persona.inWindow: segSeq = \(segSeq)")
         
         let segLen = TransmissionControlBlock.sequenceLength(tcp)
-        print("* Persona.inWindow: segLen - \(segLen)")
-        
-        let segLast = segSeq.add(segLen - 1)
-        print("* Persona.inWindow: segLast - \(segLast)")
-        
+        print("* Persona.inWindow: segLen = \(segLen)")
+
         if segLen == 0
         {
             print("* Persona.inWindow: segLen == 0")
@@ -551,6 +551,9 @@ class TcpProxyConnection: Equatable
         {
             print("* Persona.inWindow: seqLen > 0")
             
+            let segLast = segSeq.add(segLen - 1)
+            print("* Persona.inWindow: segLast = \(segLast)")
+
             if self.rcvWnd == 0
             {
                 print("* Persona.inWindow: rcvWnd == 0")
