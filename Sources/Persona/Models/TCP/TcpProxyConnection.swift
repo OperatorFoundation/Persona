@@ -104,7 +104,7 @@ class TcpProxyConnection: Equatable
         self.sndNxt = self.iss.increment()
         
         print(" 🐡 irs = \(irs) | iss = \(iss)")
-        print(" 🐡 rcvNxt = \(rcvNxt) | sndNxt = \(sndNxt)")
+        print(" 🐡 rcvNxt = \(rcvNxt.uint32) | sndNxt = \(sndNxt.uint32)")
 
         self.sndUna = self.iss
         self.sndWnd = 0
@@ -324,7 +324,7 @@ class TcpProxyConnection: Equatable
                                  */
 
                                 self.rcvNxt = self.rcvNxt.add(TransmissionControlBlock.sequenceLength(tcp))
-                                print(" 🐡 rcvNxt = \(rcvNxt) | sndNxt = \(sndNxt)")
+                                print(" 🐡 rcvNxt = \(rcvNxt.uint32) | sndNxt = \(sndNxt.uint32)")
                                 
                                 self.rcvWnd += UInt16(TransmissionControlBlock.sequenceLength(tcp))
                                 
@@ -525,7 +525,7 @@ class TcpProxyConnection: Equatable
     func inWindow(_ tcp: InternetProtocols.TCP) -> Bool
     {
         print("* Persona.inWindow called")
-        print(" 🐡 rcvNxt = \(rcvNxt) | sndNxt = \(sndNxt)")
+        print(" 🐡 rcvNxt = \(rcvNxt.uint32) | sndNxt = \(sndNxt.uint32)")
         print("* Persona.inWindow: rcvWnd = \(rcvWnd)")
         print("* Persona.inWindow: tcp.sequenceNumber = \(tcp.sequenceNumber)")
         
