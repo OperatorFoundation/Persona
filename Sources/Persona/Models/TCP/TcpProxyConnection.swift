@@ -83,7 +83,7 @@ class TcpProxyConnection: Equatable
     // init() automatically send a syn-ack back for the syn (we only open a connect on receiving a syn)
     public init(proxy: TcpProxy, localAddress: IPv4Address, localPort: UInt16, remoteAddress: IPv4Address, remotePort: UInt16, conduit: Conduit, connection: Transmission.Connection, irs: SequenceNumber) throws
     {
-        print("* TCPProxy init")
+        print("* TCPProxyConnection init")
         self.proxy = proxy
         self.localAddress = localAddress
         self.localPort = localPort
@@ -99,17 +99,13 @@ class TcpProxyConnection: Equatable
         self.state = .synReceived
         
         self.irs = irs
-        print("* TCPProxy: irs = \(irs)")
-        
         self.rcvNxt = self.irs.increment()
-        print("* TCPProxy: rcvNxt = \(rcvNxt)")
-        
         self.iss = TcpProxyConnection.isn()
-        print("* TCPProxy: iss = \(iss)")
-        
         self.sndNxt = self.iss.increment()
-        print("* TCPProxy: sndNxt = \(sndNxt)")
         
+        print(" 🐡 irs = \(irs) | iss = \(iss)")
+        print(" 🐡 rcvNxt = \(rcvNxt) | sndNxt = \(sndNxt)")
+
         self.sndUna = self.iss
         self.sndWnd = 0
         self.sndWl1 = nil
@@ -119,7 +115,7 @@ class TcpProxyConnection: Equatable
         // FIXME - handle the case where we receive an unusual SYN packets which carries a payload
         try self.sendSynAck(conduit)
         
-        print("* TCPProxy init complete")
+        print("* TCPProxyConnection init complete")
     }
 
     // This is called for everything except the first syn received.
@@ -328,7 +324,10 @@ class TcpProxyConnection: Equatable
                                  */
 
                                 self.rcvNxt = self.rcvNxt.add(TransmissionControlBlock.sequenceLength(tcp))
+                                print(" 🐡 rcvNxt = \(rcvNxt) | sndNxt = \(sndNxt)")
+                                
                                 self.rcvWnd += UInt16(TransmissionControlBlock.sequenceLength(tcp))
+                                
 
                                 /*
                                  Send an acknowledgment of the form:
@@ -526,7 +525,7 @@ class TcpProxyConnection: Equatable
     func inWindow(_ tcp: InternetProtocols.TCP) -> Bool
     {
         print("* Persona.inWindow called")
-        print("* Persona.inWindow: rcvNxt = \(rcvNxt)")
+        print(" 🐡 rcvNxt = \(rcvNxt) | sndNxt = \(sndNxt)")
         print("* Persona.inWindow: rcvWnd = \(rcvWnd)")
         print("* Persona.inWindow: tcp.sequenceNumber = \(tcp.sequenceNumber)")
         
