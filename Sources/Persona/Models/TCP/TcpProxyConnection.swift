@@ -322,8 +322,11 @@ class TcpProxyConnection: Equatable
 
                                  Please note the window management suggestions in section 3.7.
                                  */
-
-                                self.rcvNxt = self.rcvNxt.add(TransmissionControlBlock.sequenceLength(tcp))
+                                
+                                let sequenceLength = TransmissionControlBlock.sequenceLength(tcp)
+                                print(" 🐡 calling rcvNxt.add(TransmissionControlBlock.sequenceLength(tcp)) ")
+                                print(" 🐡 TransmissionControlBlock.sequenceLength(tcp)) = \(sequenceLength)")
+                                self.rcvNxt = self.rcvNxt.add(sequenceLength)
                                 print(" 🐡 rcvNxt = \(rcvNxt.uint32) | sndNxt = \(sndNxt.uint32)")
                                 
                                 self.rcvWnd += UInt16(TransmissionControlBlock.sequenceLength(tcp))
