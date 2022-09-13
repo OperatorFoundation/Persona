@@ -62,6 +62,7 @@ class TcpProxyConnection: Equatable
 
     var open: Bool = true
 
+    // https://flylib.com/books/en/3.223.1.188/1/
     var state: TCP.States
 
     var irs: SequenceNumber
@@ -176,6 +177,7 @@ class TcpProxyConnection: Equatable
                         }
                         else
                         {
+                            print("* Syn received state but the segment acknowledgment is not acceptable. Sending reset.")
                             try self.sendRst(self.conduit, tcp, self.state)
                         }
 

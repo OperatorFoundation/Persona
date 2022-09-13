@@ -323,34 +323,45 @@ public class Persona: Universe
                     
                     let streamID = generateStreamID(source: sourceEndpoint, destination: destinationEndpoint)
                     print("* streamID: \(streamID)")
-                    
-                    let parsedMessage: Message
-                    
-                    if tcp.syn
+                                        
+                    if tcp.syn // If the syn flag is set, we will ignore all other flags (including acks) and treat this as a syn packet
                     {
-                        parsedMessage = .TCPOpenV4(destinationEndpoint, streamID)
+                        let parsedMessage: Message = .TCPOpenV4(destinationEndpoint, streamID)
                         print("* tcp.syn received parsed the message as TCPOpenV4")
+                        try self.handleParsedMessage(address, parsedMessage, packet)
                     }
-                    else if tcp.rst
+                    else if tcp.rst // TODO: Flower should be informed if a close message is an rst or a fin
                     {
-                        parsedMessage = .TCPClose(streamID)
+                        let parsedMessage: Message = .TCPClose(streamID)
                         print("* tcp.rst received, parsed the message as TCPClose")
+                        try self.handleParsedMessage(address, parsedMessage, packet)
+                    }
+                    else if tcp.fin // TODO: Flower should be informed if a close message is an rst or a fin
+                    {
+                        let parsedMessage: Message = .TCPClose(streamID)
+                        print("* tcp.fin received, parsed the message as TCPClose")
+                        try self.handleParsedMessage(address, parsedMessage, packet)
                     }
                     else
                     {
-                        guard let payload = tcp.payload else
+                        // TODO: Handle the situation where we never see an ack response to our syn/ack (resend the syn/ack)
+                        if let payload = tcp.payload
                         {
-                            print("* error: payload is nil")
-                            throw PersonaError.emptyPayload
+                            let parsedMessage: Message = .TCPData(streamID, payload)
+                            print("* parsed the message as TCPData")
+                            
+                            try self.handleParsedMessage(address, parsedMessage, packet)
                         }
-                        
-                        parsedMessage = .TCPData(streamID, payload)
-                        print("* parsed the message as TCPData")
+                        else if tcp.ack
+                        {
+                            let parsedMessage: Message = .TCPData(streamID, Data())
+                            print("* parsed the message as TCPData with no payload")
+                            
+                            try self.handleParsedMessage(address, parsedMessage, packet)
+                        }
                     }
-                    
-                    try self.handleParsedMessage(address, parsedMessage, packet)
                 }
-                if let udp = packet.udp
+                else if let udp = packet.udp
                 {
                     guard let ipv4Destination = IPv4Address(data: ipv4Packet.destinationAddress) else
                     {
@@ -368,12 +379,7 @@ public class Persona: Universe
                     let parsedMessage: Message = .UDPDataV4(endpoint, payload)
                     try self.handleParsedMessage(address, parsedMessage, packet)
                 }
-//                else
-//                {
-//                    // Drop this packet, but then continue processing more packets
-//                    print("* Persona.handleNextMessage: received a packet that is not UDP, currently only UDP is supported.")
-//                    throw PersonaError.unsupportedPacketType(data)
-//                }
+
             default:
                 // Drop this message, but then continue processing more messages
                 throw PersonaError.unsupportedNextMessage(message)
