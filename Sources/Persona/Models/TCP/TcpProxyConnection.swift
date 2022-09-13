@@ -116,6 +116,8 @@ class TcpProxyConnection: Equatable
     // This is called for everything except the first syn received.
     public func processLocalPacket(_ tcp: InternetProtocols.TCP) throws
     {
+        print("* Persona.processLocalPacket called")
+        
         // For the most part, we can only handle packets that are inside the TCP window.
         // Otherwise, they might be old packets from a previous connection or redundant retransmissions.
         if self.inWindow(tcp)
@@ -514,30 +516,51 @@ class TcpProxyConnection: Equatable
 
     func inWindow(_ tcp: InternetProtocols.TCP) -> Bool
     {
+        print("* Persona.inWindow called")
+        
         let rcvLast = self.rcvNxt.add(Int(self.rcvWnd))
+        print("* Persona.inWindow: rcvLast - \(rcvLast)")
+        
         let segSeq = SequenceNumber(tcp.sequenceNumber)
+        print("* Persona.inWindow: segSeq - \(segSeq)")
+        
         let segLen = TransmissionControlBlock.sequenceLength(tcp)
+        print("* Persona.inWindow: segLen - \(segLen)")
+        
         let segLast = segSeq.add(segLen - 1)
-
+        print("* Persona.inWindow: segLast - \(segLast)")
+        
         if segLen == 0
         {
+            print("* Persona.inWindow: segLen == 0")
+            
             if self.rcvWnd == 0
             {
+                print("* Persona.inWindow: rcvWnd == 0")
+                
                 return segSeq == self.rcvNxt
             }
             else // rcvWnd > 0
             {
+                print("* Persona.inWindow: rcvWnd > 0")
+                
                 return (self.rcvNxt <= segSeq) && (segSeq < rcvLast)
             }
         }
         else // seqLen > 0
         {
+            print("* Persona.inWindow: seqLen > 0")
+            
             if self.rcvWnd == 0
             {
+                print("* Persona.inWindow: rcvWnd == 0")
+                
                 return false
             }
             else // rcvWnd > 0
             {
+                print("* Persona.inWindow: rcvWnd > 0")
+                
                 return (self.rcvNxt <=  segSeq) && (segSeq  < rcvLast) ||
                 (self.rcvNxt <= segLast) && (segLast < rcvLast)
             }
