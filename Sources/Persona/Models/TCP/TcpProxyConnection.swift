@@ -103,7 +103,7 @@ class TcpProxyConnection: Equatable
         self.iss = TcpProxyConnection.isn()
         self.sndNxt = self.iss.increment()
         
-        print(" 🐡 irs = \(irs) | iss = \(iss)")
+        print(" 🐡 irs = \(irs.uint32) | iss = \(iss.uint32)")
         print(" 🐡 rcvNxt = \(rcvNxt.uint32) | sndNxt = \(sndNxt.uint32)")
 
         self.sndUna = self.iss
@@ -171,6 +171,7 @@ class TcpProxyConnection: Equatable
                 switch state
                 {
                     case .synReceived:
+                        print("* Persona.processLocalPacket: synReceived state")
                         /*
                          SYN-RECEIVED STATE
 
@@ -187,15 +188,19 @@ class TcpProxyConnection: Equatable
 
                         if (self.sndUna <= SequenceNumber(tcp.acknowledgementNumber)) && (SequenceNumber(tcp.acknowledgementNumber) <= self.sndNxt)
                         {
+                            print("✅ Persona.processLocalPacket: state set to established")
                             self.state = .established
                         }
                         else
                         {
-                            print("* Syn received state but the segment acknowledgment is not acceptable. Sending reset.")
+                            print("🛑 Syn received state but the segment acknowledgment is not acceptable. Sending reset.")
                             try self.sendRst(self.conduit, tcp, self.state)
+                            
+                            return
                         }
 
                     case .established, .finWait1, .finWait2, .closeWait, .closing, .lastAck, .timeWait:
+                        print("* Persona.processLocalPacket: .established, .finWait1, .finWait2, .closeWait, .closing, .lastAck, .timeWait state")
                         /*
                          ESTABLISHED STATE
                          */
@@ -231,13 +236,15 @@ class TcpProxyConnection: Equatable
                              */
                             guard let sndWl1 = self.sndWl1 else
                             {
-                                // FIXME - where should this first be set?
+                                // FIXME: where should this first be set?
+                                print("🛑 Persona.processLocalPacket FIXME: sndWl1 is null")
                                 return
                             }
 
                             guard let sndWl2 = self.sndWl2 else
                             {
-                                // FIXME - where should this first be set?
+                                // FIXME: where should this first be set?
+                                print("🛑 Persona.processLocalPacket FIXME: sndWl2 is null")
                                 return
                             }
 
@@ -265,6 +272,7 @@ class TcpProxyConnection: Equatable
                             /*
                              If the ACK is a duplicate (SEG.ACK < SND.UNA), it can be ignored.
                              */
+                            print("* Persona.processLocalPacket: If the ACK is a duplicate (SEG.ACK < SND.UNA), it can be ignored.")
                             return
                         }
                         else if SequenceNumber(tcp.acknowledgementNumber) > self.sndNxt
@@ -272,6 +280,7 @@ class TcpProxyConnection: Equatable
                             /*
                              If the ACK acks something not yet sent (SEG.ACK > SND.NXT) then send an ACK, drop the segment, and return.
                              */
+                            print("* Persona.processLocalPacket: If the ACK acks something not yet sent (SEG.ACK > SND.NXT) then send an ACK, drop the segment, and return.")
                             return
                         }
 
@@ -279,6 +288,7 @@ class TcpProxyConnection: Equatable
                         switch state
                         {
                             case .established, .finWait1, .finWait2:
+                                print("* Persona.processLocalPacket: .established, .finWait1, .finWait2 state")
                                 /*
                                  Once in the ESTABLISHED state, it is possible to deliver segment
                                  text to user RECEIVE buffers.  Text from segments can be moved
@@ -295,7 +305,7 @@ class TcpProxyConnection: Equatable
                                     // Start closing the client connection.
                                     guard self.connection.write(data: payload) else
                                     {
-                                        print("* Persona.processLocalPacket: failed to send our payload upstream")
+                                        print("🛑 Persona.processLocalPacket: failed to send our payload upstream")
                                         // Connection is closed.
 
                                         // Fully close the server connection and let users know that the connection is closed if they try to send data.
@@ -346,6 +356,7 @@ class TcpProxyConnection: Equatable
                                 switch state
                                 {
                                     case .finWait1:
+                                        print("* Persona.processLocalPacket: finWait1 state")
                                         /*
                                          FIN-WAIT-1 STATE
 
@@ -360,6 +371,7 @@ class TcpProxyConnection: Equatable
                                         }
 
                                     case .finWait2:
+                                        print("* Persona.processLocalPacket: finWait2 state")
                                         /*
                                          FIN-WAIT-2 STATE
 
@@ -376,6 +388,7 @@ class TcpProxyConnection: Equatable
                                 }
 
                             case .closeWait:
+                                print("* Persona.processLocalPacket: closeWait state")
                                 /*
                                  CLOSE-WAIT STATE
 
@@ -385,6 +398,7 @@ class TcpProxyConnection: Equatable
                                 return
 
                             case .closing:
+                                print("* Persona.processLocalPacket: closing state")
                                 /*
                                  CLOSING STATE
 
@@ -400,6 +414,7 @@ class TcpProxyConnection: Equatable
                                 }
 
                             case .lastAck:
+                                print("* Persona.processLocalPacket: lastAck state")
                                 /*
                                  LAST-ACK STATE
 
@@ -426,6 +441,7 @@ class TcpProxyConnection: Equatable
                 // However, the FIN packet may have its own payload.
                 if tcp.fin
                 {
+                    print("🛑 Persona.processLocalPacket: tcp.fin")
                     // Closing the client TCP connection takes a while.
                     // We will close the connection to the server when we have finished closing the connection to the client.
                     // In the meantime, tidy up the loose ends of closing the connection:
@@ -471,7 +487,7 @@ class TcpProxyConnection: Equatable
                 /*
                  if the ACK bit is off drop the segment and return
                  */
-                print("* Persona.processLocalPacket: ACK bit is off, dropping the packet")
+                print("🛑 Persona.processLocalPacket: ACK bit is off, dropping the packet")
                 
                 return
             }
