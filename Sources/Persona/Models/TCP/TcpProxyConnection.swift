@@ -97,10 +97,19 @@ class TcpProxyConnection: Equatable
         self.lastUsed = Date() // now
 
         self.state = .synReceived
+        
         self.irs = irs
+        print("* TCPProxy: irs = \(irs)")
+        
         self.rcvNxt = self.irs.increment()
+        print("* TCPProxy: rcvNxt = \(rcvNxt)")
+        
         self.iss = TcpProxyConnection.isn()
+        print("* TCPProxy: iss = \(iss)")
+        
         self.sndNxt = self.iss.increment()
+        print("* TCPProxy: sndNxt = \(sndNxt)")
+        
         self.sndUna = self.iss
         self.sndWnd = 0
         self.sndWl1 = nil
