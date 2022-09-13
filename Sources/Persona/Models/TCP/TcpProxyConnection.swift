@@ -120,8 +120,10 @@ class TcpProxyConnection: Equatable
         // Otherwise, they might be old packets from a previous connection or redundant retransmissions.
         if self.inWindow(tcp)
         {
+            print("* processLocalPacket: inWindow")
             if tcp.rst
             {
+                print("* Persona.processLocalPacket: received rst")
                 /*
                  SYN-RECEIVED STATE
 
@@ -138,9 +140,11 @@ class TcpProxyConnection: Equatable
                  and return.
                  */
                 self.close()
+                return
             }
             else if tcp.syn
             {
+                print("* Persona.processLocalPacket: received syn in the update window, sending rst")
                 /*
                  If the SYN is in the window it is an error, send a reset, any
                  outstanding RECEIVEs and SEND should receive "reset" responses,
@@ -151,9 +155,12 @@ class TcpProxyConnection: Equatable
 
                 try self.sendRst(self.conduit, tcp, .closed)
                 self.close()
+                return
             }
             else if tcp.ack
             {
+                print("* Persona.processLocalPacket: received ack")
+                
                 switch state
                 {
                     case .synReceived:
@@ -276,10 +283,12 @@ class TcpProxyConnection: Equatable
 
                                 if let payload = tcp.payload
                                 {
+                                    print("* Persona.processLocalPacket: tcp payload received on an established connection forwarding to the upstream server")
                                     // If a write to the server fails, the the server connection is closed.
                                     // Start closing the client connection.
                                     guard self.connection.write(data: payload) else
                                     {
+                                        print("* Persona.processLocalPacket: failed to send our payload upstream")
                                         // Connection is closed.
 
                                         // Fully close the server connection and let users know that the connection is closed if they try to send data.
@@ -289,6 +298,8 @@ class TcpProxyConnection: Equatable
                                         try self.startClose(sequenceNumber: self.sndNxt, acknowledgementNumber: SequenceNumber(tcp.sequenceNumber))
                                         return
                                     }
+                                    
+                                    print("* Persona.processLocalPacket: payload upstream write complete")
                                 }
 
                                 /*
@@ -447,12 +458,14 @@ class TcpProxyConnection: Equatable
                 /*
                  if the ACK bit is off drop the segment and return
                  */
-
+                print("* Persona.processLocalPacket: ACK bit is off, dropping the packet")
+                
                 return
             }
         }
         else
         {
+            print("* Persona.processLocalPacket: NOT inWindow")
             /*
              If an incoming segment is not acceptable, an acknowledgment
              should be sent in reply (unless the RST bit is set, if so drop
@@ -466,32 +479,18 @@ class TcpProxyConnection: Equatable
 
             if tcp.rst
             {
+                print("* Persona.processLocalPacket: incoming segment is not acceptable, rst bit received, dropping packet")
+                // If the rst bit is set, do not send an ack, drop the unacceptable segment and return
                 return
             }
             else
             {
+                print("* Persona.processLocalPacket: incoming segment is not acceptable, and no rst bit, sending ack and dropping packet")
+                // Send an ack
                 try self.sendPacket(sequenceNumber: self.sndNxt, acknowledgementNumber: self.rcvNxt, ack: true)
-            }
-        }
-
-        if tcp.rst
-        {
-            self.close()
-            try self.sendAck(tcp, .closed)
-        }
-        else
-        {
-            guard let payload = tcp.payload else
-            {
+                // Drop the unacceptable segment
                 return
             }
-
-            guard self.connection.write(data: payload) else
-            {
-                return
-            }
-
-            self.lastUsed = Date() // now
         }
     }
 
