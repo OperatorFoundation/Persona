@@ -14,7 +14,7 @@ public class ConduitCollection: NSObject
 
     func addConduit(address: String, flowerConnection: FlowerConnection)
     {
-        print("\nAdding a conduit to the conduit collection.")
+        print("\n* Adding a conduit to the conduit collection.")
         let newConduit = Conduit(address: address, flowerConnection: flowerConnection)
 
         conduits[address] = newConduit
@@ -22,13 +22,13 @@ public class ConduitCollection: NSObject
 
     func removeConduit(with address: String)
     {
-        print("Removing a conduit from the conduit collection.")
+        print("* Removing a conduit from the conduit collection.")
         conduits.removeValue(forKey: address)
     }
 
     func getConduit(with address: String) -> Conduit?
     {
-        print("Getting conduit with address \(address)")
+        print("* Getting conduit with address \(address)")
         if let conduit = conduits[address]
         {
             return conduit

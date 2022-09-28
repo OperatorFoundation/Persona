@@ -54,7 +54,7 @@ public class Persona: Universe
             }
             catch
             {
-                print("echo listener failed")
+                print("UDP echo listener failed")
             }
         }
 
@@ -96,11 +96,12 @@ public class Persona: Universe
         while true
         {
             let connection = try echoListener.accept()
-            display("New echo connection")
+            print("New UDP echo connection")
             
-            guard let received = connection.read(size: 19) else
+            // We are expecting to receive a specific message from MoonbounceAndroid: ᓚᘏᗢ Catbus is UDP tops! ᓚᘏᗢ
+            guard let received = connection.read(size: 39) else
             {
-                display("Echo server failed to read 19 bytes, continuing with this connection")
+                print("UDP Echo server failed to read 39 bytes, continuing with this connection")
                 continue
             }
             
@@ -116,13 +117,15 @@ public class Persona: Universe
             }
             #endif
             
-            display("Echo received a message: \(received.string)")
+            print("UDP Echo received a message: \(received.string)")
             
-            guard connection.write(string: "Hello catbus ᓚᘏᗢ") else
+            guard connection.write(string: received.string) else
             {
-                display("Echo server failed to write a response, continuing with this connection.")
+                print("UDP Echo server failed to write a response, continuing with this connection.")
                 continue
             }
+            
+            print("UDP Echo server sent a response: \(received.string)")
         }
     }
 
@@ -131,7 +134,7 @@ public class Persona: Universe
         while true
         {
             let connection = try echoListener.accept()
-            display("New echo connection")
+            print("New TCP echo connection")
 
             self.echoTcpConnectionQueue.async
             {
@@ -142,21 +145,23 @@ public class Persona: Universe
 
     func handleTcpEchoConnection(connection: TransmissionTypes.Connection)
     {
-        guard let received = connection.read(maxSize: 1024) else
+        guard let received = connection.read(maxSize: 41) else
         {
-            display("TCP Echo server failed to read bytes, continuing with this connection, closing")
+            print("❌ TCP Echo server failed to read bytes, continuing with this connection, closing")
             connection.close()
             return
         }
 
-        display("Echo received a message: \(received) - \(received.hex)")
+        print("🐈 TCP Echo received a message: \(received) - \(received.hex)")
 
         guard connection.write(data: received) else
         {
-            display("TCP Echo server failed to write a response, continuing with this connection, closing")
+            print("❌ TCP Echo server failed to write a response, continuing with this connection, closing")
             connection.close()
             return
         }
+       
+        print("🐈 TCP Echo server sent a response: \(received.string)")
     }
     
     // takes a transmission connection and wraps as a flower connection
@@ -257,10 +262,9 @@ public class Persona: Universe
     // after parsing and identifying, pass on to handleParsedMessage()
     func handleNextMessage(_ address: IPv4Address, _ flowerConnection: FlowerConnection) throws
     {
-        print("Persona.handleNextMessage() called")
         guard let message = flowerConnection.readMessage() else
         {
-            print("Failed to read message")
+            print("\n* Persona.handleNextMessage Failed to read a flower message. The connection is probably closed.")
 
             if let logs = flowerConnection.readLog
             {
@@ -276,18 +280,20 @@ public class Persona: Universe
             throw PersonaError.connectionClosed
         }
         
-        print("Persona.handleNextMessage: received a \(message.description)")
+        print("\n* Persona.handleNextMessage: received a \(message.description)")
         
         switch message
         {
             case .IPDataV4(let data):
                 let packet = Packet(ipv4Bytes: data, timestamp: Date(), debugPrints: true)
-                print(" * handleNextMessage created an IPV4 packet")
                 guard let ipv4Packet = packet.ipv4 else
                 {
                     // Drop this packet, but then continue processing more packets
+                    print("* Persona.handleNextMessage: received data was not an IPV4 packet, ignoring this packet.")
                     throw PersonaError.packetNotIPv4(data)
                 }
+                
+                print("* Persona.handleNextMessage: received an IPV4 packet")
 
                 if let tcp = packet.tcp
                 {
@@ -296,54 +302,66 @@ public class Persona: Universe
                         // Drop this packet, but then continue processing more packets
                         throw PersonaError.addressDataIsNotIPv4(ipv4Packet.destinationAddress)
                     }
-                    print(" * ipv4Destination: \(ipv4Destination.string)")
+                    print("* ipv4Destination: \(ipv4Destination.string)")
                     
                     guard let ipv4Source = IPv4Address(data: ipv4Packet.sourceAddress) else
                     {
                         // Drop this packet, but then continue processing more packets
                         throw PersonaError.addressDataIsNotIPv4(ipv4Packet.destinationAddress)
                     }
-                    print(" * ipv4Source: \(ipv4Source.string)")
+                    print("* ipv4Source: \(ipv4Source.string)")
                     
                     let destinationPort = NWEndpoint.Port(integerLiteral: tcp.destinationPort)
-                    print(" * destinationPort: \(destinationPort)")
+                    print("* destinationPort: \(destinationPort)")
                     
                     let destinationEndpoint = EndpointV4(host: ipv4Destination, port: destinationPort)
-                    print(" * destinationEndpoint: \(destinationEndpoint.host):\(destinationEndpoint.port)")
+                    print("* destinationEndpoint: \(destinationEndpoint.host):\(destinationEndpoint.port)")
                     
                     let sourcePort = NWEndpoint.Port(integerLiteral: tcp.sourcePort)
                     let sourceEndpoint = EndpointV4(host: ipv4Source, port: sourcePort)
-                    print(" * sourceEndpoint: \(sourceEndpoint.host):\(sourceEndpoint.port)")
+                    print("* sourceEndpoint: \(sourceEndpoint.host):\(sourceEndpoint.port)")
                     
                     let streamID = generateStreamID(source: sourceEndpoint, destination: destinationEndpoint)
-                    print(" * streamID: \(streamID)")
-                    
-                    let parsedMessage: Message
-                    
-                    if tcp.syn
+                    print("* streamID: \(streamID)")
+                                        
+                    if tcp.syn // If the syn flag is set, we will ignore all other flags (including acks) and treat this as a syn packet
                     {
-                        parsedMessage = .TCPOpenV4(destinationEndpoint, streamID)
-                        print(" * syn parsedMessage: \(parsedMessage.description)")
+                        let parsedMessage: Message = .TCPOpenV4(destinationEndpoint, streamID)
+                        print("* tcp.syn received parsed the message as TCPOpenV4")
+                        try self.handleParsedMessage(address, parsedMessage, packet)
                     }
-                    else if tcp.rst
+                    else if tcp.rst // TODO: Flower should be informed if a close message is an rst or a fin
                     {
-                        parsedMessage = .TCPClose(streamID)
-                        print(" * rst parsedMessage: \(parsedMessage.description)")
+                        let parsedMessage: Message = .TCPClose(streamID)
+                        print("* tcp.rst received, parsed the message as TCPClose")
+                        try self.handleParsedMessage(address, parsedMessage, packet)
+                    }
+                    else if tcp.fin // TODO: Flower should be informed if a close message is an rst or a fin
+                    {
+                        let parsedMessage: Message = .TCPClose(streamID)
+                        print("* tcp.fin received, parsed the message as TCPClose")
+                        try self.handleParsedMessage(address, parsedMessage, packet)
                     }
                     else
                     {
-                        guard let payload = tcp.payload else
+                        // TODO: Handle the situation where we never see an ack response to our syn/ack (resend the syn/ack)
+                        if let payload = tcp.payload
                         {
-                            throw PersonaError.emptyPayload
+                            let parsedMessage: Message = .TCPData(streamID, payload)
+                            print("* parsed the message as TCPData")
+                            
+                            try self.handleParsedMessage(address, parsedMessage, packet)
                         }
-                        
-                        parsedMessage = .TCPData(streamID, payload)
-                        print(" * parsedMessage: \(parsedMessage.description)")
+                        else if tcp.ack
+                        {
+                            let parsedMessage: Message = .TCPData(streamID, Data())
+                            print("* parsed the message as TCPData with no payload")
+                            
+                            try self.handleParsedMessage(address, parsedMessage, packet)
+                        }
                     }
-                    
-                    try self.handleParsedMessage(address, parsedMessage, packet)
                 }
-                if let udp = packet.udp
+                else if let udp = packet.udp
                 {
                     guard let ipv4Destination = IPv4Address(data: ipv4Packet.destinationAddress) else
                     {
@@ -361,11 +379,7 @@ public class Persona: Universe
                     let parsedMessage: Message = .UDPDataV4(endpoint, payload)
                     try self.handleParsedMessage(address, parsedMessage, packet)
                 }
-                else
-                {
-                    // Drop this packet, but then continue processing more packets
-                    throw PersonaError.unsupportedPacketType(data)
-                }
+
             default:
                 // Drop this message, but then continue processing more messages
                 throw PersonaError.unsupportedNextMessage(message)
@@ -377,13 +391,14 @@ public class Persona: Universe
     // wraps into a new packet with same destination and data and server's source address
     func handleParsedMessage(_ address: IPv4Address, _ message: Message, _ packet: Packet) throws
     {
-        print("handleParsedMessage(\(message.description))")
+        print("\n* Persona.handleParsedMessage()")
         switch message
         {
             case .UDPDataV4(_, _):
+                print("* Persona received a UPDataV4 type message")
                 guard let conduit = self.conduitCollection.getConduit(with: address.string) else
                 {
-                    print("Unknown conduit address \(address)")
+                    print("* Unknown conduit address \(address)")
                     return
                 }
 
@@ -399,12 +414,14 @@ public class Persona: Universe
 //                }
 
             case .UDPDataV6(_, _):
+                print("* Persona received a UDPDataV6 type message. This is not currently supported.")
                 throw PersonaError.unsupportedParsedMessage(message)
                 
             case .TCPOpenV4(_, _), .TCPData(_, _), .TCPClose(_):
+                print("* Persona received a TCP message")
                 guard let conduit = self.conduitCollection.getConduit(with: address.string) else
                 {
-                    print("Unknown conduit address \(address)")
+                    print("* Unknown conduit address \(address)")
                     return
                 }
                 

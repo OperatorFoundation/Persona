@@ -29,6 +29,8 @@ public class TcpProxy
 
     public func processLocalPacket(_ conduit: Conduit, _ packet: Packet) throws
     {
+        print("\n* Persona.TcpProxy: Attempting to process a TCP packet.")
+        
         guard let ipv4Packet = packet.ipv4 else
         {
             throw TcpProxyError.notIPv4Packet(packet)
@@ -38,6 +40,7 @@ public class TcpProxy
         {
             throw TcpProxyError.invalidAddress(ipv4Packet.sourceAddress)
         }
+        print("* Source Address: \(sourceAddress.string)")
 
         guard sourceAddress.string == conduit.address else
         {
@@ -48,6 +51,7 @@ public class TcpProxy
         {
             throw TcpProxyError.invalidAddress(ipv4Packet.destinationAddress)
         }
+        print("* Destination Address: \(destinationAddress)")
 
         guard let tcp = packet.tcp else
         {
@@ -55,14 +59,19 @@ public class TcpProxy
         }
 
         let sourcePort = tcp.sourcePort
+        print("* Source Port: \(sourcePort)")
+        
         let destinationPort = tcp.destinationPort
+        print("* Destination Port: \(destinationPort)")
 
         if let proxyConnection = self.findConnection(localAddress: sourceAddress, localPort: sourcePort, remoteAddress: destinationAddress, remotePort: destinationPort, tcp: tcp)
         {
+            print("* This is an existing proxy connection, calling proxyConnection.processLocalPacket(tcp)")
             try proxyConnection.processLocalPacket(tcp)
         }
         else
         {
+            print("* This is a new destination, calling handleNewConnection()")
             try self.handleNewConnection(tcp: tcp, sourceAddress: sourceAddress, sourcePort: sourcePort, destinationAddress: destinationAddress, destinationPort: destinationPort, conduit: conduit)
         }
     }
@@ -84,7 +93,7 @@ public class TcpProxy
 
              An incoming RST should be ignored.  Return.
              */
-
+            
             return
         }
         else if tcp.ack
@@ -107,16 +116,17 @@ public class TcpProxy
         }
         else if tcp.syn // A new connection requires a SYN packet
         {
+            print("* handleNewConnection received a syn")
             // connect() automatically send a syn-ack back for the syn internally
             guard let networkConnection = try? self.universe.connect(destinationAddress.string, Int(destinationPort), ConnectionType.tcp) else
             {
                 // Connection failed.
-
+                print("* Persona failed to connect to the destination address \(destinationAddress.string): \(destinationPort)")
                 try self.sendRst(sourceAddress: sourceAddress, sourcePort: sourcePort, destinationAddress: destinationAddress, destinationPort: destinationPort, conduit, tcp, .closed)
                 return
             }
             
-            print(" * Persona connected to the destination server (tcp.syn).")
+            print("* Persona connected to the new destination server (tcp.syn).")
             do
             {
                 try self.addConnection(proxy: self, localAddress: sourceAddress, localPort: sourcePort, remoteAddress: destinationAddress, remotePort: destinationPort, conduit: conduit, connection: networkConnection, irs: SequenceNumber(tcp.sequenceNumber))
@@ -124,7 +134,7 @@ public class TcpProxy
             }
             catch
             {
-                print(" * Failed to add the connection. Trying sendRst() instead.")
+                print("* Failed to add the connection. Trying sendRst() instead.")
                 
                 try self.sendRst(sourceAddress: sourceAddress, sourcePort: sourcePort, destinationAddress: destinationAddress, destinationPort: destinationPort, conduit, tcp, .closed)
                 return
@@ -145,16 +155,16 @@ public class TcpProxy
 
     func addConnection(proxy: TcpProxy, localAddress: IPv4Address, localPort: UInt16, remoteAddress: IPv4Address, remotePort: UInt16, conduit: Conduit, connection: Transmission.Connection, irs: SequenceNumber) throws
     {
-        print(" * Making a TcpProxyConnection")
+        print("* Making a TcpProxyConnection")
         do
         {
             let connection = try TcpProxyConnection(proxy: proxy, localAddress: localAddress, localPort: localPort, remoteAddress: remoteAddress, remotePort: remotePort, conduit: conduit, connection: connection, irs: irs)
             self.connections.append(connection)
-            print(" * Created a TcpProxyConnection")
+            print("* Created a TcpProxyConnection")
         }
         catch
         {
-            print(" * Failed to initialize a TcpProxyConnection: \(error)")
+            print("* Failed to initialize a TcpProxyConnection: \(error)")
             throw error
         }
     }
@@ -184,6 +194,7 @@ public class TcpProxy
 
     func sendRst(sourceAddress: IPv4Address, sourcePort: UInt16, destinationAddress: IPv4Address, destinationPort: UInt16, _ conduit: Conduit, _ tcp: InternetProtocols.TCP, _ state: TCP.States) throws
     {
+        print("* Persona sendRst called")
         switch state
         {
             case .closed:
@@ -207,21 +218,28 @@ public class TcpProxy
 
                  Return.
                  */
-
+                
+                print("* TCP state is closed")
+                
                 if tcp.rst
                 {
+                    print("* received tcp.reset, doing nothing")
                     return
                 }
                 else if tcp.ack
                 {
-                    try self.sendPacket(conduit: conduit, sourceAddress: sourceAddress, sourcePort: sourcePort, destinationAddress: destinationAddress, destinationPort: destinationPort, sequenceNumber: SequenceNumber(tcp.acknowledgementNumber))
+                    print("* received tcp.ack, calling send packet with sequenceNumber: tcp.acknowledgementNumber, and ack: true")
+                    try self.sendPacket(conduit: conduit, sourceAddress: sourceAddress, sourcePort: sourcePort, destinationAddress: destinationAddress, destinationPort: destinationPort, sequenceNumber: SequenceNumber(tcp.acknowledgementNumber), ack: true)
                 }
                 else
                 {
+                    print("* calling send packet with acknowledgement#: tcp.sequenceNumber + TransmissionControlBlock.sequenceLength(tcp)")
                     let acknowledgementNumber = SequenceNumber(tcp.sequenceNumber).add(TransmissionControlBlock.sequenceLength(tcp))
-                    try self.sendPacket(conduit: conduit, sourceAddress: sourceAddress, sourcePort: sourcePort, destinationAddress: destinationAddress, destinationPort: destinationPort, acknowledgementNumber: acknowledgementNumber, ack: true)
+                    
+                    try self.sendPacket(conduit: conduit, sourceAddress: sourceAddress, sourcePort: sourcePort, destinationAddress: destinationAddress, destinationPort: destinationPort, acknowledgementNumber: acknowledgementNumber)
                 }
             case .listen:
+                print("* TCP state is listen")
                 if tcp.ack
                 {
                     /*
@@ -232,15 +250,19 @@ public class TcpProxy
 
                      <SEQ=SEG.ACK><CTL=RST>
                      */
+                    
+                    print("* received tcp.ack, calling send packet with tcp.acknowledgementNumber, and ack: true")
 
                     try self.sendPacket(conduit: conduit, sourceAddress: sourceAddress, sourcePort: sourcePort, destinationAddress: destinationAddress, destinationPort: destinationPort, sequenceNumber: SequenceNumber(tcp.acknowledgementNumber), ack: true)
                 }
                 else
                 {
+                    print("* no tcp.ack received, doing nothing")
                     return
                 }
 
             default:
+                print("* TCP state is an unexpected value, doing nothing")
                 return
         }
     }
@@ -249,11 +271,13 @@ public class TcpProxy
     {
         guard let ipv4 = try? IPv4(sourceAddress: sourceAddress, destinationAddress: destinationAddress, sourcePort: sourcePort, destinationPort: destinationPort, sequenceNumber: sequenceNumber, acknowledgementNumber: acknowledgementNumber, syn: false, ack: ack, fin: false, rst: true, windowSize: 0, payload: nil) else
         {
-            print(" * sendPacket() failed to create an IPV4packet")
+            print("* sendPacket() failed to create an IPV4packet")
             throw TcpProxyError.badIpv4Packet
         }
 
         let message = Message.IPDataV4(ipv4.data)
+        
+        print("* Created an IPDataV4 message, asking flower to write the message...")
         conduit.flowerConnection.writeMessage(message: message)
     }
 }
