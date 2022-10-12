@@ -96,7 +96,6 @@ public class Persona: Universe
         while true
         {
             let connection = try echoListener.accept()
-            print("New UDP echo connection")
             
             // We are expecting to receive a specific message from MoonbounceAndroid: ᓚᘏᗢ Catbus is UDP tops! ᓚᘏᗢ
             guard let received = connection.read(size: 39) else
