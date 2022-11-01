@@ -84,7 +84,7 @@ final class PersonaTests: XCTestCase
         lock.wait()
 
         let simulation = Simulation(capabilities: Capabilities(.display, .networkConnect, .networkListen))
-        let universe = Persona(effects: simulation.effects, events: simulation.events)
+        let universe = Persona(effects: simulation.effects, events: simulation.events, mode: .live)
 
         do
         {

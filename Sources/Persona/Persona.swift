@@ -30,13 +30,15 @@ public class Persona: Universe
     var listenPort = 1234
     var echoPort = 2233
 
+    var mode: ServerMode! = nil
     var udpProxy: UdpProxy! = nil
     var tcpProxy: TcpProxy! = nil
 
-    public override init(effects: BlockingQueue<Effect>, events: BlockingQueue<Event>)
+    public init(effects: BlockingQueue<Effect>, events: BlockingQueue<Event>, mode: ServerMode)
     {
         super.init(effects: effects, events: events)
 
+        self.mode = mode
         self.udpProxy = UdpProxy(universe: self)
         self.tcpProxy = TcpProxy(universe: self, quietTime: false)
     }
@@ -429,6 +431,10 @@ public class Persona: Universe
             default:
                 throw PersonaError.unsupportedParsedMessage(message)
         }
+    }
+
+    public func shutdown()
+    {
     }
 }
 

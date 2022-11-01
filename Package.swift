@@ -10,17 +10,23 @@ let package = Package(
         // Products define the executables and libraries a package produces, and make them visible to other packages.
         .executable(
             name: "Persona",
-            targets: ["Persona"]),
+            targets: ["Persona"]
+        ),
     ],
     dependencies: [
         // Dependencies declare other packages that this package depends on.
         // .package(url: /* package url */, from: "1.0.0"),
+        .package(url: "https://github.com/apple/swift-argument-parser.git", from: "0.3.1"),
         .package(url: "https://github.com/OperatorFoundation/Datable", branch: "main"),
         .package(url: "https://github.com/OperatorFoundation/Flower", branch: "main"),
         .package(url: "https://github.com/OperatorFoundation/InternetProtocols", branch: "main"),
+        .package(url: "https://github.com/apple/swift-log.git", from: "1.0.0"),
+        .package(url: "https://github.com/OperatorFoundation/Nametag", branch: "main"),
+        .package(url: "https://github.com/apple/swift-nio.git", from: "2.0.0"),
         .package(url: "https://github.com/OperatorFoundation/Spacetime", branch: "main"),
         .package(url: "https://github.com/OperatorFoundation/Straw", branch: "main"),
         .package(url: "https://github.com/OperatorFoundation/SwiftHexTools", branch: "main"),
+        .package(url: "https://github.com/swift-server/swift-service-lifecycle", from: "1.0.0-alpha.11"),
         .package(url: "https://github.com/OperatorFoundation/TransmissionTypes", branch: "main"),
     ],
     targets: [
@@ -29,9 +35,14 @@ let package = Package(
         .executableTarget(
             name: "Persona",
             dependencies: [
+                .product(name: "ArgumentParser", package: "swift-argument-parser"),
                 "Datable",
                 "Flower",
                 "InternetProtocols",
+                .product(name: "Lifecycle", package: "swift-service-lifecycle"),
+                .product(name: "Logging", package: "swift-log"),
+                "Nametag",
+                .product(name: "NIO", package: "swift-nio"),
                 "Straw",
                 "SwiftHexTools",
                 "TransmissionTypes",
