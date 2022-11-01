@@ -8,6 +8,7 @@
 import Chord
 import Flower
 import Foundation
+import Gardener
 import InternetProtocols
 import Net
 import Spacetime
@@ -33,6 +34,7 @@ public class Persona: Universe
     var mode: ServerMode! = nil
     var udpProxy: UdpProxy! = nil
     var tcpProxy: TcpProxy! = nil
+    var recordID: UInt64 = 0
 
     public init(effects: BlockingQueue<Effect>, events: BlockingQueue<Event>, mode: ServerMode)
     {
@@ -45,6 +47,11 @@ public class Persona: Universe
 
     public override func main() throws
     {
+        if self.mode == .record
+        {
+            self.clearRecordings()
+        }
+
         let echoUdpListener = try self.listen(listenAddr, echoPort, type: .udp)
 
         // MARK: async cannot be replaces with Task because it is not currently supported on Linux
@@ -73,18 +80,18 @@ public class Persona: Universe
                 print("TCP echo listener failed")
             }
         }
-        
+
         display("listening on \(listenAddr) \(listenPort)")
         let listener = try self.listen(listenAddr, listenPort)
 
         while true
         {
             display("Waiting to accept a connection.")
-            
+
             let connection = try listener.accept()
 
             display("New connection")
-            
+
             // MARK: async cannot be replaces with Task because it is not currently supported on Linux
             connectionsQueue.async
             {
@@ -180,7 +187,7 @@ public class Persona: Universe
         {
             print("Persona.handleIncomingConnection: Calling handleFirstMessage()")
             
-            address = try self.handleFirstMessage(flowerConnection)
+            address = try self.handleFirstMessageOfConnection(flowerConnection)
         }
         catch
         {
@@ -202,16 +209,38 @@ public class Persona: Universe
     }
 
     // deals with IP assignment
-    func handleFirstMessage(_ flowerConnection: FlowerConnection) throws -> IPv4Address
+    func handleFirstMessageOfConnection(_ flowerConnection: FlowerConnection) throws -> IPv4Address
     {
         print("Persona.handleFirstMessage() called")
-        guard let message = flowerConnection.readMessage() else
+        let message: Message
+        if self.mode == .live || self.mode == .record
         {
-            print("Connection closed")
-            throw PersonaError.connectionClosed
+            guard let m = flowerConnection.readMessage() else
+            {
+                print("Connection closed")
+                throw PersonaError.connectionClosed
+            }
+            message = m
+        }
+        else // self.mode == .playback
+        {
+            do
+            {
+                message = try self.getNextPlaybackMessage()
+            }
+            catch
+            {
+                print("Connection closed")
+                throw PersonaError.connectionClosed
+            }
         }
 
         print("Persona.handleFirstMessage: received an \(message.description)")
+
+        if self.mode == .record
+        {
+            self.recordMessage(message)
+        }
         
         switch message
         {
@@ -433,8 +462,67 @@ public class Persona: Universe
         }
     }
 
+    public func clearRecordings()
+    {
+        var messageID: UInt64 = 0
+        while true
+        {
+            do
+            {
+                try self.delete(identifier: messageID)
+                messageID = messageID + 1
+            }
+            catch
+            {
+                return
+            }
+        }
+    }
+
+    func getNextPlaybackMessage() throws -> Message
+    {
+        let message: Message = try self.load(identifier: self.recordID)
+        self.recordID = self.recordID + 1
+
+        return message
+    }
+
+    public func recordMessage(_ message: Message)
+    {
+        do
+        {
+            try self.save(identifier: self.recordID, codable: message)
+            self.recordID = self.recordID + 1
+        }
+        catch
+        {
+            print("Could not record message")
+        }
+    }
+
     public func shutdown()
     {
+        if File.exists("dataDatabase")
+        {
+            if let contents = File.contentsOfDirectory(atPath: "dataDatabase")
+            {
+                if contents.isEmpty
+                {
+                    let _ = File.delete(atPath: "dataDatabase")
+                }
+            }
+        }
+
+        if File.exists("relationDatabase")
+        {
+            if let contents = File.contentsOfDirectory(atPath: "relationDatabase")
+            {
+                if contents.isEmpty
+                {
+                    let _ = File.delete(atPath: "relationDatabase")
+                }
+            }
+        }
     }
 }
 
