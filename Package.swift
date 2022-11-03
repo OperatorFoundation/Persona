@@ -39,7 +39,7 @@ let package = Package(
                 .product(name: "ArgumentParser", package: "swift-argument-parser"),
                 "Datable",
                 "Flower",
-                "Gardener",
+//                "Gardener",
                 "InternetProtocols",
                 .product(name: "Lifecycle", package: "swift-service-lifecycle"),
                 .product(name: "Logging", package: "swift-log"),
