@@ -27,8 +27,8 @@ public class Persona: Universe
     var pool = AddressPool()
     var conduitCollection = ConduitCollection()
     
-    var listenAddr = "0.0.0.0"
-    var listenPort = 1234
+    let listenAddr: String
+    let listenPort: Int
     var echoPort = 2233
 
     var mode: ServerMode! = nil
@@ -36,8 +36,11 @@ public class Persona: Universe
     var tcpProxy: TcpProxy! = nil
     var recordID: UInt64 = 0
 
-    public init(effects: BlockingQueue<Effect>, events: BlockingQueue<Event>, mode: ServerMode)
+    public init(listenAddr: String, listenPort: Int, effects: BlockingQueue<Effect>, events: BlockingQueue<Event>, mode: ServerMode)
     {
+        self.listenAddr = listenAddr
+        self.listenPort = listenPort
+
         super.init(effects: effects, events: events)
 
         self.mode = mode

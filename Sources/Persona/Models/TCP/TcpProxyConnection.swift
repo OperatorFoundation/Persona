@@ -61,6 +61,7 @@ class TcpProxyConnection: Equatable
     var lastUsed: Date
 
     var open: Bool = true
+    var firstAck: Bool = true
 
     // https://flylib.com/books/en/3.223.1.188/1/
     var state: TCP.States
@@ -122,6 +123,14 @@ class TcpProxyConnection: Equatable
     public func processLocalPacket(_ tcp: InternetProtocols.TCP) throws
     {
         print("* Persona.processLocalPacket called")
+
+        if self.firstAck
+        {
+            self.firstAck = false
+
+            try self.processFirstAck(tcp)
+            return
+        }
         
         // For the most part, we can only handle packets that are inside the TCP window.
         // Otherwise, they might be old packets from a previous connection or redundant retransmissions.
@@ -521,6 +530,18 @@ class TcpProxyConnection: Equatable
                 return
             }
         }
+    }
+
+    public func processFirstAck(_ tcp: InternetProtocols.TCP) throws
+    {
+        print("* Persona.processFirstAck called")
+
+        print("Hopefully the first ACK packet of the next connection:")
+        print(tcp)
+        print("ACK packet sequence number:")
+        print(tcp.acknowledgementNumber)
+        print("Expected sequence number:")
+        print(self.sndNxt)
     }
 
     public func close()

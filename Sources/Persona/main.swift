@@ -11,8 +11,13 @@ import Logging
 import Foundation
 import NIO
 
+import Gardener
+import Keychain
+import Nametag
+import Net
 import Spacetime
 import Simulation
+import Transmission
 
 // run in one XCode window while you run the flower test in another
 struct PersonaCommandLine: ParsableCommand
@@ -36,43 +41,43 @@ extension PersonaCommandLine
 
         mutating public func run() throws
         {
-    //        let ip: String = try Ipify.getPublicIP()
-    //
-    //        if let test = TransmissionConnection(host: ip, port: port)
-    //        {
-    //            test.close()
-    //
-    //            throw NewCommandError.portInUse
-    //        }
-    //
-    //        #if os(macOS) || os(iOS) || os(tvOS) || os(watchOS)
-    //        let keychain = Keychain()
-    //        #else
-    //        guard let keychain = Keychain(baseDirectory: File.homeDirectory().appendingPathComponent(".rendezvous-server")) else
-    //        {
-    //            throw NewCommandError.couldNotLoadKeychain
-    //        }
-    //        #endif
-    //
-    //        guard let privateKeyKeyAgreement = keychain.generateAndSavePrivateKey(label: "Rendezvous.KeyAgreement", type: .P256KeyAgreement) else
-    //        {
-    //            throw NewCommandError.couldNotGeneratePrivateKey
-    //        }
-    //
-    //        guard let nametag = Nametag() else
-    //        {
-    //            throw NewCommandError.nametagError
-    //        }
-    //
-    //        let privateIdentity = try PrivateIdentity(keyAgreement: privateKeyKeyAgreement, nametag: nametag)
-    //        let publicIdentity = privateIdentity.publicIdentity
-    //
-    //        let config = Config(name: name, host: ip, port: port, identity: publicIdentity)
-    //        let encoder = JSONEncoder()
-    //        let configData = try encoder.encode(config)
-    //        let configURL = URL(fileURLWithPath: File.currentDirectory()).appendingPathComponent("rendezvous-config.json")
-    //        try configData.write(to: configURL)
-    //        print("Wrote config to \(configURL.path)")
+            let ip: String = try Ipify.getPublicIP()
+
+            if let test = TransmissionConnection(host: ip, port: port)
+            {
+                test.close()
+
+                throw NewCommandError.portInUse(port)
+            }
+
+            #if os(macOS) || os(iOS) || os(tvOS) || os(watchOS)
+            let keychain = Keychain()
+            #else
+            guard let keychain = Keychain(baseDirectory: File.homeDirectory().appendingPathComponent(".persona-server")) else
+            {
+                throw NewCommandError.couldNotLoadKeychain
+            }
+            #endif
+
+            guard let privateKeyKeyAgreement = keychain.generateAndSavePrivateKey(label: "Persona.KeyAgreement", type: .P256KeyAgreement) else
+            {
+                throw NewCommandError.couldNotGeneratePrivateKey
+            }
+
+            let encoder = JSONEncoder()
+
+            let serverConfig = ServerConfig(name: name, host: ip, port: port)
+            let serverConfigData = try encoder.encode(serverConfig)
+            let serverConfigURL = URL(fileURLWithPath: File.currentDirectory()).appendingPathComponent("persona-server.json")
+            try serverConfigData.write(to: serverConfigURL)
+            print("Wrote config to \(serverConfigURL.path)")
+
+            let publicKeyKeyAgreement = privateKeyKeyAgreement.publicKey
+            let clientConfig = ClientConfig(name: name, host: ip, port: port, serverPublicKey: publicKeyKeyAgreement)
+            let clientConfigData = try encoder.encode(clientConfig)
+            let clientConfigURL = URL(fileURLWithPath: File.currentDirectory()).appendingPathComponent("persona-client.json")
+            try clientConfigData.write(to: clientConfigURL)
+            print("Wrote config to \(clientConfigURL.path)")
         }
     }
 }
@@ -91,11 +96,11 @@ extension PersonaCommandLine
         {
             let logger = Logger(label: "Persona")
 
-    //        let configURL = URL(fileURLWithPath: File.currentDirectory()).appendingPathComponent("rendezvous-config.json")
-    //        let configData = try Data(contentsOf: configURL)
-    //        let decoder = JSONDecoder()
-    //        let config = try decoder.decode(Config.self, from: configData)
-    //        print("Read config from \(configURL.path)")
+            let configURL = URL(fileURLWithPath: File.currentDirectory()).appendingPathComponent("persona-server.json")
+            let configData = try Data(contentsOf: configURL)
+            let decoder = JSONDecoder()
+            let config = try decoder.decode(ServerConfig.self, from: configData)
+            print("Read config from \(configURL.path)")
 
             let lifecycle = ServiceLifecycle()
 
@@ -112,15 +117,15 @@ extension PersonaCommandLine
 
                 case (true, false):
                     simulation = Simulation(capabilities: Capabilities(.display, .networkConnect, .networkListen, .persistence))
-                    universe = Persona(effects: simulation.effects, events: simulation.events, mode: .record)
+                    universe = Persona(listenAddr: config.host, listenPort: config.port, effects: simulation.effects, events: simulation.events, mode: .record)
 
                 case (false, true):
                     simulation = Simulation(capabilities: Capabilities(.display, .networkConnect, .networkListen, .persistence))
-                    universe = Persona(effects: simulation.effects, events: simulation.events, mode: .playback)
+                    universe = Persona(listenAddr: config.host, listenPort: config.port, effects: simulation.effects, events: simulation.events, mode: .playback)
 
                 case (false, false):
                     simulation = Simulation(capabilities: Capabilities(.display, .networkConnect, .networkListen))
-                    universe = Persona(effects: simulation.effects, events: simulation.events, mode: .live)
+                    universe = Persona(listenAddr: config.host, listenPort: config.port, effects: simulation.effects, events: simulation.events, mode: .live)
             }
 
             lifecycle.register(label: "persona", start: .sync(universe.run), shutdown: .sync(universe.shutdown))
@@ -151,4 +156,11 @@ public enum ServerMode
     case live
     case playback
     case record
+}
+
+public enum NewCommandError: Error
+{
+    case couldNotGeneratePrivateKey
+    case nametagError
+    case portInUse(Int)
 }
