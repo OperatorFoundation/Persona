@@ -220,7 +220,7 @@ public class Persona: Universe
         {
             guard let m = flowerConnection.readMessage() else
             {
-                print("Connection closed")
+                print("Persona.handleFirstMessage: failed to read a flower message. Connection closed")
                 throw PersonaError.connectionClosed
             }
             message = m
