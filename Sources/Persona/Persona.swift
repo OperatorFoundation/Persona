@@ -218,6 +218,8 @@ public class Persona: Universe
         let message: Message
         if self.mode == .live || self.mode == .record
         {
+            print("Persona.handleFirstMessage: attempting to read from our flower connection...")
+            
             guard let m = flowerConnection.readMessage() else
             {
                 print("Persona.handleFirstMessage: failed to read a flower message. Connection closed")
