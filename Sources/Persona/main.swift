@@ -28,7 +28,6 @@ struct PersonaCommandLine: ParsableCommand
     )
 }
 
-
 extension PersonaCommandLine
 {
     struct New: ParsableCommand
@@ -161,6 +160,7 @@ public enum ServerMode
 public enum NewCommandError: Error
 {
     case couldNotGeneratePrivateKey
+    case couldNotLoadKeychain
     case nametagError
     case portInUse(Int)
 }
