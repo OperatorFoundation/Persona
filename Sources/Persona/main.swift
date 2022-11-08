@@ -10,6 +10,10 @@ import Lifecycle
 import Logging
 import Foundation
 import NIO
+#if os(macOS) || os(iOS)
+#else
+import FoundationNetworking
+#endif
 
 import Gardener
 import Keychain
