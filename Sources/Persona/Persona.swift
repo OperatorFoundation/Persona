@@ -4,10 +4,16 @@
 //
 //  Created by Dr. Brandon Wiley on 2/24/22.
 //
+#if os(macOS) || os(iOS)
+import os.log
+#else
+import Logging
+#endif
+
+import Foundation
 
 import Chord
 import Flower
-import Foundation
 import Gardener
 import InternetProtocols
 import Net
@@ -40,8 +46,14 @@ public class Persona: Universe
     {
         self.listenAddr = listenAddr
         self.listenPort = listenPort
+        
+        #if os(macOS) || os(iOS)
+        let logger = Logger(subsystem: "org.OperatorFoundation.PersonaLogger", category: "Persona")
+        #else
+        let logger = Logger(label: "org.OperatorFoundation.PersonaLogger")
+        #endif
 
-        super.init(effects: effects, events: events)
+        super.init(effects: effects, events: events, logger: logger)
 
         self.mode = mode
         self.udpProxy = UdpProxy(universe: self)
