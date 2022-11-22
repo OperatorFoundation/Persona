@@ -97,7 +97,14 @@ public class Persona: Universe
         }
 
         display("listening on \(listenAddr) \(listenPort)")
-        let listener = try self.listen(listenAddr, listenPort)
+        
+        // TODO: Transmission logger for debug purposes only
+        // let listener = try self.listen(listenAddr, listenPort)
+        guard let listener = TransmissionListener(port: listenPort, logger: self.logger) else
+        {
+            print("Persona failed to create a listener.")
+            return
+        }
 
         while true
         {

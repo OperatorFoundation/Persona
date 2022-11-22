@@ -97,8 +97,6 @@ extension PersonaCommandLine
 
         mutating func run() throws
         {
-            let logger = Logger(label: "Persona")
-
             let configURL = URL(fileURLWithPath: File.currentDirectory()).appendingPathComponent("persona-server.json")
             let configData = try Data(contentsOf: configURL)
             let decoder = JSONDecoder()
@@ -139,11 +137,11 @@ extension PersonaCommandLine
 
                 if let error = error
                 {
-                    logger.error("failed starting Persona ☠️: \(error)")
+                    print("failed starting Persona ☠️: \(error)")
                 }
                 else
                 {
-                    logger.info("Persona started successfully 🚀")
+                    print("Persona started successfully 🚀")
                 }
             }
 
