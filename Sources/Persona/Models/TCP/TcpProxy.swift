@@ -10,16 +10,17 @@ import Flower
 import Foundation
 import InternetProtocols
 import Net
+import Puppy
 import Transmission
 import Universe
 
 public class TcpProxy
 {
-    let tcpLogger: Logger?
+    let tcpLogger: Puppy?
     let universe: Universe
     var connections: [TcpProxyConnection] = []
 
-    public init(universe: Universe, quietTime: Bool = true, tcpLogger: Logger?)
+    public init(universe: Universe, quietTime: Bool = true, tcpLogger: Puppy?)
     {
         self.universe = universe
         self.tcpLogger = tcpLogger

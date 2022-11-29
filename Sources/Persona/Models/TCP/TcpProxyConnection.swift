@@ -10,6 +10,7 @@ import Flower
 import Foundation
 import InternetProtocols
 import Net
+import Puppy
 import Transmission
 
 class TcpProxyConnection: Equatable
@@ -49,7 +50,7 @@ class TcpProxyConnection: Equatable
         return SequenceNumber(uint32)
     }
     
-    let tcpLogger: Logger?
+    let tcpLogger: Puppy?
     let proxy: TcpProxy
     let localAddress: IPv4Address
     let localPort: UInt16
@@ -84,7 +85,7 @@ class TcpProxyConnection: Equatable
     var retransmissionTimer: Timer? = nil
 
     // init() automatically send a syn-ack back for the syn (we only open a connect on receiving a syn)
-    public init(proxy: TcpProxy, localAddress: IPv4Address, localPort: UInt16, remoteAddress: IPv4Address, remotePort: UInt16, conduit: Conduit, connection: Transmission.Connection, irs: SequenceNumber, tcpLogger: Logger?) throws
+    public init(proxy: TcpProxy, localAddress: IPv4Address, localPort: UInt16, remoteAddress: IPv4Address, remotePort: UInt16, conduit: Conduit, connection: Transmission.Connection, irs: SequenceNumber, tcpLogger: Puppy?) throws
     {
         print("* TCPProxyConnection init")
         self.proxy = proxy

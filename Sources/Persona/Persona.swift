@@ -16,16 +16,16 @@ import Flower
 import Gardener
 import InternetProtocols
 import Net
+import Puppy
 import Spacetime
 import SwiftHexTools
-import FileLogging
 import Transmission
 import TransmissionTypes
 import Universe
 
 public class Persona: Universe
 {
-    let tcpLogger: Logging.Logger?
+    var tcpLogger = Puppy()
     
     let connectionsQueue = DispatchQueue(label: "ConnectionsQueue")
     let echoUdpQueue = DispatchQueue(label: "EchoUdpQueue")
@@ -56,8 +56,17 @@ public class Persona: Universe
         #endif
         
         let logFileURL = URL(fileURLWithPath: "PersonaTcpLog.log")
-        tcpLogger = try? FileLogging.logger(label: "PersonaTCPLogger", localFile: logFileURL)
-        tcpLogger?.debug("PersonaTCPLogger Start")
+        if let file = try? FileLogger("PersonaTCPLogger",
+                              logLevel: .debug,
+                              fileURL: logFileURL,
+                              filePermission: "600")  // Default permission is "640".
+        {
+            tcpLogger.add(file)
+        }
+
+        
+        
+        tcpLogger.debug("PersonaTCPLogger Start")
 
         super.init(effects: effects, events: events, logger: logger)
 
@@ -378,7 +387,7 @@ public class Persona: Universe
                     let streamID = generateStreamID(source: sourceEndpoint, destination: destinationEndpoint)
                     print("* streamID: \(streamID)")
                     
-                    tcpLogger?.debug("Read a TCP packet:\n\(tcp.description)")
+                    tcpLogger.debug("Read a TCP packet:\n\(tcp.description)")
                                         
                     if tcp.syn // If the syn flag is set, we will ignore all other flags (including acks) and treat this as a syn packet
                     {
