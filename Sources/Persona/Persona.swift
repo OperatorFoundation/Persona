@@ -379,6 +379,7 @@ public class Persona: Universe
                     }
                     let destinationPort = NWEndpoint.Port(integerLiteral: tcp.destinationPort)
                     let destinationEndpoint = EndpointV4(host: ipv4Destination, port: destinationPort)
+                    let streamID = generateStreamID(source: sourceEndpoint, destination: destinationEndpoint)
                     
                     tcpLogger.debug("* source address: \(sourceEndpoint.host):\(sourceEndpoint.port)")
                     tcpLogger.debug("* destination address: \(destinationEndpoint.host):\(destinationEndpoint.port)")
@@ -388,11 +389,10 @@ public class Persona: Universe
                     tcpLogger.debug("* ack: \(tcp.ack)")
                     tcpLogger.debug("* fin: \(tcp.fin)")
                     tcpLogger.debug("* rst: \(tcp.rst)")
-
-                    let streamID = generateStreamID(source: sourceEndpoint, destination: destinationEndpoint)
                     tcpLogger.debug("* streamID: \(streamID)")
+                    tcpLogger.debug("* IPV4 packet parsed ❣️")
+                    tcpLogger.debug("************************************************************\n")
                     
-                                        
                     if tcp.syn // If the syn flag is set, we will ignore all other flags (including acks) and treat this as a syn packet
                     {
                         let parsedMessage: Message = .TCPOpenV4(destinationEndpoint, streamID)
@@ -429,8 +429,6 @@ public class Persona: Universe
                             try self.handleParsedMessage(address, parsedMessage, packet)
                         }
                     }
-                    
-                    tcpLogger.debug("* IPV4 packet parsed ❣️")
                 }
                 else if let udp = packet.udp
                 {
@@ -450,8 +448,6 @@ public class Persona: Universe
                     let parsedMessage: Message = .UDPDataV4(endpoint, payload)
                     try self.handleParsedMessage(address, parsedMessage, packet)
                 }
-                
-                tcpLogger.debug("************************************************************\n")
 
             default:
                 // Drop this message, but then continue processing more messages
