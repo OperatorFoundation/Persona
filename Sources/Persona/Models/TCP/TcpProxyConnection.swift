@@ -4,6 +4,7 @@
 //
 //  Created by Dr. Brandon Wiley on 3/11/22.
 //
+import Logging
 
 import Flower
 import Foundation
@@ -47,7 +48,8 @@ class TcpProxyConnection: Equatable
         let uint32 = UInt32(wholeMicroseconds)
         return SequenceNumber(uint32)
     }
-
+    
+    let tcpLogger: Logger?
     let proxy: TcpProxy
     let localAddress: IPv4Address
     let localPort: UInt16
@@ -82,7 +84,7 @@ class TcpProxyConnection: Equatable
     var retransmissionTimer: Timer? = nil
 
     // init() automatically send a syn-ack back for the syn (we only open a connect on receiving a syn)
-    public init(proxy: TcpProxy, localAddress: IPv4Address, localPort: UInt16, remoteAddress: IPv4Address, remotePort: UInt16, conduit: Conduit, connection: Transmission.Connection, irs: SequenceNumber) throws
+    public init(proxy: TcpProxy, localAddress: IPv4Address, localPort: UInt16, remoteAddress: IPv4Address, remotePort: UInt16, conduit: Conduit, connection: Transmission.Connection, irs: SequenceNumber, tcpLogger: Logger?) throws
     {
         print("* TCPProxyConnection init")
         self.proxy = proxy
@@ -112,11 +114,12 @@ class TcpProxyConnection: Equatable
         self.sndWl1 = nil
         self.sndWl2 = nil
         self.rcvWnd = 0
+        self.tcpLogger = tcpLogger
 
         // FIXME - handle the case where we receive an unusual SYN packets which carries a payload
         try self.sendSynAck(conduit)
         
-        print("* TCPProxyConnection init complete")
+        tcpLogger?.debug("* TCPProxyConnection init complete")
     }
 
     // This is called for everything except the first syn received.
@@ -652,7 +655,7 @@ class TcpProxyConnection: Equatable
 
     func sendSynAck(_ conduit: Conduit) throws
     {
-        print("* sendSynAck called")
+        tcpLogger?.debug("* sendSynAck called")
         try self.sendPacket(sequenceNumber: self.iss, acknowledgementNumber: self.rcvNxt, syn: true, ack: true)
     }
 
@@ -735,34 +738,34 @@ class TcpProxyConnection: Equatable
     {
         do
         {
-            print("* Creating an IPv4 packet:")
-            print("* sourceAddress: \(self.remoteAddress)")
-            print("* destinationAddress: \(self.localAddress)")
-            print("* sourcePort: \(self.remotePort)")
-            print("* destinationPort: \(self.localPort)")
-            print("* sequenceNumber: \(sequenceNumber)")
-            print("* acknowledgementNumber: \(acknowledgementNumber)")
-            print("* syn: \(syn)")
-            print("* ack: \(ack)")
-            print("* fin: \(fin)")
-            print("* rst: \(rst)")
+            self.tcpLogger?.debug("* Creating an IPv4 packet:")
+            self.tcpLogger?.debug("* sourceAddress: \(self.remoteAddress)")
+            self.tcpLogger?.debug("* destinationAddress: \(self.localAddress)")
+            self.tcpLogger?.debug("* sourcePort: \(self.remotePort)")
+            self.tcpLogger?.debug("* destinationPort: \(self.localPort)")
+            self.tcpLogger?.debug("* sequenceNumber: \(sequenceNumber)")
+            self.tcpLogger?.debug("* acknowledgementNumber: \(acknowledgementNumber)")
+            self.tcpLogger?.debug("* syn: \(syn)")
+            self.tcpLogger?.debug("* ack: \(ack)")
+            self.tcpLogger?.debug("* fin: \(fin)")
+            self.tcpLogger?.debug("* rst: \(rst)")
 
             guard let ipv4 = try IPv4(sourceAddress: self.remoteAddress, destinationAddress: self.localAddress, sourcePort: self.remotePort, destinationPort: self.localPort, sequenceNumber: sequenceNumber, acknowledgementNumber: acknowledgementNumber, syn: syn, ack: ack, fin: fin, rst: rst, windowSize: 0, payload: nil) else
             {
-                print("* sendPacket() failed to initialize IPv4 packet.")
+                self.tcpLogger?.debug("* sendPacket() failed to initialize IPv4 packet.")
                 throw TcpProxyError.badIpv4Packet
             }
             
-            print("* IPv4 Packet created 💖")
+            self.tcpLogger?.debug("* IPv4 Packet created 💖")
             
             let message = Message.IPDataV4(ipv4.data)
             
-            print("* IPDataV4 Message created: \(message)")
+            self.tcpLogger?.debug("* IPDataV4 Message created: \(message)")
             self.conduit.flowerConnection.writeMessage(message: message)
         }
         catch
         {
-            print("* sendPacket() failed to initialize IPv4 packet. Received an error: \(error)")
+            self.tcpLogger?.debug("* sendPacket() failed to initialize IPv4 packet. Received an error: \(error)")
             throw error
         }
     }

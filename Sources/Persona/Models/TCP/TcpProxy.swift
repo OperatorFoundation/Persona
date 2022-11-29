@@ -5,6 +5,7 @@
 //  Created by Dr. Brandon Wiley on 3/7/22.
 //
 
+import Logging
 import Flower
 import Foundation
 import InternetProtocols
@@ -14,12 +15,14 @@ import Universe
 
 public class TcpProxy
 {
+    let tcpLogger: Logger?
     let universe: Universe
     var connections: [TcpProxyConnection] = []
 
-    public init(universe: Universe, quietTime: Bool = true)
+    public init(universe: Universe, quietTime: Bool = true, tcpLogger: Logger?)
     {
         self.universe = universe
+        self.tcpLogger = tcpLogger
 
         if quietTime
         {
@@ -66,12 +69,12 @@ public class TcpProxy
 
         if let proxyConnection = self.findConnection(localAddress: sourceAddress, localPort: sourcePort, remoteAddress: destinationAddress, remotePort: destinationPort, tcp: tcp)
         {
-            print("* This is an existing proxy connection, calling proxyConnection.processLocalPacket(tcp)")
+            tcpLogger?.debug("* This is an existing proxy connection, calling proxyConnection.processLocalPacket(tcp)")
             try proxyConnection.processLocalPacket(tcp)
         }
         else
         {
-            print("* This is a new destination, calling handleNewConnection()")
+            tcpLogger?.debug("* This is a new destination, calling handleNewConnection()")
             try self.handleNewConnection(tcp: tcp, sourceAddress: sourceAddress, sourcePort: sourcePort, destinationAddress: destinationAddress, destinationPort: destinationPort, conduit: conduit)
         }
     }
@@ -116,7 +119,8 @@ public class TcpProxy
         }
         else if tcp.syn // A new connection requires a SYN packet
         {
-            print("* handleNewConnection received a syn")
+            tcpLogger?.debug("* handleNewConnection received a syn")
+            
             // connect() automatically send a syn-ack back for the syn internally
             guard let networkConnection = try? self.universe.connect(destinationAddress.string, Int(destinationPort), ConnectionType.tcp) else
             {
@@ -158,7 +162,7 @@ public class TcpProxy
         print("* Making a TcpProxyConnection")
         do
         {
-            let connection = try TcpProxyConnection(proxy: proxy, localAddress: localAddress, localPort: localPort, remoteAddress: remoteAddress, remotePort: remotePort, conduit: conduit, connection: connection, irs: irs)
+            let connection = try TcpProxyConnection(proxy: proxy, localAddress: localAddress, localPort: localPort, remoteAddress: remoteAddress, remotePort: remotePort, conduit: conduit, connection: connection, irs: irs, tcpLogger: tcpLogger)
             self.connections.append(connection)
             print("* Created a TcpProxyConnection")
         }

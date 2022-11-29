@@ -6,11 +6,10 @@
 //
 #if os(macOS) || os(iOS)
 import os.log
-#else
-import Logging
 #endif
 
 import Foundation
+import Logging
 
 import Chord
 import Flower
@@ -19,12 +18,15 @@ import InternetProtocols
 import Net
 import Spacetime
 import SwiftHexTools
+import FileLogging
 import Transmission
 import TransmissionTypes
 import Universe
 
 public class Persona: Universe
 {
+    let tcpLogger: Logging.Logger?
+    
     let connectionsQueue = DispatchQueue(label: "ConnectionsQueue")
     let echoUdpQueue = DispatchQueue(label: "EchoUdpQueue")
     let echoTcpQueue = DispatchQueue(label: "EchoTcpQueue")
@@ -52,12 +54,16 @@ public class Persona: Universe
         #else
         let logger = Logger(label: "org.OperatorFoundation.PersonaLogger")
         #endif
+        
+        let logFileURL = URL(fileURLWithPath: "PersonaTcpLog.log")
+        tcpLogger = try? FileLogging.logger(label: "PersonaTCPLogger", localFile: logFileURL)
+        tcpLogger?.debug("PersonaTCPLogger Start")
 
         super.init(effects: effects, events: events, logger: logger)
 
         self.mode = mode
         self.udpProxy = UdpProxy(universe: self)
-        self.tcpProxy = TcpProxy(universe: self, quietTime: false)
+        self.tcpProxy = TcpProxy(universe: self, quietTime: false, tcpLogger: tcpLogger)
     }
 
     public override func main() throws
@@ -69,7 +75,7 @@ public class Persona: Universe
 
         let echoUdpListener = try self.listen(listenAddr, echoPort, type: .udp)
 
-        // MARK: async cannot be replaces with Task because it is not currently supported on Linux
+        // MARK: async cannot be replaced with Task because it is not currently supported on Linux
         echoUdpQueue.async
         {
             do
@@ -98,13 +104,7 @@ public class Persona: Universe
 
         display("listening on \(listenAddr) \(listenPort)")
         
-        // TODO: Transmission logger for debug purposes only
         let listener = try self.listen(listenAddr, listenPort)
-//        guard let listener = TransmissionListener(port: listenPort, logger: self.logger) else
-//        {
-//            print("Persona failed to create a listener.")
-//            return
-//        }
 
         while true
         {
@@ -114,7 +114,7 @@ public class Persona: Universe
 
             display("New connection")
 
-            // MARK: async cannot be replaces with Task because it is not currently supported on Linux
+            // MARK: async cannot be replaced with Task because it is not currently supported on Linux
             connectionsQueue.async
             {
                 self.handleIncomingConnection(connection)
@@ -377,6 +377,8 @@ public class Persona: Universe
                     
                     let streamID = generateStreamID(source: sourceEndpoint, destination: destinationEndpoint)
                     print("* streamID: \(streamID)")
+                    
+                    tcpLogger?.debug("Read a TCP packet:\n\(tcp.description)")
                                         
                     if tcp.syn // If the syn flag is set, we will ignore all other flags (including acks) and treat this as a syn packet
                     {
@@ -472,7 +474,7 @@ public class Persona: Universe
                 throw PersonaError.unsupportedParsedMessage(message)
                 
             case .TCPOpenV4(_, _), .TCPData(_, _), .TCPClose(_):
-                print("* Persona received a TCP message")
+                print("* Persona received a TCP message: \(message)")
                 guard let conduit = self.conduitCollection.getConduit(with: address.string) else
                 {
                     print("* Unknown conduit address \(address)")
