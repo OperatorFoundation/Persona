@@ -736,11 +736,9 @@ class TcpProxyConnection: Equatable
     {
         do
         {
-            self.tcpLogger?.debug("* Creating an IPv4 packet:")
-            self.tcpLogger?.debug("* sourceAddress: \(self.remoteAddress)")
-            self.tcpLogger?.debug("* destinationAddress: \(self.localAddress)")
-            self.tcpLogger?.debug("* sourcePort: \(self.remotePort)")
-            self.tcpLogger?.debug("* destinationPort: \(self.localPort)")
+            self.tcpLogger?.debug("*** Creating an IPv4 packet ***")
+            self.tcpLogger?.debug("* source address: \(self.remoteAddress.string):\(self.remotePort)")
+            self.tcpLogger?.debug("* destination address: \(self.localAddress.string):\(self.localPort)")
             self.tcpLogger?.debug("* sequenceNumber: dec - \(sequenceNumber.uint32), hex - \(sequenceNumber.data.hex)")
             self.tcpLogger?.debug("* acknowledgementNumber: dec - \(acknowledgementNumber.uint32), hex - \(acknowledgementNumber.data.hex)")
             self.tcpLogger?.debug("* syn: \(syn)")

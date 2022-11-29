@@ -361,7 +361,7 @@ public class Persona: Universe
 
                 if let tcp = packet.tcp
                 {
-                    tcpLogger.debug("* TCP Packet: ")
+                    tcpLogger.debug("*** Parsing a TCP Packet ***")
 
                     guard let ipv4Source = IPv4Address(data: ipv4Packet.sourceAddress) else
                     {
@@ -381,10 +381,10 @@ public class Persona: Universe
                     let destinationEndpoint = EndpointV4(host: ipv4Destination, port: destinationPort)
                     let streamID = generateStreamID(source: sourceEndpoint, destination: destinationEndpoint)
                     
-                    tcpLogger.debug("* source address: \(sourceEndpoint.host):\(sourceEndpoint.port)")
-                    tcpLogger.debug("* destination address: \(destinationEndpoint.host):\(destinationEndpoint.port)")
-                    tcpLogger.debug("* sequence number: dec - \(String(describing: tcp.sequenceNumber.uint32)), hex - \(tcp.sequenceNumber.hex)")
-                    tcpLogger.debug("* acknowledgement number: dec - \(tcp.acknowledgementNumber.uint32), hex - \(tcp.acknowledgementNumber.hex)")
+                    tcpLogger.debug("* source address: \(sourceEndpoint.host.string):\(sourceEndpoint.port.rawValue)")
+                    tcpLogger.debug("* destination address: \(destinationEndpoint.host.string):\(destinationEndpoint.port.rawValue)")
+                    tcpLogger.debug("* sequence number: dec - \(tcp.sequenceNumber.uint32 ?? 0), hex - \(tcp.sequenceNumber.hex)")
+                    tcpLogger.debug("* acknowledgement number: dec - \(tcp.acknowledgementNumber.uint32 ?? 0), hex - \(tcp.acknowledgementNumber.hex)")
                     tcpLogger.debug("* syn: \(tcp.syn)")
                     tcpLogger.debug("* ack: \(tcp.ack)")
                     tcpLogger.debug("* fin: \(tcp.fin)")
