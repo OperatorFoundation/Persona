@@ -87,7 +87,7 @@ class TcpProxyConnection: Equatable
     // init() automatically send a syn-ack back for the syn (we only open a connect on receiving a syn)
     public init(proxy: TcpProxy, localAddress: IPv4Address, localPort: UInt16, remoteAddress: IPv4Address, remotePort: UInt16, conduit: Conduit, connection: Transmission.Connection, irs: SequenceNumber, tcpLogger: Puppy?) throws
     {
-        print("* TCPProxyConnection init")
+        print("\n* TCPProxyConnection init")
         self.proxy = proxy
         self.localAddress = localAddress
         self.localPort = localPort
@@ -120,14 +120,12 @@ class TcpProxyConnection: Equatable
         // FIXME - handle the case where we receive an unusual SYN packets which carries a payload
         try self.sendSynAck(conduit)
         
-        tcpLogger?.debug("* TCPProxyConnection init complete")
+        tcpLogger?.debug("* TCPProxyConnection init complete\n")
     }
 
     // This is called for everything except the first syn received.
     public func processLocalPacket(_ tcp: InternetProtocols.TCP) throws
     {
-        print("* Persona.processLocalPacket called")
-
         if self.firstAck
         {
             self.firstAck = false
@@ -140,7 +138,6 @@ class TcpProxyConnection: Equatable
         // Otherwise, they might be old packets from a previous connection or redundant retransmissions.
         if self.inWindow(tcp)
         {
-            print("* processLocalPacket: inWindow")
             if tcp.rst
             {
                 print("* Persona.processLocalPacket: received rst")
@@ -656,19 +653,19 @@ class TcpProxyConnection: Equatable
 
     func sendSynAck(_ conduit: Conduit) throws
     {
-        tcpLogger?.debug("* sendSynAck called")
+        tcpLogger?.debug("* sending SynAck")
         try self.sendPacket(sequenceNumber: self.iss, acknowledgementNumber: self.rcvNxt, syn: true, ack: true)
     }
 
     func sendAck(_ tcp: InternetProtocols.TCP, _ state: TCP.States) throws
     {
-        print("* sendAck called")
+        tcpLogger?.debug("* sending Ack")
         try self.sendPacket(sequenceNumber: self.iss, acknowledgementNumber: self.rcvNxt, syn: true, ack: true)
     }
 
     func sendRst(_ conduit: Conduit, _ tcp: InternetProtocols.TCP, _ state: TCP.States) throws
     {
-        print("* sendRst called")
+        tcpLogger?.debug("* sending Rst")
         switch state
         {
             case .closed:
@@ -744,8 +741,8 @@ class TcpProxyConnection: Equatable
             self.tcpLogger?.debug("* destinationAddress: \(self.localAddress)")
             self.tcpLogger?.debug("* sourcePort: \(self.remotePort)")
             self.tcpLogger?.debug("* destinationPort: \(self.localPort)")
-            self.tcpLogger?.debug("* sequenceNumber: \(sequenceNumber)")
-            self.tcpLogger?.debug("* acknowledgementNumber: \(acknowledgementNumber)")
+            self.tcpLogger?.debug("* sequenceNumber: dec - \(sequenceNumber.uint32), hex - \(sequenceNumber.data.hex)")
+            self.tcpLogger?.debug("* acknowledgementNumber: dec - \(acknowledgementNumber.uint32), hex - \(acknowledgementNumber.data.hex)")
             self.tcpLogger?.debug("* syn: \(syn)")
             self.tcpLogger?.debug("* ack: \(ack)")
             self.tcpLogger?.debug("* fin: \(fin)")
@@ -762,6 +759,7 @@ class TcpProxyConnection: Equatable
             let message = Message.IPDataV4(ipv4.data)
             
             self.tcpLogger?.debug("* IPDataV4 Message created: \(message)")
+            self.tcpLogger?.debug("************************************************************\n")
             self.conduit.flowerConnection.writeMessage(message: message)
         }
         catch

@@ -343,7 +343,8 @@ public class Persona: Universe
             throw PersonaError.connectionClosed
         }
         
-        print("\n* Persona.handleNextMessage: received a \(message.description)")
+        tcpLogger.debug("\n************************************************************")
+        tcpLogger.debug("* Persona.handleNextMessage: received a \(message.description)")
         
         switch message
         {
@@ -360,51 +361,54 @@ public class Persona: Universe
 
                 if let tcp = packet.tcp
                 {
-                    guard let ipv4Destination = IPv4Address(data: ipv4Packet.destinationAddress) else
-                    {
-                        // Drop this packet, but then continue processing more packets
-                        throw PersonaError.addressDataIsNotIPv4(ipv4Packet.destinationAddress)
-                    }
-                    print("* ipv4Destination: \(ipv4Destination.string)")
-                    
+                    tcpLogger.debug("* TCP Packet: ")
+
                     guard let ipv4Source = IPv4Address(data: ipv4Packet.sourceAddress) else
                     {
                         // Drop this packet, but then continue processing more packets
                         throw PersonaError.addressDataIsNotIPv4(ipv4Packet.destinationAddress)
                     }
-                    print("* ipv4Source: \(ipv4Source.string)")
-                    
-                    let destinationPort = NWEndpoint.Port(integerLiteral: tcp.destinationPort)
-                    print("* destinationPort: \(destinationPort)")
-                    
-                    let destinationEndpoint = EndpointV4(host: ipv4Destination, port: destinationPort)
-                    print("* destinationEndpoint: \(destinationEndpoint.host):\(destinationEndpoint.port)")
                     
                     let sourcePort = NWEndpoint.Port(integerLiteral: tcp.sourcePort)
                     let sourceEndpoint = EndpointV4(host: ipv4Source, port: sourcePort)
-                    print("* sourceEndpoint: \(sourceEndpoint.host):\(sourceEndpoint.port)")
                     
+                    guard let ipv4Destination = IPv4Address(data: ipv4Packet.destinationAddress) else
+                    {
+                        // Drop this packet, but then continue processing more packets
+                        throw PersonaError.addressDataIsNotIPv4(ipv4Packet.destinationAddress)
+                    }
+                    let destinationPort = NWEndpoint.Port(integerLiteral: tcp.destinationPort)
+                    let destinationEndpoint = EndpointV4(host: ipv4Destination, port: destinationPort)
+                    
+                    tcpLogger.debug("* source address: \(sourceEndpoint.host):\(sourceEndpoint.port)")
+                    tcpLogger.debug("* destination address: \(destinationEndpoint.host):\(destinationEndpoint.port)")
+                    tcpLogger.debug("* sequence number: dec - \(String(describing: tcp.sequenceNumber.uint32)), hex - \(tcp.sequenceNumber.hex)")
+                    tcpLogger.debug("* acknowledgement number: dec - \(tcp.acknowledgementNumber.uint32), hex - \(tcp.acknowledgementNumber.hex)")
+                    tcpLogger.debug("* syn: \(tcp.syn)")
+                    tcpLogger.debug("* ack: \(tcp.ack)")
+                    tcpLogger.debug("* fin: \(tcp.fin)")
+                    tcpLogger.debug("* rst: \(tcp.rst)")
+
                     let streamID = generateStreamID(source: sourceEndpoint, destination: destinationEndpoint)
-                    print("* streamID: \(streamID)")
+                    tcpLogger.debug("* streamID: \(streamID)")
                     
-                    tcpLogger.debug("Read a TCP packet:\n\(tcp.description)")
                                         
                     if tcp.syn // If the syn flag is set, we will ignore all other flags (including acks) and treat this as a syn packet
                     {
                         let parsedMessage: Message = .TCPOpenV4(destinationEndpoint, streamID)
-                        print("* tcp.syn received parsed the message as TCPOpenV4")
+                        tcpLogger.debug("* tcp.syn received. Message is TCPOpenV4")
                         try self.handleParsedMessage(address, parsedMessage, packet)
                     }
                     else if tcp.rst // TODO: Flower should be informed if a close message is an rst or a fin
                     {
                         let parsedMessage: Message = .TCPClose(streamID)
-                        print("* tcp.rst received, parsed the message as TCPClose")
+                        tcpLogger.debug("* tcp.rst received. Message is TCPClose")
                         try self.handleParsedMessage(address, parsedMessage, packet)
                     }
                     else if tcp.fin // TODO: Flower should be informed if a close message is an rst or a fin
                     {
                         let parsedMessage: Message = .TCPClose(streamID)
-                        print("* tcp.fin received, parsed the message as TCPClose")
+                        tcpLogger.debug("* tcp.fin received. Message is TCPClose")
                         try self.handleParsedMessage(address, parsedMessage, packet)
                     }
                     else
@@ -413,18 +417,20 @@ public class Persona: Universe
                         if let payload = tcp.payload
                         {
                             let parsedMessage: Message = .TCPData(streamID, payload)
-                            print("* parsed the message as TCPData")
+                            tcpLogger.debug("* Received a payload. Parsed the message as TCPData")
                             
                             try self.handleParsedMessage(address, parsedMessage, packet)
                         }
                         else if tcp.ack
                         {
                             let parsedMessage: Message = .TCPData(streamID, Data())
-                            print("* parsed the message as TCPData with no payload")
+                            print("* No payload but receives an ack. Parsed the message as TCPData with no payload")
                             
                             try self.handleParsedMessage(address, parsedMessage, packet)
                         }
                     }
+                    
+                    tcpLogger.debug("* IPV4 packet parsed ❣️")
                 }
                 else if let udp = packet.udp
                 {
@@ -444,6 +450,8 @@ public class Persona: Universe
                     let parsedMessage: Message = .UDPDataV4(endpoint, payload)
                     try self.handleParsedMessage(address, parsedMessage, packet)
                 }
+                
+                tcpLogger.debug("************************************************************\n")
 
             default:
                 // Drop this message, but then continue processing more messages
