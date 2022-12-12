@@ -381,21 +381,23 @@ public class Persona: Universe
                     let destinationEndpoint = EndpointV4(host: ipv4Destination, port: destinationPort)
                     let streamID = generateStreamID(source: sourceEndpoint, destination: destinationEndpoint)
                     
-                    tcpLogger.debug("* source address: \(sourceEndpoint.host.string):\(sourceEndpoint.port.rawValue)")
-                    tcpLogger.debug("* destination address: \(destinationEndpoint.host.string):\(destinationEndpoint.port.rawValue)")
-                    tcpLogger.debug("* sequence number:")
-                    tcpLogger.debug("* \(tcp.sequenceNumber.uint32 ?? 0)")
-                    tcpLogger.debug("* \(tcp.sequenceNumber.hex)")
-                    tcpLogger.debug("* acknowledgement number:")
-                    tcpLogger.debug("* \(tcp.acknowledgementNumber.uint32 ?? 0)")
-                    tcpLogger.debug("* \(tcp.acknowledgementNumber.hex)")
-                    tcpLogger.debug("* syn: \(tcp.syn)")
-                    tcpLogger.debug("* ack: \(tcp.ack)")
-                    tcpLogger.debug("* fin: \(tcp.fin)")
-                    tcpLogger.debug("* rst: \(tcp.rst)")
-                    tcpLogger.debug("* streamID: \(streamID)")
-                    tcpLogger.debug("* IPV4 packet parsed ❣️")
-                    tcpLogger.debug("************************************************************\n")
+                    if tcp.destinationPort == 2234 {
+                        tcpLogger.debug("* source address: \(sourceEndpoint.host.string):\(sourceEndpoint.port.rawValue)")
+                        tcpLogger.debug("* destination address: \(destinationEndpoint.host.string):\(destinationEndpoint.port.rawValue)")
+                        tcpLogger.debug("* sequence number:")
+                        tcpLogger.debug("* \(tcp.sequenceNumber.uint32 ?? 0)")
+                        tcpLogger.debug("* \(tcp.sequenceNumber.hex)")
+                        tcpLogger.debug("* acknowledgement number:")
+                        tcpLogger.debug("* \(tcp.acknowledgementNumber.uint32 ?? 0)")
+                        tcpLogger.debug("* \(tcp.acknowledgementNumber.hex)")
+                        tcpLogger.debug("* syn: \(tcp.syn)")
+                        tcpLogger.debug("* ack: \(tcp.ack)")
+                        tcpLogger.debug("* fin: \(tcp.fin)")
+                        tcpLogger.debug("* rst: \(tcp.rst)")
+                        tcpLogger.debug("* streamID: \(streamID)")
+                        tcpLogger.debug("* IPV4 packet parsed ❣️")
+                        tcpLogger.debug("************************************************************\n")
+                    }
                     
                     if tcp.syn // If the syn flag is set, we will ignore all other flags (including acks) and treat this as a syn packet
                     {

@@ -736,20 +736,22 @@ class TcpProxyConnection: Equatable
     {
         do
         {
-            self.tcpLogger?.debug("*** Creating an IPv4 packet ***")
-            self.tcpLogger?.debug("* source address: \(self.remoteAddress.string):\(self.remotePort)")
-            self.tcpLogger?.debug("* destination address: \(self.localAddress.string):\(self.localPort)")
-            self.tcpLogger?.debug("* sequenceNumber:")
-            self.tcpLogger?.debug("* \(sequenceNumber.uint32)")
-            self.tcpLogger?.debug("* \(sequenceNumber.data.hex)")
-            self.tcpLogger?.debug("* acknowledgementNumber:")
-            self.tcpLogger?.debug("* \(acknowledgementNumber.uint32)")
-            self.tcpLogger?.debug("* \(acknowledgementNumber.data.hex)")
-            self.tcpLogger?.debug("* syn: \(syn)")
-            self.tcpLogger?.debug("* ack: \(ack)")
-            self.tcpLogger?.debug("* fin: \(fin)")
-            self.tcpLogger?.debug("* rst: \(rst)")
-
+            if self.remotePort == 2234 {
+                self.tcpLogger?.debug("*** Creating an IPv4 packet ***")
+                self.tcpLogger?.debug("* source address: \(self.remoteAddress.string):\(self.remotePort)")
+                self.tcpLogger?.debug("* destination address: \(self.localAddress.string):\(self.localPort)")
+                self.tcpLogger?.debug("* sequenceNumber:")
+                self.tcpLogger?.debug("* \(sequenceNumber.uint32)")
+                self.tcpLogger?.debug("* \(sequenceNumber.data.hex)")
+                self.tcpLogger?.debug("* acknowledgementNumber:")
+                self.tcpLogger?.debug("* \(acknowledgementNumber.uint32)")
+                self.tcpLogger?.debug("* \(acknowledgementNumber.data.hex)")
+                self.tcpLogger?.debug("* syn: \(syn)")
+                self.tcpLogger?.debug("* ack: \(ack)")
+                self.tcpLogger?.debug("* fin: \(fin)")
+                self.tcpLogger?.debug("* rst: \(rst)")
+            }
+            
             guard let ipv4 = try IPv4(sourceAddress: self.remoteAddress, destinationAddress: self.localAddress, sourcePort: self.remotePort, destinationPort: self.localPort, sequenceNumber: sequenceNumber, acknowledgementNumber: acknowledgementNumber, syn: syn, ack: ack, fin: fin, rst: rst, windowSize: 0, payload: nil) else
             {
                 self.tcpLogger?.debug("* sendPacket() failed to initialize IPv4 packet.")
