@@ -394,6 +394,13 @@ public class Persona: Universe
                         tcpLogger.debug("* ack: \(tcp.ack)")
                         tcpLogger.debug("* fin: \(tcp.fin)")
                         tcpLogger.debug("* rst: \(tcp.rst)")
+                        if let payload = tcp.payload {
+                            tcpLogger.debug("* payload: \(payload.count) *")
+                        }
+                        else {
+                            tcpLogger.debug("* no payload *")
+                        }
+                        
                         tcpLogger.debug("* streamID: \(streamID)")
                         tcpLogger.debug("* IPV4 packet parsed ❣️")
                         tcpLogger.debug("************************************************************\n")
