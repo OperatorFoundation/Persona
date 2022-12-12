@@ -361,6 +361,7 @@ class TcpProxyConnection: Equatable
                                  transmitted if possible without incurring undue delay.
                                  */
 
+                                self.tcpLogger?.debug("processLocalPacket() called")
                                 try self.sendPacket(sequenceNumber: self.sndNxt, acknowledgementNumber: self.rcvNxt, ack: true)
 
                                 switch state
@@ -696,11 +697,13 @@ class TcpProxyConnection: Equatable
                 }
                 else if tcp.ack
                 {
+                    self.tcpLogger?.debug("sendRst() called")
                     try self.sendPacket(sequenceNumber: SequenceNumber(tcp.acknowledgementNumber), rst: true)
                 }
                 else
                 {
                     let acknowledgementNumber = SequenceNumber(tcp.sequenceNumber).add(TransmissionControlBlock.sequenceLength(tcp))
+                    self.tcpLogger?.debug("sendRst() called")
                     try self.sendPacket(acknowledgementNumber: acknowledgementNumber, ack: true, rst: true)
                 }
 
@@ -713,7 +716,7 @@ class TcpProxyConnection: Equatable
 
                  and send it.
                  */
-
+                self.tcpLogger?.debug("sendRst() called")
                 try self.sendPacket(sequenceNumber: SequenceNumber(tcp.acknowledgementNumber), rst: true)
 
             default:
@@ -724,11 +727,13 @@ class TcpProxyConnection: Equatable
     func startClose(sequenceNumber: SequenceNumber, acknowledgementNumber: SequenceNumber) throws
     {
         self.state = .finWait1
+        self.tcpLogger?.debug("startClose() called")
         try self.sendFin(sequenceNumber: sequenceNumber, acknowledgementNumber: acknowledgementNumber)
     }
 
     func sendFin(sequenceNumber: SequenceNumber, acknowledgementNumber: SequenceNumber) throws
     {
+        self.tcpLogger?.debug("sendFin() called")
         try self.sendPacket(sequenceNumber: sequenceNumber, acknowledgementNumber: acknowledgementNumber, ack: true, fin: true)
     }
 
