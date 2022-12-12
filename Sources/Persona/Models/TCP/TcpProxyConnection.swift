@@ -755,6 +755,7 @@ class TcpProxyConnection: Equatable
                 self.tcpLogger?.debug("* ack: \(ack)")
                 self.tcpLogger?.debug("* fin: \(fin)")
                 self.tcpLogger?.debug("* rst: \(rst)")
+                self.tcpLogger?.debug("* window size \(self.sndWnd)")
             }
             
             guard let ipv4 = try IPv4(sourceAddress: self.remoteAddress, destinationAddress: self.localAddress, sourcePort: self.remotePort, destinationPort: self.localPort, sequenceNumber: sequenceNumber, acknowledgementNumber: acknowledgementNumber, syn: syn, ack: ack, fin: fin, rst: rst, windowSize: 0, payload: nil) else

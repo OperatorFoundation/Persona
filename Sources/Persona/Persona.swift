@@ -396,7 +396,7 @@ public class Persona: Universe
                         tcpLogger.debug("* rst: \(tcp.rst)")
                         tcpLogger.debug("* window size: \(tcp.windowSize)")
                         if let options = tcp.options {
-                            tcpLogger.debug("* tcp options: \(options)")
+                            tcpLogger.debug("* tcp options: \(options.hex)")
                         } else {
                             tcpLogger.debug("* no tcp options")
                         }
