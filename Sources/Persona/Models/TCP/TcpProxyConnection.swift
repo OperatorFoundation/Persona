@@ -60,6 +60,9 @@ class TcpProxyConnection: Equatable
 
     let conduit: Conduit
     let connection: Transmission.Connection
+    
+    var sendStraw: TCPStraw
+    var receiveStraw: TCPStraw
 
     var lastUsed: Date
 
@@ -85,7 +88,7 @@ class TcpProxyConnection: Equatable
     var retransmissionTimer: Timer? = nil
 
     // init() automatically send a syn-ack back for the syn (we only open a connect on receiving a syn)
-    public init(proxy: TcpProxy, localAddress: IPv4Address, localPort: UInt16, remoteAddress: IPv4Address, remotePort: UInt16, conduit: Conduit, connection: Transmission.Connection, irs: SequenceNumber, tcpLogger: Puppy?) throws
+    public init(proxy: TcpProxy, localAddress: IPv4Address, localPort: UInt16, remoteAddress: IPv4Address, remotePort: UInt16, conduit: Conduit, connection: Transmission.Connection, irs: SequenceNumber, tcpLogger: Puppy?, rcvWnd: UInt16) throws
     {
         print("\n* TCPProxyConnection init")
         self.proxy = proxy
@@ -107,6 +110,9 @@ class TcpProxyConnection: Equatable
         self.iss = TcpProxyConnection.isn()
         self.sndNxt = self.iss.increment()
         
+        self.sendStraw = TCPStraw(segmentStart: Int(self.iss.uint32))
+        self.receiveStraw = TCPStraw(segmentStart: Int(self.irs.uint32))
+        
         print(" 🐡 irs = \(irs.uint32) | iss = \(iss.uint32)")
         print(" 🐡 rcvNxt = \(rcvNxt.uint32) | sndNxt = \(sndNxt.uint32)")
 
@@ -114,7 +120,7 @@ class TcpProxyConnection: Equatable
         self.sndWnd = 65535
         self.sndWl1 = nil
         self.sndWl2 = nil
-        self.rcvWnd = 0
+        self.rcvWnd = rcvWnd
         self.tcpLogger = tcpLogger
 
         // FIXME - handle the case where we receive an unusual SYN packets which carries a payload
@@ -308,24 +314,27 @@ class TcpProxyConnection: Equatable
                                  has been received.
                                  */
 
-                                if let payload = tcp.payload
+                                if tcp.payload != nil
                                 {
-                                    print("* Persona.processLocalPacket: tcp payload received on an established connection forwarding to the upstream server")
+                                    self.tcpLogger?.debug("* Persona.processLocalPacket: tcp payload received on an established connection, buffering 🏆")
                                     // If a write to the server fails, the the server connection is closed.
                                     // Start closing the client connection.
-                                    guard self.connection.write(data: payload) else
-                                    {
-                                        print("🛑 Persona.processLocalPacket: failed to send our payload upstream")
-                                        // Connection is closed.
-
-                                        // Fully close the server connection and let users know that the connection is closed if they try to send data.
-                                        self.close()
-
-                                        // Start closing the client connection.
-                                        try self.startClose(sequenceNumber: self.sndNxt, acknowledgementNumber: SequenceNumber(tcp.sequenceNumber))
-                                        return
+                                    Task {
+                                        try await self.receiveStraw.write(tcp)
                                     }
-                                    
+//                                    guard self.connection.write(data: tcp.payload) else
+//                                    {
+//                                        print("🛑 Persona.processLocalPacket: failed to send our payload upstream")
+//                                        // Connection is closed.
+//
+//                                        // Fully close the server connection and let users know that the connection is closed if they try to send data.
+//                                        self.close()
+//
+//                                        // Start closing the client connection.
+//                                        try self.startClose(sequenceNumber: self.sndNxt, acknowledgementNumber: SequenceNumber(tcp.sequenceNumber))
+//                                        return
+//                                    }
+//
                                     print("* Persona.processLocalPacket: payload upstream write complete")
                                 }
 

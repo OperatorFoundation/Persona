@@ -133,7 +133,7 @@ public class TcpProxy
             
             do
             {
-                try self.addConnection(proxy: self, localAddress: sourceAddress, localPort: sourcePort, remoteAddress: destinationAddress, remotePort: destinationPort, conduit: conduit, connection: networkConnection, irs: SequenceNumber(tcp.sequenceNumber))
+                try self.addConnection(proxy: self, localAddress: sourceAddress, localPort: sourcePort, remoteAddress: destinationAddress, remotePort: destinationPort, conduit: conduit, connection: networkConnection, irs: SequenceNumber(tcp.sequenceNumber), rcvWnd: tcp.windowSize)
                 
             }
             catch
@@ -157,12 +157,12 @@ public class TcpProxy
         }
     }
 
-    func addConnection(proxy: TcpProxy, localAddress: IPv4Address, localPort: UInt16, remoteAddress: IPv4Address, remotePort: UInt16, conduit: Conduit, connection: Transmission.Connection, irs: SequenceNumber) throws
+    func addConnection(proxy: TcpProxy, localAddress: IPv4Address, localPort: UInt16, remoteAddress: IPv4Address, remotePort: UInt16, conduit: Conduit, connection: Transmission.Connection, irs: SequenceNumber, rcvWnd: UInt16) throws
     {
         print("* Making a TcpProxyConnection")
         do
         {
-            let connection = try TcpProxyConnection(proxy: proxy, localAddress: localAddress, localPort: localPort, remoteAddress: remoteAddress, remotePort: remotePort, conduit: conduit, connection: connection, irs: irs, tcpLogger: tcpLogger)
+            let connection = try TcpProxyConnection(proxy: proxy, localAddress: localAddress, localPort: localPort, remoteAddress: remoteAddress, remotePort: remotePort, conduit: conduit, connection: connection, irs: irs, tcpLogger: tcpLogger, rcvWnd: <#UInt16#>)
             self.connections.append(connection)
             print("* Created a TcpProxyConnection")
         }
