@@ -394,6 +394,13 @@ public class Persona: Universe
                         tcpLogger.debug("* ack: \(tcp.ack)")
                         tcpLogger.debug("* fin: \(tcp.fin)")
                         tcpLogger.debug("* rst: \(tcp.rst)")
+                        tcpLogger.debug("* window size: \(tcp.windowSize)")
+                        if let options = tcp.options {
+                            tcpLogger.debug("* tcp options: \(options)")
+                        } else {
+                            tcpLogger.debug("* no tcp options")
+                        }
+                        
                         if let payload = tcp.payload {
                             tcpLogger.debug("* payload: \(payload.count) *")
                         }
