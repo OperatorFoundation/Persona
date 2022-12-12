@@ -111,7 +111,7 @@ class TcpProxyConnection: Equatable
         print(" 🐡 rcvNxt = \(rcvNxt.uint32) | sndNxt = \(sndNxt.uint32)")
 
         self.sndUna = self.iss
-        self.sndWnd = 0
+        self.sndWnd = 65535
         self.sndWl1 = nil
         self.sndWl2 = nil
         self.rcvWnd = 0
@@ -758,7 +758,7 @@ class TcpProxyConnection: Equatable
                 self.tcpLogger?.debug("* window size \(self.sndWnd)")
             }
             
-            guard let ipv4 = try IPv4(sourceAddress: self.remoteAddress, destinationAddress: self.localAddress, sourcePort: self.remotePort, destinationPort: self.localPort, sequenceNumber: sequenceNumber, acknowledgementNumber: acknowledgementNumber, syn: syn, ack: ack, fin: fin, rst: rst, windowSize: 0, payload: nil) else
+            guard let ipv4 = try IPv4(sourceAddress: self.remoteAddress, destinationAddress: self.localAddress, sourcePort: self.remotePort, destinationPort: self.localPort, sequenceNumber: sequenceNumber, acknowledgementNumber: acknowledgementNumber, syn: syn, ack: ack, fin: fin, rst: rst, windowSize: self.sndWnd, payload: nil) else
             {
                 self.tcpLogger?.debug("* sendPacket() failed to initialize IPv4 packet.")
                 throw TcpProxyError.badIpv4Packet
