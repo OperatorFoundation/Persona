@@ -162,7 +162,7 @@ public class TcpProxy
         print("* Making a TcpProxyConnection")
         do
         {
-            let connection = try TcpProxyConnection(proxy: proxy, localAddress: localAddress, localPort: localPort, remoteAddress: remoteAddress, remotePort: remotePort, conduit: conduit, connection: connection, irs: irs, tcpLogger: tcpLogger, rcvWnd: <#UInt16#>)
+            let connection = try TcpProxyConnection(proxy: proxy, localAddress: localAddress, localPort: localPort, remoteAddress: remoteAddress, remotePort: remotePort, conduit: conduit, connection: connection, irs: irs, tcpLogger: tcpLogger, rcvWnd: rcvWnd)
             self.connections.append(connection)
             print("* Created a TcpProxyConnection")
         }
