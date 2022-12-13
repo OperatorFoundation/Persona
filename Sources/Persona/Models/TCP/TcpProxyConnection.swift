@@ -62,13 +62,12 @@ public actor TcpProxyConnection: Equatable
     let conduit: Conduit
     let connection: Transmission.Connection
     
-    var sendStraw: TCPDownstreamStraw
-    var receiveStraw: TCPUpstreamStraw
+    var downstreamStraw: TCPDownstreamStraw
+    var upstreamStraw: TCPUpstreamStraw
 
     var lastUsed: Date
 
     var open: Bool = true
-    var firstAck: Bool = true
 
     // https://flylib.com/books/en/3.223.1.188/1/
     var state: TCP.States
@@ -111,8 +110,8 @@ public actor TcpProxyConnection: Equatable
         self.iss = TcpProxyConnection.isn()
         self.sndNxt = self.iss.increment()
         
-        self.sendStraw = TCPDownstreamStraw(segmentStart: self.iss.uint32)
-        self.receiveStraw = TCPUpstreamStraw(segmentStart: self.irs.uint32)
+        self.downstreamStraw = TCPDownstreamStraw(segmentStart: self.iss.uint32, windowSize: rcvWnd)
+        self.upstreamStraw = TCPUpstreamStraw(segmentStart: self.irs.uint32)
         
         print(" 🐡 irs = \(irs.uint32) | iss = \(iss.uint32)")
         print(" 🐡 rcvNxt = \(rcvNxt.uint32) | sndNxt = \(sndNxt.uint32)")
@@ -148,19 +147,16 @@ public actor TcpProxyConnection: Equatable
     }
 
     // This is called for everything except the first syn received.
-    public func processLocalPacket(_ tcp: InternetProtocols.TCP) throws
+    public func processUpstreamPacket(_ tcp: InternetProtocols.TCP) throws
     {
-        if self.firstAck
-        {
-            self.firstAck = false
-
-            try self.processFirstAck(tcp)
-            return
-        }
-        
         // For the most part, we can only handle packets that are inside the TCP window.
         // Otherwise, they might be old packets from a previous connection or redundant retransmissions.
-        if self.inWindow(tcp)
+        let inWindow = AsyncAwaitSynchronizer<Bool>.sync
+        {
+            await self.upstreamStraw.inWindow(tcp)
+        }
+
+        if inWindow
         {
             if tcp.rst
             {
@@ -338,21 +334,11 @@ public actor TcpProxyConnection: Equatable
                                     // If a write to the server fails, the the server connection is closed.
                                     // Start closing the client connection.
 
-                                    try self.receiveStraw.write(tcp)
+                                    AsyncAwaitThrowingEffectSynchronizer.sync
+                                    {
+                                        try await self.upstreamStraw.write(tcp)
+                                    }
 
-//                                    guard self.connection.write(data: tcp.payload) else
-//                                    {
-//                                        print("🛑 Persona.processLocalPacket: failed to send our payload upstream")
-//                                        // Connection is closed.
-//
-//                                        // Fully close the server connection and let users know that the connection is closed if they try to send data.
-//                                        self.close()
-//
-//                                        // Start closing the client connection.
-//                                        try self.startClose(sequenceNumber: self.sndNxt, acknowledgementNumber: SequenceNumber(tcp.sequenceNumber))
-//                                        return
-//                                    }
-//
                                     print("* Persona.processLocalPacket: payload upstream write complete")
                                 }
 
@@ -561,18 +547,6 @@ public actor TcpProxyConnection: Equatable
         }
     }
 
-    public func processFirstAck(_ tcp: InternetProtocols.TCP) throws
-    {
-        print("* Persona.processFirstAck called")
-
-        print("Hopefully the first ACK packet of the next connection:")
-        print(tcp)
-        print("ACK packet sequence number:")
-        print(tcp.acknowledgementNumber)
-        print("Expected sequence number:")
-        print(self.sndNxt)
-    }
-
     public func close()
     {
         self.open = false
@@ -595,69 +569,17 @@ public actor TcpProxyConnection: Equatable
         }
     }
 
-    func inWindow(_ tcp: InternetProtocols.TCP) -> Bool
-    {
-        print("* Persona.inWindow called")
-        print(" 🐡 rcvNxt = \(rcvNxt.uint32) | sndNxt = \(sndNxt.uint32)")
-        print("* Persona.inWindow: rcvWnd = \(rcvWnd)")
-        print("* Persona.inWindow: tcp.sequenceNumber = \(tcp.sequenceNumber)")
-        
-        let rcvLast = self.rcvNxt.add(Int(self.rcvWnd))
-        print("* Persona.inWindow: rcvLast = \(rcvLast)")
-        
-        let segSeq = SequenceNumber(tcp.sequenceNumber)
-        print("* Persona.inWindow: segSeq = \(segSeq)")
-        
-        let segLen = TcpProxy.sequenceLength(tcp)
-        print("* Persona.inWindow: segLen = \(segLen)")
-
-        if segLen == 0
-        {
-            print("* Persona.inWindow: segLen == 0")
-            
-            if self.rcvWnd == 0
-            {
-                print("* Persona.inWindow: rcvWnd == 0")
-                
-                return segSeq == self.rcvNxt
-            }
-            else // rcvWnd > 0
-            {
-                print("* Persona.inWindow: rcvWnd > 0")
-                
-                return (self.rcvNxt <= segSeq) && (segSeq < rcvLast)
-            }
-        }
-        else // seqLen > 0
-        {
-            print("* Persona.inWindow: seqLen > 0")
-            
-            let segLast = segSeq.add(segLen - 1)
-            print("* Persona.inWindow: segLast = \(segLast)")
-
-            if self.rcvWnd == 0
-            {
-                print("* Persona.inWindow: rcvWnd == 0")
-                
-                return false
-            }
-            else // rcvWnd > 0
-            {
-                print("* Persona.inWindow: rcvWnd > 0")
-                
-                return (self.rcvNxt <=  segSeq) && (segSeq  < rcvLast) ||
-                (self.rcvNxt <= segLast) && (segLast < rcvLast)
-            }
-        }
-    }
-
     func pumpUpstream()
     {
         while self.open
         {
             do
             {
-                let segment = try self.receiveStraw.read()
+                let segment = try AsyncAwaitThrowingSynchronizer<SegmentData>.sync
+                {
+                    try await self.upstreamStraw.read()
+                }
+
                 guard self.connection.write(data: segment.data) else
                 {
                     self.tcpLogger?.error("Upstream write failed, closing connection")
@@ -665,7 +587,10 @@ public actor TcpProxyConnection: Equatable
                     return
                 }
 
-                self.receiveStraw.clear(segment: segment)
+                AsyncAwaitThrowingEffectSynchronizer.sync
+                {
+                    try await self.upstreamStraw.clear(segment: segment)
+                }
             }
             catch
             {
@@ -679,8 +604,13 @@ public actor TcpProxyConnection: Equatable
     {
         while self.open
         {
+            let windowSize = AsyncAwaitSynchronizer<UInt16>.sync
+            {
+                return await self.downstreamStraw.getWindowSize()
+            }
+
             // If a read from the server connection fails, the the server connection is closed.
-            guard let data = self.connection.read(maxSize: 3000) else
+            guard let data = self.connection.read(maxSize: Int(windowSize)) else
             {
                 // Fully close the server connection and let users know the connection is closed if they try to write data.
                 self.close()
@@ -692,7 +622,7 @@ public actor TcpProxyConnection: Equatable
                 return
             }
 
-            self.processRemoteData(data)
+            self.processDownstreamPacket(data)
         }
     }
 
@@ -700,8 +630,15 @@ public actor TcpProxyConnection: Equatable
     {
         while self.open
         {
-            let ackSequenceNumber = self.receiveStraw.getAcknowledgementNumber()
-            let sequenceNumber = self.sendStraw.getSequenceNumber()
+            let ackSequenceNumber = AsyncAwaitSynchronizer<SequenceNumber>.sync
+            {
+                return await self.upstreamStraw.getAcknowledgementNumber()
+            }
+
+            let sequenceNumber = AsyncAwaitSynchronizer<SequenceNumber>.sync
+            {
+                return await self.downstreamStraw.getSequenceNumber()
+            }
 
             tcpLogger?.debug("* acking cleared bytes \(sequenceNumber) \(ackSequenceNumber)")
 
@@ -719,15 +656,31 @@ public actor TcpProxyConnection: Equatable
         }
     }
 
-    func processRemoteData(_ data: Data)
+    func processDownstreamPacket(_ data: Data)
     {
-        // FIXME - add new InternetProtocols constructors
-        //        let tcp = InternetProtocols.TCP(sourcePort: self.remotePort, destinationPort: self.localPort, payload: data)
-        //        let ipv4 = InternetProtocols.IPv4(sourceAddress: self.remoteAddress, destinationAddress: self.localAddress, payload: tcp.data)
-        //        let message = Message.IPDataV4(ipv4.data)
-        //        self.conduit.flowerConnection.writeMessage(message: message)
+        do
+        {
+            let windowSize = AsyncAwaitSynchronizer<UInt16>.sync
+            {
+                return await self.downstreamStraw.getWindowSize()
+            }
+            let tcp = try InternetProtocols.TCP(sourcePort: self.remotePort, destinationPort: self.localPort, windowSize: windowSize, payload: data)
+            guard let ipv4 = try InternetProtocols.IPv4(sourceAddress: self.remoteAddress, destinationAddress: self.localAddress, payload: tcp.data, protocolNumber: .TCP) else
+            {
+                self.tcpLogger?.error("Error making downstream IPv4 packet")
+                return
+            }
 
-        self.lastUsed = Date() // now
+            let message = Message.IPDataV4(ipv4.data)
+            self.conduit.flowerConnection.writeMessage(message: message)
+
+            self.lastUsed = Date() // now
+        }
+        catch
+        {
+            self.tcpLogger?.error("Error sending downstream packet \(error)")
+            return
+        }
     }
 
     func sendSynAck(_ conduit: Conduit) throws

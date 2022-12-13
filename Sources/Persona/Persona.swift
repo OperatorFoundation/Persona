@@ -516,7 +516,7 @@ public class Persona: Universe
 
                 AsyncAwaitThrowingEffectSynchronizer.sync
                 {
-                    try await self.tcpProxy.processLocalPacket(conduit, packet)
+                    try await self.tcpProxy.processUpstreamPacket(conduit, packet)
                 }
                 
             default:

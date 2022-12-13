@@ -55,7 +55,7 @@ public actor TcpProxy
         }
     }
 
-    public func processLocalPacket(_ conduit: Conduit, _ packet: Packet) throws
+    public func processUpstreamPacket(_ conduit: Conduit, _ packet: Packet) throws
     {
         print("\n* Persona.TcpProxy: Attempting to process a TCP packet.")
         
@@ -98,7 +98,7 @@ public actor TcpProxy
 
             AsyncAwaitThrowingEffectSynchronizer.sync
             {
-                try await proxyConnection.processLocalPacket(tcp)
+                try await proxyConnection.processUpstreamPacket(tcp)
             }
         }
         else

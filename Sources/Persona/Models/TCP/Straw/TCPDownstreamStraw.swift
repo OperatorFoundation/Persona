@@ -2,69 +2,95 @@
 //  TCPSendStraw.swift
 //
 //
-//  Created by Dr. Brandon Wiley on 12/12/22.
+//  Created by Dr. Brandon Wiley on 9/27/22.
 //
 
 import Foundation
 
-import Chord
 import InternetProtocols
 import Straw
 
-public class TCPDownstreamStraw
+public actor TCPDownstreamStraw
 {
-    let actor: TCPDownstreamStrawActor
+    let straw = SynchronizedStraw()
+    var window: Range<UInt32>
+    let ackLock: LatchingLock = LatchingLock()
+    var windowSize: UInt16
 
-    public init(segmentStart: UInt32)
+    public init(segmentStart: UInt32, windowSize: UInt16)
     {
-        self.actor = TCPDownstreamStrawActor(segmentStart: segmentStart)
+        self.window = segmentStart..<(segmentStart+1)
+        self.windowSize = windowSize
     }
 
     public func write(_ segment: InternetProtocols.TCP) throws
     {
-        AsyncAwaitThrowingEffectSynchronizer.sync
+        guard let payload = segment.payload else
         {
-            try await self.actor.write(segment)
+            return
         }
+
+        guard let segmentWindow = segment.segmentWindow else
+        {
+            throw TCPStrawError.badSegmentWindow
+        }
+
+        guard segmentWindow.startIndex == self.window.endIndex else
+        {
+            throw TCPStrawError.misorderedSegment
+        }
+
+        self.straw.write(payload)
+        self.window = self.window.startIndex..<(self.window.endIndex + UInt32(payload.count))
     }
 
     public func read() throws -> SegmentData
     {
-        return try AsyncAwaitThrowingSynchronizer<SegmentData>.sync
-        {
-            return try await self.actor.read()
-        }
+        let data = try self.straw.read()
+        let window = self.window.startIndex..<(self.window.startIndex + UInt32(data.count))
+        return SegmentData(data: data, window: window)
     }
 
     public func read(size: Int) throws -> SegmentData
     {
-        return try AsyncAwaitThrowingSynchronizer<SegmentData>.sync
-        {
-            return try await self.actor.read(size: size)
-        }
+        let data = try self.straw.read(size: size)
+        let window = self.window.startIndex..<(self.window.startIndex + UInt32(data.count))
+        return SegmentData(data: data, window: window)
     }
 
     public func read(maxSize: Int) throws -> SegmentData
     {
-        return try AsyncAwaitThrowingSynchronizer<SegmentData>.sync
-        {
-            return try await self.actor.read(maxSize: maxSize)
-        }
+        let data = try self.straw.read(maxSize: maxSize)
+        let window = self.window.startIndex..<(self.window.startIndex + UInt32(data.count))
+        return SegmentData(data: data, window: window)
     }
 
-    public func clear(segment: SegmentData)
+    public func clear(segment: SegmentData) throws
     {
-        AsyncAwaitThrowingEffectSynchronizer.sync
+        guard segment.window.startIndex == self.window.startIndex else
         {
-            try await self.actor.clear(segment: segment)
+            throw TCPStrawError.segmentMismatch
         }
+
+        self.window = (segment.window.endIndex)..<self.window.endIndex
+
+        self.ackLock.latch()
     }
 
     public func getSequenceNumber() -> SequenceNumber
     {
-        return AsyncAwaitSynchronizer<SequenceNumber>.sync
-        {
-            return await self.actor.getSequenceNumber()
-        }
+        self.ackLock.wait()
+
+        return SequenceNumber(self.window.startIndex)
+    }
+
+    public func getWindowSize() -> UInt16
+    {
+        return self.windowSize
+    }
+
+    public func updateWindowSize(_ windowSize: UInt16)
+    {
+        self.windowSize = windowSize
     }
 }
