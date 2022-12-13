@@ -18,6 +18,28 @@ import Universe
 
 public actor TcpProxy
 {
+    static public func sequenceLength(_ tcp: InternetProtocols.TCP) -> UInt32
+    {
+        var length: UInt32 = 0
+
+        if tcp.syn
+        {
+            length += 1
+        }
+
+        if tcp.fin
+        {
+            length += 1
+        }
+
+        if let payload = tcp.payload
+        {
+            length += UInt32(payload.count)
+        }
+
+        return length
+    }
+
     let tcpLogger: Puppy?
     let universe: Universe
     var connections: [TcpProxyConnection] = []
@@ -244,8 +266,8 @@ public actor TcpProxy
                 }
                 else
                 {
-                    print("* calling send packet with acknowledgement#: tcp.sequenceNumber + TransmissionControlBlock.sequenceLength(tcp)")
-                    let acknowledgementNumber = SequenceNumber(tcp.sequenceNumber).add(TransmissionControlBlock.sequenceLength(tcp))
+                    print("* calling send packet with acknowledgement#: tcp.sequenceNumber + TcpProxy.sequenceLength(tcp)")
+                    let acknowledgementNumber = SequenceNumber(tcp.sequenceNumber).add(TcpProxy.sequenceLength(tcp))
                     self.tcpLogger?.debug("(proxy)sendRst() called")
                     try self.sendPacket(conduit: conduit, sourceAddress: sourceAddress, sourcePort: sourcePort, destinationAddress: destinationAddress, destinationPort: destinationPort, acknowledgementNumber: acknowledgementNumber)
                 }

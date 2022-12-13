@@ -370,13 +370,13 @@ public actor TcpProxyConnection: Equatable
                                  Please note the window management suggestions in section 3.7.
                                  */
                                 
-                                let sequenceLength = TransmissionControlBlock.sequenceLength(tcp)
+                                let sequenceLength = TcpProxy.sequenceLength(tcp)
                                 print(" 🐡 calling rcvNxt.add(TransmissionControlBlock.sequenceLength(tcp)) ")
                                 print(" 🐡 TransmissionControlBlock.sequenceLength(tcp)) = \(sequenceLength)")
                                 self.rcvNxt = self.rcvNxt.add(sequenceLength)
                                 print(" 🐡 rcvNxt = \(rcvNxt.uint32) | sndNxt = \(sndNxt.uint32)")
                                 
-                                self.rcvWnd += UInt16(TransmissionControlBlock.sequenceLength(tcp))
+                                self.rcvWnd += UInt16(TcpProxy.sequenceLength(tcp))
                                 
 
                                 /*
@@ -590,7 +590,7 @@ public actor TcpProxyConnection: Equatable
         {
             (tcp: InternetProtocols.TCP) -> Bool in
 
-            let expectedAck = SequenceNumber(tcp.sequenceNumber).add(Int(TransmissionControlBlock.sequenceLength(tcp)))
+            let expectedAck = SequenceNumber(tcp.sequenceNumber).add(Int(TcpProxy.sequenceLength(tcp)))
             return ack < expectedAck // Keep packets which have not been acked
         }
     }
@@ -608,7 +608,7 @@ public actor TcpProxyConnection: Equatable
         let segSeq = SequenceNumber(tcp.sequenceNumber)
         print("* Persona.inWindow: segSeq = \(segSeq)")
         
-        let segLen = TransmissionControlBlock.sequenceLength(tcp)
+        let segLen = TcpProxy.sequenceLength(tcp)
         print("* Persona.inWindow: segLen = \(segLen)")
 
         if segLen == 0
@@ -780,7 +780,7 @@ public actor TcpProxyConnection: Equatable
                 }
                 else
                 {
-                    let acknowledgementNumber = SequenceNumber(tcp.sequenceNumber).add(TransmissionControlBlock.sequenceLength(tcp))
+                    let acknowledgementNumber = SequenceNumber(tcp.sequenceNumber).add(TcpProxy.sequenceLength(tcp))
                     self.tcpLogger?.debug("sendRst() called")
                     try self.sendPacket(acknowledgementNumber: acknowledgementNumber, ack: true, rst: true)
                 }
