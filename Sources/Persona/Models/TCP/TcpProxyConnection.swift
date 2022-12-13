@@ -6,6 +6,7 @@
 //
 import Logging
 
+import Chord
 import Flower
 import Foundation
 import InternetProtocols
@@ -61,8 +62,8 @@ class TcpProxyConnection: Equatable
     let conduit: Conduit
     let connection: Transmission.Connection
     
-    var sendStraw: TCPStraw
-    var receiveStraw: TCPStraw
+    var sendStraw: TCPSendStraw
+    var receiveStraw: TCPReceiveStraw
 
     var lastUsed: Date
 
@@ -87,6 +88,10 @@ class TcpProxyConnection: Equatable
     var timeWaitTimer: Timer? = nil
     var retransmissionTimer: Timer? = nil
 
+    var upstreamTask: Task<Void, Error>? = nil
+    var downstreamTask: Task<Void, Error>? = nil
+    var ackTask: Task<Void, Error>? = nil
+
     // init() automatically send a syn-ack back for the syn (we only open a connect on receiving a syn)
     public init(proxy: TcpProxy, localAddress: IPv4Address, localPort: UInt16, remoteAddress: IPv4Address, remotePort: UInt16, conduit: Conduit, connection: Transmission.Connection, irs: SequenceNumber, tcpLogger: Puppy?, rcvWnd: UInt16) throws
     {
@@ -110,8 +115,8 @@ class TcpProxyConnection: Equatable
         self.iss = TcpProxyConnection.isn()
         self.sndNxt = self.iss.increment()
         
-        self.sendStraw = TCPStraw(segmentStart: Int(self.iss.uint32))
-        self.receiveStraw = TCPStraw(segmentStart: Int(self.irs.uint32))
+        self.sendStraw = TCPSendStraw(segmentStart: self.iss.uint32)
+        self.receiveStraw = TCPReceiveStraw(segmentStart: self.irs.uint32)
         
         print(" 🐡 irs = \(irs.uint32) | iss = \(iss.uint32)")
         print(" 🐡 rcvNxt = \(rcvNxt.uint32) | sndNxt = \(sndNxt.uint32)")
@@ -123,9 +128,23 @@ class TcpProxyConnection: Equatable
         self.rcvWnd = rcvWnd
         self.tcpLogger = tcpLogger
 
-        // FIXME - handle the case where we receive an unusual SYN packets which carries a payload
         try self.sendSynAck(conduit)
-        
+
+        self.upstreamTask = Task
+        {
+            self.pumpUpstream()
+        }
+
+        self.downstreamTask = Task
+        {
+            self.pumpDownstream()
+        }
+
+        self.ackTask = Task
+        {
+            self.pumpAcks()
+        }
+
         tcpLogger?.debug("* TCPProxyConnection init complete\n")
     }
 
@@ -319,9 +338,9 @@ class TcpProxyConnection: Equatable
                                     self.tcpLogger?.debug("* Persona.processLocalPacket: tcp payload received on an established connection, buffering 🏆")
                                     // If a write to the server fails, the the server connection is closed.
                                     // Start closing the client connection.
-                                    Task {
-                                        try await self.receiveStraw.write(tcp)
-                                    }
+
+                                    try self.receiveStraw.write(tcp)
+
 //                                    guard self.connection.write(data: tcp.payload) else
 //                                    {
 //                                        print("🛑 Persona.processLocalPacket: failed to send our payload upstream")
@@ -557,6 +576,11 @@ class TcpProxyConnection: Equatable
 
     public func close()
     {
+        if let upstreamTask = self.upstreamTask
+        {
+            upstreamTask.cancel()
+        }
+
         self.open = false
         self.connection.close()
         self.proxy.removeConnection(self)
@@ -629,7 +653,31 @@ class TcpProxyConnection: Equatable
         }
     }
 
-    func pumpRemote()
+    func pumpUpstream()
+    {
+        while self.open
+        {
+            do
+            {
+                let segment = try self.receiveStraw.read()
+                guard self.connection.write(data: segment.data) else
+                {
+                    self.tcpLogger?.error("Upstream write failed, closing connection")
+                    self.close()
+                    return
+                }
+
+                self.receiveStraw.clear(segment: segment)
+            }
+            catch
+            {
+                self.close()
+                return
+            }
+        }
+    }
+
+    func pumpDownstream()
     {
         while self.open
         {
@@ -647,6 +695,29 @@ class TcpProxyConnection: Equatable
             }
 
             self.processRemoteData(data)
+        }
+    }
+
+    func pumpAcks()
+    {
+        while self.open
+        {
+            let ackSequenceNumber = self.receiveStraw.getAcknowledgementNumber()
+            let sequenceNumber = self.sendStraw.getSequenceNumber()
+
+            tcpLogger?.debug("* acking cleared bytes \(sequenceNumber) \(ackSequenceNumber)")
+
+            do
+            {
+                try self.sendPacket(sequenceNumber: sequenceNumber, acknowledgementNumber: ackSequenceNumber, ack: true)
+            }
+            catch
+            {
+                tcpLogger?.debug("! Error: failed to send ack \(sequenceNumber) \(ackSequenceNumber), closing stream")
+
+                self.close()
+                return
+            }
         }
     }
 

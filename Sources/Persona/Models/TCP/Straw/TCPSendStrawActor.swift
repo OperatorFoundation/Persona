@@ -1,6 +1,6 @@
 //
-//  TCPStraw.swift
-//  
+//  TCPSendStraw.swift
+//
 //
 //  Created by Dr. Brandon Wiley on 9/27/22.
 //
@@ -10,12 +10,13 @@ import Foundation
 import InternetProtocols
 import Straw
 
-public actor TCPStraw
+public actor TCPSendStrawActor
 {
-    let straw = Straw()
-    var window: Range<Int>
+    let straw = SynchronizedStraw()
+    var window: Range<UInt32>
+    let ackLock: LatchingLock = LatchingLock()
 
-    public init(segmentStart: Int)
+    public init(segmentStart: UInt32)
     {
         self.window = segmentStart..<(segmentStart+1)
     }
@@ -38,27 +39,27 @@ public actor TCPStraw
         }
 
         self.straw.write(payload)
-        self.window = self.window.startIndex..<(self.window.endIndex + payload.count)
+        self.window = self.window.startIndex..<(self.window.endIndex + UInt32(payload.count))
     }
 
     public func read() throws -> SegmentData
     {
         let data = try self.straw.read()
-        let window = self.window.startIndex..<(self.window.startIndex + data.count)
+        let window = self.window.startIndex..<(self.window.startIndex + UInt32(data.count))
         return SegmentData(data: data, window: window)
     }
 
     public func read(size: Int) throws -> SegmentData
     {
         let data = try self.straw.read(size: size)
-        let window = self.window.startIndex..<(self.window.startIndex + data.count)
+        let window = self.window.startIndex..<(self.window.startIndex + UInt32(data.count))
         return SegmentData(data: data, window: window)
     }
 
     public func read(maxSize: Int) throws -> SegmentData
     {
         let data = try self.straw.read(maxSize: maxSize)
-        let window = self.window.startIndex..<(self.window.startIndex + data.count)
+        let window = self.window.startIndex..<(self.window.startIndex + UInt32(data.count))
         return SegmentData(data: data, window: window)
     }
 
@@ -70,45 +71,14 @@ public actor TCPStraw
         }
 
         self.window = (segment.window.endIndex)..<self.window.endIndex
+
+        self.ackLock.latch()
     }
-}
 
-public struct SegmentData
-{
-    let data: Data
-    let window: Range<Int>
-
-    public init(data: Data, window: Range<Int>)
+    public func getSequenceNumber() -> SequenceNumber
     {
-        self.data = data
-        self.window = window
+        self.ackLock.wait()
+
+        return SequenceNumber(self.window.startIndex)
     }
-}
-
-public extension InternetProtocols.TCP
-{
-    var segmentWindow: Range<Int>?
-    {
-        guard let payload = self.payload else
-        {
-            return nil
-        }
-
-        guard let sequenceNumber32 = self.sequenceNumber.maybeNetworkUint32 else
-        {
-            return nil
-        }
-
-        let sequenceNumber = Int(sequenceNumber32)
-
-        return sequenceNumber..<(sequenceNumber+payload.count)
-    }
-}
-
-public enum TCPStrawError: Error
-{
-    case unimplemented
-    case badSegmentWindow
-    case misorderedSegment
-    case segmentMismatch
 }
