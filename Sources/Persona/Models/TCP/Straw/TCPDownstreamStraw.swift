@@ -11,13 +11,13 @@ import Chord
 import InternetProtocols
 import Straw
 
-public class TCPSendStraw
+public class TCPDownstreamStraw
 {
-    let actor: TCPSendStrawActor
+    let actor: TCPDownstreamStrawActor
 
     public init(segmentStart: UInt32)
     {
-        self.actor = TCPSendStrawActor(segmentStart: segmentStart)
+        self.actor = TCPDownstreamStrawActor(segmentStart: segmentStart)
     }
 
     public func write(_ segment: InternetProtocols.TCP) throws

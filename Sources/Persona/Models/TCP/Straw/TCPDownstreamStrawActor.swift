@@ -1,6 +1,6 @@
 //
-//  TCPReceiveStraw.swift
-//  
+//  TCPSendStraw.swift
+//
 //
 //  Created by Dr. Brandon Wiley on 9/27/22.
 //
@@ -10,7 +10,7 @@ import Foundation
 import InternetProtocols
 import Straw
 
-public actor TCPReceiveStrawActor
+public actor TCPDownstreamStrawActor
 {
     let straw = SynchronizedStraw()
     var window: Range<UInt32>
@@ -75,48 +75,10 @@ public actor TCPReceiveStrawActor
         self.ackLock.latch()
     }
 
-    public func getAcknowledgementNumber() -> SequenceNumber
+    public func getSequenceNumber() -> SequenceNumber
     {
         self.ackLock.wait()
 
         return SequenceNumber(self.window.startIndex)
     }
-}
-
-public struct SegmentData
-{
-    let data: Data
-    let window: Range<UInt32>
-
-    public init(data: Data, window: Range<UInt32>)
-    {
-        self.data = data
-        self.window = window
-    }
-}
-
-public extension InternetProtocols.TCP
-{
-    var segmentWindow: Range<UInt32>?
-    {
-        guard let payload = self.payload else
-        {
-            return nil
-        }
-
-        guard let sequenceNumber32 = self.sequenceNumber.maybeNetworkUint32 else
-        {
-            return nil
-        }
-
-        return sequenceNumber32..<(sequenceNumber32+UInt32(exactly: payload.count)!)
-    }
-}
-
-public enum TCPStrawError: Error
-{
-    case unimplemented
-    case badSegmentWindow
-    case misorderedSegment
-    case segmentMismatch
 }

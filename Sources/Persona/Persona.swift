@@ -513,8 +513,11 @@ public class Persona: Universe
                     print("* Unknown conduit address \(address)")
                     return
                 }
-                
-                try self.tcpProxy.processLocalPacket(conduit, packet)
+
+                AsyncAwaitThrowingEffectSynchronizer.sync
+                {
+                    try await self.tcpProxy.processLocalPacket(conduit, packet)
+                }
                 
             default:
                 throw PersonaError.unsupportedParsedMessage(message)

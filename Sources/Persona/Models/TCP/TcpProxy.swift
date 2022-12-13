@@ -6,15 +6,17 @@
 //
 
 import Logging
-import Flower
 import Foundation
+
+import Chord
+import Flower
 import InternetProtocols
 import Net
 import Puppy
 import Transmission
 import Universe
 
-public class TcpProxy
+public actor TcpProxy
 {
     let tcpLogger: Puppy?
     let universe: Universe
@@ -71,7 +73,11 @@ public class TcpProxy
         if let proxyConnection = self.findConnection(localAddress: sourceAddress, localPort: sourcePort, remoteAddress: destinationAddress, remotePort: destinationPort, tcp: tcp)
         {
             tcpLogger?.debug("* Processing a packet. This is an existing proxy connection, calling proxyConnection.processLocalPacket(tcp)")
-            try proxyConnection.processLocalPacket(tcp)
+
+            AsyncAwaitThrowingEffectSynchronizer.sync
+            {
+                try await proxyConnection.processLocalPacket(tcp)
+            }
         }
         else
         {

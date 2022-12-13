@@ -14,7 +14,7 @@ import Net
 import Puppy
 import Transmission
 
-class TcpProxyConnection: Equatable
+public actor TcpProxyConnection: Equatable
 {
     static public func ==(_ x: TcpProxyConnection, _ y: TcpProxyConnection) -> Bool
     {
@@ -62,8 +62,8 @@ class TcpProxyConnection: Equatable
     let conduit: Conduit
     let connection: Transmission.Connection
     
-    var sendStraw: TCPSendStraw
-    var receiveStraw: TCPReceiveStraw
+    var sendStraw: TCPDownstreamStraw
+    var receiveStraw: TCPUpstreamStraw
 
     var lastUsed: Date
 
@@ -88,10 +88,6 @@ class TcpProxyConnection: Equatable
     var timeWaitTimer: Timer? = nil
     var retransmissionTimer: Timer? = nil
 
-    var upstreamTask: Task<Void, Error>? = nil
-    var downstreamTask: Task<Void, Error>? = nil
-    var ackTask: Task<Void, Error>? = nil
-
     // init() automatically send a syn-ack back for the syn (we only open a connect on receiving a syn)
     public init(proxy: TcpProxy, localAddress: IPv4Address, localPort: UInt16, remoteAddress: IPv4Address, remotePort: UInt16, conduit: Conduit, connection: Transmission.Connection, irs: SequenceNumber, tcpLogger: Puppy?, rcvWnd: UInt16) throws
     {
@@ -115,8 +111,8 @@ class TcpProxyConnection: Equatable
         self.iss = TcpProxyConnection.isn()
         self.sndNxt = self.iss.increment()
         
-        self.sendStraw = TCPSendStraw(segmentStart: self.iss.uint32)
-        self.receiveStraw = TCPReceiveStraw(segmentStart: self.irs.uint32)
+        self.sendStraw = TCPDownstreamStraw(segmentStart: self.iss.uint32)
+        self.receiveStraw = TCPUpstreamStraw(segmentStart: self.irs.uint32)
         
         print(" 🐡 irs = \(irs.uint32) | iss = \(iss.uint32)")
         print(" 🐡 rcvNxt = \(rcvNxt.uint32) | sndNxt = \(sndNxt.uint32)")
@@ -128,21 +124,24 @@ class TcpProxyConnection: Equatable
         self.rcvWnd = rcvWnd
         self.tcpLogger = tcpLogger
 
-        try self.sendSynAck(conduit)
-
-        self.upstreamTask = Task
+        Task
         {
-            self.pumpUpstream()
+            try await self.sendSynAck(conduit)
         }
 
-        self.downstreamTask = Task
+        Task
         {
-            self.pumpDownstream()
+            await self.pumpUpstream()
         }
 
-        self.ackTask = Task
+        Task
         {
-            self.pumpAcks()
+            await self.pumpDownstream()
+        }
+
+        Task
+        {
+            await self.pumpAcks()
         }
 
         tcpLogger?.debug("* TCPProxyConnection init complete\n")
@@ -576,14 +575,13 @@ class TcpProxyConnection: Equatable
 
     public func close()
     {
-        if let upstreamTask = self.upstreamTask
-        {
-            upstreamTask.cancel()
-        }
-
         self.open = false
         self.connection.close()
-        self.proxy.removeConnection(self)
+
+        AsyncAwaitThrowingEffectSynchronizer.sync
+        {
+            await self.proxy.removeConnection(self)
+        }
     }
 
     func filterRetransmissions(_ ack: SequenceNumber)
@@ -865,7 +863,10 @@ class TcpProxyConnection: Equatable
         {
             timer in
 
-            self.close()
+            Task
+            {
+                await self.close()
+            }
         }
     }
 
