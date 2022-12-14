@@ -607,6 +607,8 @@ public actor TcpProxyConnection: Equatable
         tcpLogger?.debug("* sending SynAck")
         let iss = AsyncAwaitSynchronizer<SequenceNumber>.sync
         {
+            () -> SequenceNumber in
+
             self.tcpLogger?.debug("Calling getSequencNumber().")
             return await self.downstreamStraw.getSequenceNumber()
         }
@@ -614,6 +616,8 @@ public actor TcpProxyConnection: Equatable
 
         let rcvNxt = AsyncAwaitSynchronizer<SequenceNumber>.sync
         {
+            () -> SequenceNumber in
+
             return await self.upstreamStraw.getAcknowledgementNumber()
         }
         tcpLogger?.debug("rcvNxt:\(rcvNxt)")
@@ -626,11 +630,15 @@ public actor TcpProxyConnection: Equatable
         tcpLogger?.debug("* sending Ack")
         let sndNxt = AsyncAwaitSynchronizer<SequenceNumber>.sync
         {
+            () -> SequenceNumber in
+
             return await self.downstreamStraw.getSequenceNumber()
         }
 
         let rcvNxt = AsyncAwaitSynchronizer<SequenceNumber>.sync
         {
+            () -> SequenceNumber in
+            
             return await self.upstreamStraw.getAcknowledgementNumber()
         }
 
