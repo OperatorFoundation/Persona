@@ -7,87 +7,89 @@
 
 import Foundation
 
+import Chord
 import InternetProtocols
 import Straw
 
-public actor TCPDownstreamStraw
+public class TCPDownstreamStraw
 {
-    let straw = SynchronizedStraw()
-    var window: SequenceNumberRange
-    let ackLock: LatchingLock = LatchingLock()
-    var windowSize: UInt16
+    public var sequenceNumber: SequenceNumber
+    {
+        return AsyncAwaitSynchronizer<SequenceNumber>.sync
+        {
+            return await self.actor.getSequenceNumber()
+        }
+    }
+
+    public var windowSize: UInt16
+    {
+        get
+        {
+            return AsyncAwaitSynchronizer<UInt16>.sync
+            {
+                return await self.actor.getWindowSize()
+            }
+        }
+
+        set
+        {
+            AsyncAwaitEffectSynchronizer.sync
+            {
+                await self.actor.updateWindowSize(newValue)
+            }
+        }
+    }
+
+    let actor: TCPDownstreamStrawActor
 
     public init(segmentStart: SequenceNumber, windowSize: UInt16)
     {
-        self.window = SequenceNumberRange(lowerBound: segmentStart, size: windowSize)
-        self.windowSize = windowSize
+        self.actor = TCPDownstreamStrawActor(segmentStart: segmentStart, windowSize: windowSize)
     }
 
     public func write(_ segment: InternetProtocols.TCP) throws
     {
-        guard let payload = segment.payload else
+        AsyncAwaitThrowingEffectSynchronizer.sync
         {
-            return
+            try await self.actor.write(segment)
         }
-
-        let segmentWindow = segment.window
-
-        guard segmentWindow.lowerBound == self.window.upperBound else
-        {
-            throw TCPUpstreamStrawError.misorderedSegment
-        }
-
-        self.straw.write(payload)
-        self.window.increaseUpperBound(by: payload.count)
     }
 
     public func read() throws -> SegmentData
     {
-        let data = try self.straw.read()
-        self.window.increaseUpperBound(by: data.count)
-        return SegmentData(data: data, window: window)
+        let result: SegmentData = try AsyncAwaitThrowingSynchronizer<SegmentData>.sync
+        {
+            return try await self.actor.read()
+        }
+
+        return result
     }
 
     public func read(size: Int) throws -> SegmentData
     {
-        let data = try self.straw.read(size: size)
-        self.window.increaseUpperBound(by: data.count)
-        return SegmentData(data: data, window: window)
+        let result: SegmentData = try AsyncAwaitThrowingSynchronizer<SegmentData>.sync
+        {
+            return try await self.actor.read(size: size)
+        }
+
+        return result
     }
 
     public func read(maxSize: Int) throws -> SegmentData
     {
-        let data = try self.straw.read(maxSize: maxSize)
-        self.window.increaseUpperBound(by: data.count)
-        return SegmentData(data: data, window: window)
+        let result: SegmentData = try AsyncAwaitThrowingSynchronizer<SegmentData>.sync
+        {
+            return try await self.actor.read(maxSize: maxSize)
+        }
+
+        return result
     }
 
     public func clear(tcp: InternetProtocols.TCP) throws
     {
-        guard SequenceNumber(tcp.acknowledgementNumber) == self.window.lowerBound else
+        AsyncAwaitThrowingEffectSynchronizer.sync
         {
-            throw TCPUpstreamStrawError.segmentMismatch
+            return try await self.actor.clear(tcp: tcp)
         }
-
-        self.window = SequenceNumberRange(lowerBound: tcp.window.upperBound, upperBound: self.window.upperBound)
-
-        self.ackLock.latch()
-    }
-
-    public func getSequenceNumber() -> SequenceNumber
-    {
-        //self.ackLock.wait()
-
-        return self.window.lowerBound
-    }
-
-    public func getWindowSize() -> UInt16
-    {
-        return self.windowSize
-    }
-
-    public func updateWindowSize(_ windowSize: UInt16)
-    {
-        self.windowSize = windowSize
     }
 }

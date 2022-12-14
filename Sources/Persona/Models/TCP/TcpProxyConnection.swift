@@ -130,12 +130,7 @@ public actor TcpProxyConnection: Equatable
     {
         // For the most part, we can only handle packets that are inside the TCP window.
         // Otherwise, they might be old packets from a previous connection or redundant retransmissions.
-        let inWindow = AsyncAwaitSynchronizer<Bool>.sync
-        {
-            await self.upstreamStraw.inWindow(tcp)
-        }
-
-        if inWindow
+        if self.upstreamStraw.inWindow(tcp)
         {
             if tcp.rst
             {
@@ -215,10 +210,7 @@ public actor TcpProxyConnection: Equatable
                          ESTABLISHED STATE
                          */
 
-                        AsyncAwaitThrowingEffectSynchronizer.sync
-                        {
-                            try await self.downstreamStraw.clear(tcp: tcp)
-                        }
+                        try self.downstreamStraw.clear(tcp: tcp)
 
                         // Additional processing for specific states
                         switch state
@@ -243,10 +235,7 @@ public actor TcpProxyConnection: Equatable
                                     print("* Persona.processLocalPacket: payload upstream write complete")
                                 }
 
-                                AsyncAwaitThrowingEffectSynchronizer.sync
-                                {
-                                    try await self.upstreamStraw.write(tcp)
-                                }
+                                try self.upstreamStraw.write(tcp)
 
                                 /*
                                  When the TCP takes responsibility for delivering the data to the
@@ -271,15 +260,8 @@ public actor TcpProxyConnection: Equatable
                                  transmitted if possible without incurring undue delay.
                                  */
 
-                                let sndNxt = AsyncAwaitSynchronizer<UInt16>.sync
-                                {
-                                    return await self.downstreamStraw.getSequenceNumber()
-                                }
-
-                                let rcvNxt = AsyncAwaitSynchronizer<UInt16>.sync
-                                {
-                                    return await self.upstreamStraw.getAcknowledgementNumber()
-                                }
+                                let sndNxt = self.downstreamStraw.sequenceNumber
+                                let rcvNxt = self.upstreamStraw.acknowledgementNumber
 
                                 self.tcpLogger?.debug("processLocalPacket() called")
 
@@ -448,15 +430,8 @@ public actor TcpProxyConnection: Equatable
             {
                 print("* Persona.processLocalPacket: incoming segment is not acceptable, and no rst bit, sending ack and dropping packet")
 
-                let sndNxt = AsyncAwaitSynchronizer<UInt16>.sync
-                {
-                    return await self.downstreamStraw.getSequenceNumber()
-                }
-
-                let rcvNxt = AsyncAwaitSynchronizer<UInt16>.sync
-                {
-                    return await self.upstreamStraw.getAcknowledgementNumber()
-                }
+                let sndNxt = self.downstreamStraw.sequenceNumber
+                let rcvNxt = self.upstreamStraw.acknowledgementNumber
 
                 // Send an ack
                 try self.sendPacket(sequenceNumber: sndNxt, acknowledgementNumber: rcvNxt, ack: true)
@@ -494,10 +469,7 @@ public actor TcpProxyConnection: Equatable
         {
             do
             {
-                let segment = try AsyncAwaitThrowingSynchronizer<SegmentData>.sync
-                {
-                    try await self.upstreamStraw.read()
-                }
+                let segment = try self.upstreamStraw.read()
 
                 guard self.connection.write(data: segment.data) else
                 {
@@ -506,10 +478,7 @@ public actor TcpProxyConnection: Equatable
                     return
                 }
 
-                AsyncAwaitThrowingEffectSynchronizer.sync
-                {
-                    try await self.upstreamStraw.clear(segment: segment)
-                }
+                try self.upstreamStraw.clear(segment: segment)
             }
             catch
             {
@@ -523,10 +492,7 @@ public actor TcpProxyConnection: Equatable
     {
         while self.open
         {
-            let windowSize = AsyncAwaitSynchronizer<UInt16>.sync
-            {
-                return await self.downstreamStraw.getWindowSize()
-            }
+            let windowSize = self.downstreamStraw.windowSize
 
             // If a read from the server connection fails, the the server connection is closed.
             guard let data = self.connection.read(maxSize: Int(windowSize)) else
@@ -549,15 +515,8 @@ public actor TcpProxyConnection: Equatable
     {
         while self.open
         {
-            let ackSequenceNumber = AsyncAwaitSynchronizer<SequenceNumber>.sync
-            {
-                return await self.upstreamStraw.getAcknowledgementNumber()
-            }
-
-            let sequenceNumber = AsyncAwaitSynchronizer<SequenceNumber>.sync
-            {
-                return await self.downstreamStraw.getSequenceNumber()
-            }
+            let ackSequenceNumber = self.upstreamStraw.acknowledgementNumber
+            let sequenceNumber = self.downstreamStraw.sequenceNumber
 
             tcpLogger?.debug("* acking cleared bytes \(sequenceNumber) \(ackSequenceNumber)")
 
@@ -579,10 +538,8 @@ public actor TcpProxyConnection: Equatable
     {
         do
         {
-            let windowSize = AsyncAwaitSynchronizer<UInt16>.sync
-            {
-                return await self.downstreamStraw.getWindowSize()
-            }
+            let windowSize = self.downstreamStraw.windowSize
+
             let tcp = try InternetProtocols.TCP(sourcePort: self.remotePort, destinationPort: self.localPort, windowSize: windowSize, payload: data)
             guard let ipv4 = try InternetProtocols.IPv4(sourceAddress: self.remoteAddress, destinationAddress: self.localAddress, payload: tcp.data, protocolNumber: .TCP) else
             {
@@ -610,16 +567,11 @@ public actor TcpProxyConnection: Equatable
             () -> SequenceNumber in
 
             self.tcpLogger?.debug("Calling getSequencNumber().")
-            return await self.downstreamStraw.getSequenceNumber()
+            return self.downstreamStraw.sequenceNumber
         }
         tcpLogger?.debug("ISS:\(iss)")
 
-        let rcvNxt = AsyncAwaitSynchronizer<SequenceNumber>.sync
-        {
-            () -> SequenceNumber in
-
-            return await self.upstreamStraw.getAcknowledgementNumber()
-        }
+        let rcvNxt = self.upstreamStraw.acknowledgementNumber
         tcpLogger?.debug("rcvNxt:\(rcvNxt)")
         
         try self.sendPacket(sequenceNumber: iss, acknowledgementNumber: rcvNxt, syn: true, ack: true)
@@ -628,19 +580,8 @@ public actor TcpProxyConnection: Equatable
     func sendAck(_ tcp: InternetProtocols.TCP, _ state: States) throws
     {
         tcpLogger?.debug("* sending Ack")
-        let sndNxt = AsyncAwaitSynchronizer<SequenceNumber>.sync
-        {
-            () -> SequenceNumber in
-
-            return await self.downstreamStraw.getSequenceNumber()
-        }
-
-        let rcvNxt = AsyncAwaitSynchronizer<SequenceNumber>.sync
-        {
-            () -> SequenceNumber in
-            
-            return await self.upstreamStraw.getAcknowledgementNumber()
-        }
+        let sndNxt = self.downstreamStraw.sequenceNumber
+        let rcvNxt = self.upstreamStraw.acknowledgementNumber
 
         try self.sendPacket(sequenceNumber: sndNxt, acknowledgementNumber: rcvNxt, syn: true, ack: true)
     }
@@ -722,10 +663,7 @@ public actor TcpProxyConnection: Equatable
     {
         do
         {
-            let windowSize = AsyncAwaitSynchronizer<UInt16>.sync
-            {
-                return await self.upstreamStraw.getWindowSize()
-            }
+            let windowSize = self.upstreamStraw.windowSize
 
             if self.remotePort == 2234 // Print traffic to the TCP Echo Server to the TCP log for debugging
             {
