@@ -605,14 +605,14 @@ public actor TcpProxyConnection: Equatable
     func sendSynAck(_ conduit: Conduit) throws
     {
         tcpLogger?.debug("* sending SynAck")
-        let iss = AsyncAwaitSynchronizer<UInt16>.sync
+        let iss = AsyncAwaitSynchronizer<SequenceNumber>.sync
         {
             self.tcpLogger?.debug("Calling getSequencNumber().")
             return await self.downstreamStraw.getSequenceNumber()
         }
         tcpLogger?.debug("ISS:\(iss)")
 
-        let rcvNxt = AsyncAwaitSynchronizer<UInt16>.sync
+        let rcvNxt = AsyncAwaitSynchronizer<SequenceNumber>.sync
         {
             return await self.upstreamStraw.getAcknowledgementNumber()
         }
@@ -624,12 +624,12 @@ public actor TcpProxyConnection: Equatable
     func sendAck(_ tcp: InternetProtocols.TCP, _ state: States) throws
     {
         tcpLogger?.debug("* sending Ack")
-        let sndNxt = AsyncAwaitSynchronizer<UInt16>.sync
+        let sndNxt = AsyncAwaitSynchronizer<SequenceNumber>.sync
         {
             return await self.downstreamStraw.getSequenceNumber()
         }
 
-        let rcvNxt = AsyncAwaitSynchronizer<UInt16>.sync
+        let rcvNxt = AsyncAwaitSynchronizer<SequenceNumber>.sync
         {
             return await self.upstreamStraw.getAcknowledgementNumber()
         }
