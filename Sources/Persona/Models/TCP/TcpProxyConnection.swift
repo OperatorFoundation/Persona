@@ -607,6 +607,7 @@ public actor TcpProxyConnection: Equatable
         tcpLogger?.debug("* sending SynAck")
         let iss = AsyncAwaitSynchronizer<UInt16>.sync
         {
+            self.tcpLogger?.debug("Calling getSequencNumber().")
             return await self.downstreamStraw.getSequenceNumber()
         }
         tcpLogger?.debug("ISS:\(iss)")

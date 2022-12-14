@@ -56,6 +56,11 @@ public class Persona: Universe
         #endif
         
         let logFileURL = URL(fileURLWithPath: "PersonaTcpLog.log")
+        if File.exists(logFileURL.path)
+        {
+            let _ = File.delete(atPath: logFileURL.path)
+        }
+        
         if let file = try? FileLogger("PersonaTCPLogger",
                               logLevel: .debug,
                               fileURL: logFileURL,
@@ -67,7 +72,7 @@ public class Persona: Universe
         
         
         tcpLogger.debug("PersonaTCPLogger Start")
-
+    
         super.init(effects: effects, events: events, logger: logger)
 
         self.mode = mode

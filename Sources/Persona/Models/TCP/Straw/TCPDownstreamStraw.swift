@@ -76,7 +76,7 @@ public actor TCPDownstreamStraw
 
     public func getSequenceNumber() -> SequenceNumber
     {
-        self.ackLock.wait()
+        //self.ackLock.wait()
 
         return self.window.lowerBound
     }
