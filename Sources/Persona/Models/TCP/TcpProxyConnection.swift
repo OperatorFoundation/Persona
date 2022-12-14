@@ -609,12 +609,14 @@ public actor TcpProxyConnection: Equatable
         {
             return await self.downstreamStraw.getSequenceNumber()
         }
+        tcpLogger?.debug("ISS:\(iss)")
 
         let rcvNxt = AsyncAwaitSynchronizer<UInt16>.sync
         {
             return await self.upstreamStraw.getAcknowledgementNumber()
         }
-
+        tcpLogger?.debug("rcvNxt:\(rcvNxt)")
+        
         try self.sendPacket(sequenceNumber: iss, acknowledgementNumber: rcvNxt, syn: true, ack: true)
     }
 
