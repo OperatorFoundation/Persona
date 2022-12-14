@@ -13,13 +13,13 @@ import Straw
 public actor TCPDownstreamStraw
 {
     let straw = SynchronizedStraw()
-    var window: Range<UInt32>
+    var window: SequenceNumberRange
     let ackLock: LatchingLock = LatchingLock()
     var windowSize: UInt16
 
-    public init(segmentStart: UInt32, windowSize: UInt16)
+    public init(segmentStart: SequenceNumber, windowSize: UInt16)
     {
-        self.window = segmentStart..<(segmentStart+1)
+        self.window = SequenceNumberRange(lowerBound: segmentStart, size: windowSize)
         self.windowSize = windowSize
     }
 
@@ -30,49 +30,46 @@ public actor TCPDownstreamStraw
             return
         }
 
-        guard let segmentWindow = segment.segmentWindow else
-        {
-            throw TCPStrawError.badSegmentWindow
-        }
+        let segmentWindow = segment.window
 
-        guard segmentWindow.startIndex == self.window.endIndex else
+        guard segmentWindow.lowerBound == self.window.upperBound else
         {
-            throw TCPStrawError.misorderedSegment
+            throw TCPUpstreamStrawError.misorderedSegment
         }
 
         self.straw.write(payload)
-        self.window = self.window.startIndex..<(self.window.endIndex + UInt32(payload.count))
+        self.window.increaseUpperBound(by: payload.count)
     }
 
     public func read() throws -> SegmentData
     {
         let data = try self.straw.read()
-        let window = self.window.startIndex..<(self.window.startIndex + UInt32(data.count))
+        self.window.increaseUpperBound(by: data.count)
         return SegmentData(data: data, window: window)
     }
 
     public func read(size: Int) throws -> SegmentData
     {
         let data = try self.straw.read(size: size)
-        let window = self.window.startIndex..<(self.window.startIndex + UInt32(data.count))
+        self.window.increaseUpperBound(by: data.count)
         return SegmentData(data: data, window: window)
     }
 
     public func read(maxSize: Int) throws -> SegmentData
     {
         let data = try self.straw.read(maxSize: maxSize)
-        let window = self.window.startIndex..<(self.window.startIndex + UInt32(data.count))
+        self.window.increaseUpperBound(by: data.count)
         return SegmentData(data: data, window: window)
     }
 
-    public func clear(segment: SegmentData) throws
+    public func clear(tcp: InternetProtocols.TCP) throws
     {
-        guard segment.window.startIndex == self.window.startIndex else
+        guard SequenceNumber(tcp.acknowledgementNumber) == self.window.lowerBound else
         {
-            throw TCPStrawError.segmentMismatch
+            throw TCPUpstreamStrawError.segmentMismatch
         }
 
-        self.window = (segment.window.endIndex)..<self.window.endIndex
+        self.window = SequenceNumberRange(lowerBound: tcp.window.upperBound, upperBound: self.window.upperBound)
 
         self.ackLock.latch()
     }
@@ -81,7 +78,7 @@ public actor TCPDownstreamStraw
     {
         self.ackLock.wait()
 
-        return SequenceNumber(self.window.startIndex)
+        return self.window.lowerBound
     }
 
     public func getWindowSize() -> UInt16

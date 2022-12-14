@@ -18,6 +18,16 @@ import Universe
 
 public actor TcpProxy
 {
+    static let maximumSegmentLifetime = TimeInterval(integerLiteral: 2 * 60) // 2 minutes
+    static var quietTimeLock: DispatchSemaphore = DispatchSemaphore(value: 0)
+    static var quietTime: Timer? = Timer(timeInterval: TcpProxy.maximumSegmentLifetime, repeats: false)
+    {
+        timer in
+
+        TcpProxy.quietTime = nil
+        TcpProxy.quietTimeLock.signal()
+    }
+
     static public func sequenceLength(_ tcp: InternetProtocols.TCP) -> UInt32
     {
         var length: UInt32 = 0
@@ -51,7 +61,7 @@ public actor TcpProxy
 
         if quietTime
         {
-            TCP.quietTimeLock.wait()
+            TcpProxy.quietTimeLock.wait()
         }
     }
 
@@ -224,7 +234,7 @@ public actor TcpProxy
         }
     }
 
-    func sendRst(sourceAddress: IPv4Address, sourcePort: UInt16, destinationAddress: IPv4Address, destinationPort: UInt16, _ conduit: Conduit, _ tcp: InternetProtocols.TCP, _ state: TCP.States) throws
+    func sendRst(sourceAddress: IPv4Address, sourcePort: UInt16, destinationAddress: IPv4Address, destinationPort: UInt16, _ conduit: Conduit, _ tcp: InternetProtocols.TCP, _ state: States) throws
     {
         print("* Persona sendRst called")
         switch state

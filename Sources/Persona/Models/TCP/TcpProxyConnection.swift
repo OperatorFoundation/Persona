@@ -70,17 +70,7 @@ public actor TcpProxyConnection: Equatable
     var open: Bool = true
 
     // https://flylib.com/books/en/3.223.1.188/1/
-    var state: TCP.States
-
-    var irs: SequenceNumber
-    var rcvNxt: SequenceNumber
-    var iss: SequenceNumber
-    var sndUna: SequenceNumber
-    var sndNxt: SequenceNumber
-    var sndWnd: UInt16
-    var sndWl1: SequenceNumber?
-    var sndWl2: SequenceNumber?
-    var rcvWnd: UInt16
+    var state: States
 
     var retransmissionQueue: [InternetProtocols.TCP] = []
 
@@ -104,23 +94,12 @@ public actor TcpProxyConnection: Equatable
         self.lastUsed = Date() // now
 
         self.state = .synReceived
-        
-        self.irs = irs
-        self.rcvNxt = self.irs.increment()
-        self.iss = TcpProxyConnection.isn()
-        self.sndNxt = self.iss.increment()
-        
-        self.downstreamStraw = TCPDownstreamStraw(segmentStart: self.iss.uint32, windowSize: rcvWnd)
-        self.upstreamStraw = TCPUpstreamStraw(segmentStart: self.irs.uint32)
-        
-        print(" 🐡 irs = \(irs.uint32) | iss = \(iss.uint32)")
-        print(" 🐡 rcvNxt = \(rcvNxt.uint32) | sndNxt = \(sndNxt.uint32)")
 
-        self.sndUna = self.iss
-        self.sndWnd = 65535
-        self.sndWl1 = nil
-        self.sndWl2 = nil
-        self.rcvWnd = rcvWnd
+        let iss = Self.isn()
+
+        self.downstreamStraw = TCPDownstreamStraw(segmentStart: iss.increment(), windowSize: rcvWnd)
+        self.upstreamStraw = TCPUpstreamStraw(segmentStart: irs.increment())
+
         self.tcpLogger = tcpLogger
 
         Task
@@ -190,7 +169,7 @@ public actor TcpProxyConnection: Equatable
                  the CLOSED state, delete the TCB, and return.
                  */
 
-                try self.sendRst(self.conduit, tcp, .closed)
+                try self.sendRst(self.conduit, tcp, States.closed)
                 self.close()
                 return
             }
@@ -216,18 +195,19 @@ public actor TcpProxyConnection: Equatable
                          and send it.
                          */
 
-                        if (self.sndUna <= SequenceNumber(tcp.acknowledgementNumber)) && (SequenceNumber(tcp.acknowledgementNumber) <= self.sndNxt)
-                        {
-                            print("✅ Persona.processLocalPacket: state set to established")
-                            self.state = .established
-                        }
-                        else
-                        {
-                            print("🛑 Syn received state but the segment acknowledgment is not acceptable. Sending reset.")
-                            try self.sendRst(self.conduit, tcp, self.state)
-                            
-                            return
-                        }
+                        // FIXME - deal with duplicate SYNs
+//                        if (self.sndUna <= SequenceNumber(tcp.acknowledgementNumber)) && (SequenceNumber(tcp.acknowledgementNumber) <= self.sndNxt)
+//                        {
+//                            print("✅ Persona.processLocalPacket: state set to established")
+//                            self.state = .established
+//                        }
+//                        else
+//                        {
+                        print("🛑 Syn received state but the segment acknowledgment is not acceptable. Sending reset.")
+                        try self.sendRst(self.conduit, tcp, self.state)
+
+                        return
+//                        }
 
                     case .established, .finWait1, .finWait2, .closeWait, .closing, .lastAck, .timeWait:
                         print("* Persona.processLocalPacket: .established, .finWait1, .finWait2, .closeWait, .closing, .lastAck, .timeWait state")
@@ -235,83 +215,9 @@ public actor TcpProxyConnection: Equatable
                          ESTABLISHED STATE
                          */
 
-                        /*
-                         Note that SND.WND is an offset from SND.UNA, that SND.WL1
-                         records the sequence number of the last segment used to update
-                         SND.WND, and that SND.WL2 records the acknowledgment number of
-                         the last segment used to update SND.WND.  The check here
-                         prevents using old segments to update the window.
-                         */
-
-                        /*
-                         If SND.UNA < SEG.ACK =< SND.NXT then,
-                         */
-                        if (self.sndUna < SequenceNumber(tcp.acknowledgementNumber)) && (SequenceNumber(tcp.acknowledgementNumber) <= self.sndNxt)
+                        AsyncAwaitThrowingEffectSynchronizer.sync
                         {
-                            /*
-                             set SND.UNA <- SEG.ACK.
-                             */
-                            self.sndUna = SequenceNumber(tcp.acknowledgementNumber)
-
-                            /*
-                             Any segments on the retransmission queue which are thereby
-                             entirely acknowledged are removed.
-                             */
-                            self.filterRetransmissions(SequenceNumber(tcp.acknowledgementNumber))
-
-                            /*
-                             If SND.UNA < SEG.ACK =< SND.NXT, the send window should be updated.
-                             If (SND.WL1 < SEG.SEQ or
-                             (SND.WL1 = SEG.SEQ and SND.WL2 =< SEG.ACK)),
-                             */
-                            guard let sndWl1 = self.sndWl1 else
-                            {
-                                // FIXME: where should this first be set?
-                                print("🛑 Persona.processLocalPacket FIXME: sndWl1 is null")
-                                return
-                            }
-
-                            guard let sndWl2 = self.sndWl2 else
-                            {
-                                // FIXME: where should this first be set?
-                                print("🛑 Persona.processLocalPacket FIXME: sndWl2 is null")
-                                return
-                            }
-
-                            if  (sndWl1 <  SequenceNumber(tcp.sequenceNumber)) ||
-                                    ((sndWl1 == SequenceNumber(tcp.sequenceNumber)) && (sndWl2 <= SequenceNumber(tcp.acknowledgementNumber)))
-                            {
-                                /*
-                                 set SND.WND <- SEG.WND,
-                                 */
-                                self.sndWnd = tcp.windowSize
-
-                                /*
-                                 set SND.WL1 <- SEG.SEQ,
-                                 */
-                                self.sndWl1 = SequenceNumber(tcp.sequenceNumber)
-
-                                /*
-                                 and set SND.WL2 <- SEG.ACK.
-                                 */
-                                self.sndWl2 = SequenceNumber(tcp.acknowledgementNumber)
-                            }
-                        }
-                        else if SequenceNumber(tcp.acknowledgementNumber) < self.sndUna
-                        {
-                            /*
-                             If the ACK is a duplicate (SEG.ACK < SND.UNA), it can be ignored.
-                             */
-                            print("* Persona.processLocalPacket: If the ACK is a duplicate (SEG.ACK < SND.UNA), it can be ignored.")
-                            return
-                        }
-                        else if SequenceNumber(tcp.acknowledgementNumber) > self.sndNxt
-                        {
-                            /*
-                             If the ACK acks something not yet sent (SEG.ACK > SND.NXT) then send an ACK, drop the segment, and return.
-                             */
-                            print("* Persona.processLocalPacket: If the ACK acks something not yet sent (SEG.ACK > SND.NXT) then send an ACK, drop the segment, and return.")
-                            return
+                            try await self.downstreamStraw.clear(tcp: tcp)
                         }
 
                         // Additional processing for specific states
@@ -334,12 +240,12 @@ public actor TcpProxyConnection: Equatable
                                     // If a write to the server fails, the the server connection is closed.
                                     // Start closing the client connection.
 
-                                    AsyncAwaitThrowingEffectSynchronizer.sync
-                                    {
-                                        try await self.upstreamStraw.write(tcp)
-                                    }
-
                                     print("* Persona.processLocalPacket: payload upstream write complete")
+                                }
+
+                                AsyncAwaitThrowingEffectSynchronizer.sync
+                                {
+                                    try await self.upstreamStraw.write(tcp)
                                 }
 
                                 /*
@@ -355,15 +261,6 @@ public actor TcpProxyConnection: Equatable
 
                                  Please note the window management suggestions in section 3.7.
                                  */
-                                
-                                let sequenceLength = TcpProxy.sequenceLength(tcp)
-                                print(" 🐡 calling rcvNxt.add(TransmissionControlBlock.sequenceLength(tcp)) ")
-                                print(" 🐡 TransmissionControlBlock.sequenceLength(tcp)) = \(sequenceLength)")
-                                self.rcvNxt = self.rcvNxt.add(sequenceLength)
-                                print(" 🐡 rcvNxt = \(rcvNxt.uint32) | sndNxt = \(sndNxt.uint32)")
-                                
-                                self.rcvWnd += UInt16(TcpProxy.sequenceLength(tcp))
-                                
 
                                 /*
                                  Send an acknowledgment of the form:
@@ -374,8 +271,19 @@ public actor TcpProxyConnection: Equatable
                                  transmitted if possible without incurring undue delay.
                                  */
 
+                                let sndNxt = AsyncAwaitSynchronizer<UInt16>.sync
+                                {
+                                    return await self.downstreamStraw.getSequenceNumber()
+                                }
+
+                                let rcvNxt = AsyncAwaitSynchronizer<UInt16>.sync
+                                {
+                                    return await self.upstreamStraw.getAcknowledgementNumber()
+                                }
+
                                 self.tcpLogger?.debug("processLocalPacket() called")
-                                try self.sendPacket(sequenceNumber: self.sndNxt, acknowledgementNumber: self.rcvNxt, ack: true)
+
+                                try self.sendPacket(sequenceNumber: sndNxt, acknowledgementNumber: rcvNxt, ack: true)
 
                                 switch state
                                 {
@@ -539,8 +447,19 @@ public actor TcpProxyConnection: Equatable
             else
             {
                 print("* Persona.processLocalPacket: incoming segment is not acceptable, and no rst bit, sending ack and dropping packet")
+
+                let sndNxt = AsyncAwaitSynchronizer<UInt16>.sync
+                {
+                    return await self.downstreamStraw.getSequenceNumber()
+                }
+
+                let rcvNxt = AsyncAwaitSynchronizer<UInt16>.sync
+                {
+                    return await self.upstreamStraw.getAcknowledgementNumber()
+                }
+
                 // Send an ack
-                try self.sendPacket(sequenceNumber: self.sndNxt, acknowledgementNumber: self.rcvNxt, ack: true)
+                try self.sendPacket(sequenceNumber: sndNxt, acknowledgementNumber: rcvNxt, ack: true)
                 // Drop the unacceptable segment
                 return
             }
@@ -686,16 +605,36 @@ public actor TcpProxyConnection: Equatable
     func sendSynAck(_ conduit: Conduit) throws
     {
         tcpLogger?.debug("* sending SynAck")
-        try self.sendPacket(sequenceNumber: self.iss, acknowledgementNumber: self.rcvNxt, syn: true, ack: true)
+        let iss = AsyncAwaitSynchronizer<UInt16>.sync
+        {
+            return await self.downstreamStraw.getSequenceNumber()
+        }
+
+        let rcvNxt = AsyncAwaitSynchronizer<UInt16>.sync
+        {
+            return await self.upstreamStraw.getAcknowledgementNumber()
+        }
+
+        try self.sendPacket(sequenceNumber: iss, acknowledgementNumber: rcvNxt, syn: true, ack: true)
     }
 
-    func sendAck(_ tcp: InternetProtocols.TCP, _ state: TCP.States) throws
+    func sendAck(_ tcp: InternetProtocols.TCP, _ state: States) throws
     {
         tcpLogger?.debug("* sending Ack")
-        try self.sendPacket(sequenceNumber: self.iss, acknowledgementNumber: self.rcvNxt, syn: true, ack: true)
+        let sndNxt = AsyncAwaitSynchronizer<UInt16>.sync
+        {
+            return await self.downstreamStraw.getSequenceNumber()
+        }
+
+        let rcvNxt = AsyncAwaitSynchronizer<UInt16>.sync
+        {
+            return await self.upstreamStraw.getAcknowledgementNumber()
+        }
+
+        try self.sendPacket(sequenceNumber: sndNxt, acknowledgementNumber: rcvNxt, syn: true, ack: true)
     }
 
-    func sendRst(_ conduit: Conduit, _ tcp: InternetProtocols.TCP, _ state: TCP.States) throws
+    func sendRst(_ conduit: Conduit, _ tcp: InternetProtocols.TCP, _ state: States) throws
     {
         tcpLogger?.debug("* sending Rst")
         switch state
@@ -772,7 +711,13 @@ public actor TcpProxyConnection: Equatable
     {
         do
         {
-            if self.remotePort == 2234 {
+            let windowSize = AsyncAwaitSynchronizer<UInt16>.sync
+            {
+                return await self.upstreamStraw.getWindowSize()
+            }
+
+            if self.remotePort == 2234 // Print traffic to the TCP Echo Server to the TCP log for debugging
+            {
                 self.tcpLogger?.debug("*** Creating an IPv4 packet ***")
                 self.tcpLogger?.debug("* source address: \(self.remoteAddress.string):\(self.remotePort)")
                 self.tcpLogger?.debug("* destination address: \(self.localAddress.string):\(self.localPort)")
@@ -786,10 +731,10 @@ public actor TcpProxyConnection: Equatable
                 self.tcpLogger?.debug("* ack: \(ack)")
                 self.tcpLogger?.debug("* fin: \(fin)")
                 self.tcpLogger?.debug("* rst: \(rst)")
-                self.tcpLogger?.debug("* window size \(self.sndWnd)")
+                self.tcpLogger?.debug("* window size \(windowSize)")
             }
             
-            guard let ipv4 = try IPv4(sourceAddress: self.remoteAddress, destinationAddress: self.localAddress, sourcePort: self.remotePort, destinationPort: self.localPort, sequenceNumber: sequenceNumber, acknowledgementNumber: acknowledgementNumber, syn: syn, ack: ack, fin: fin, rst: rst, windowSize: self.sndWnd, payload: nil) else
+            guard let ipv4 = try IPv4(sourceAddress: self.remoteAddress, destinationAddress: self.localAddress, sourcePort: self.remotePort, destinationPort: self.localPort, sequenceNumber: sequenceNumber, acknowledgementNumber: acknowledgementNumber, syn: syn, ack: ack, fin: fin, rst: rst, windowSize: windowSize, payload: nil) else
             {
                 self.tcpLogger?.debug("* sendPacket() failed to initialize IPv4 packet.")
                 throw TcpProxyError.badIpv4Packet
@@ -812,7 +757,7 @@ public actor TcpProxyConnection: Equatable
 
     func startTimeWaitTimer()
     {
-        self.timeWaitTimer = Timer(timeInterval: TCP.maximumSegmentLifetime * 2, repeats: false)
+        self.timeWaitTimer = Timer(timeInterval: TcpProxy.maximumSegmentLifetime * 2, repeats: false)
         {
             timer in
 
