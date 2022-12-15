@@ -61,7 +61,7 @@ public actor TCPUpstreamStrawActor
         }
 
         let segmentWindow = segment.window
-        guard segmentWindow.lowerBound == self.window.upperBound else
+        guard segmentWindow.lowerBound == SequenceNumber(segmentWindow.lowerBound.uint32 + UInt32(self.straw.count)) else
         {
             throw TCPUpstreamStrawError.misorderedSegment
         }
