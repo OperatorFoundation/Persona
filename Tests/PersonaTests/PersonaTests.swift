@@ -214,12 +214,21 @@ final class PersonaTests: XCTestCase
         }
     }
 
-    func testStraws() throws
+    func testUpstreamStraw() throws
     {
         let upstream = TCPUpstreamStraw(segmentStart: SequenceNumber(0))
         let segment = try TCP(sourcePort: 1234, destinationPort: 4567, sequenceNumber: SequenceNumber(0), windowSize: 65535, payload: Data(repeating: 0x1A, count: 128))
         try upstream.write(segment)
         let result = try upstream.read()
+        XCTAssertEqual(result.data.count, 128)
+    }
+
+    func testDownstreamStraw() throws
+    {
+        let downstream = TCPDownstreamStraw(segmentStart: SequenceNumber(0), windowSize: 65535)
+        let data = Data(repeating: 0x1A, count: 128)
+        try downstream.write(data)
+        let result = try downstream.read()
         XCTAssertEqual(result.data.count, 128)
     }
 }

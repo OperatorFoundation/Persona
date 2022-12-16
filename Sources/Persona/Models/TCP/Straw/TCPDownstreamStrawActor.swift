@@ -23,22 +23,10 @@ public actor TCPDownstreamStrawActor
         self.windowSize = windowSize
     }
 
-    public func write(_ segment: InternetProtocols.TCP) throws
+    public func write(_ data: Data) throws
     {
-        guard let payload = segment.payload else
-        {
-            return
-        }
-
-        let segmentWindow = segment.window
-
-        guard segmentWindow.lowerBound == self.window.upperBound else
-        {
-            throw TCPUpstreamStrawError.misorderedSegment
-        }
-
-        self.straw.write(payload)
-        self.window.increaseUpperBound(by: payload.count)
+        self.straw.write(data)
+        self.window.increaseUpperBound(by: data.count)
     }
 
     public func read() throws -> SegmentData

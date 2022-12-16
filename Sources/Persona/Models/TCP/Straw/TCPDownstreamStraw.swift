@@ -47,11 +47,11 @@ public class TCPDownstreamStraw
         self.actor = TCPDownstreamStrawActor(segmentStart: segmentStart, windowSize: windowSize)
     }
 
-    public func write(_ segment: InternetProtocols.TCP) throws
+    public func write(_ data: Data) throws
     {
         AsyncAwaitThrowingEffectSynchronizer.sync
         {
-            try await self.actor.write(segment)
+            try await self.actor.write(data)
         }
     }
 
