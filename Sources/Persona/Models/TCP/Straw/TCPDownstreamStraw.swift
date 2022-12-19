@@ -1,5 +1,5 @@
 //
-//  TCPSendStraw.swift
+//  TCPSendStrawActor.swift
 //
 //
 //  Created by Dr. Brandon Wiley on 9/27/22.
@@ -7,89 +7,119 @@
 
 import Foundation
 
-import Chord
 import InternetProtocols
 import Straw
 
 public class TCPDownstreamStraw
 {
+    let straw = SynchronizedStraw()
+    var window: SequenceNumberRange
+    var privateWindowSize: UInt16
+
+    let functionLock: DispatchSemaphore = DispatchSemaphore(value: 0)
+    let ackLock: CountingLock = CountingLock()
+
     public var sequenceNumber: SequenceNumber
     {
-        return AsyncAwaitSynchronizer<SequenceNumber>.sync
-        {
-            return await self.actor.getSequenceNumber()
-        }
+        self.functionLock.wait()
+
+        let result = self.window.lowerBound
+
+        self.functionLock.signal()
+
+        return result
     }
 
     public var windowSize: UInt16
     {
         get
         {
-            return AsyncAwaitSynchronizer<UInt16>.sync
-            {
-                return await self.actor.getWindowSize()
-            }
+            self.functionLock.wait()
+
+            let result = self.privateWindowSize
+
+            self.functionLock.signal()
+
+            return result
         }
 
         set
         {
-            AsyncAwaitEffectSynchronizer.sync
-            {
-                await self.actor.updateWindowSize(newValue)
-            }
+            self.functionLock.wait()
+
+            self.privateWindowSize = newValue
+
+            self.functionLock.signal()
         }
     }
 
-    let actor: TCPDownstreamStrawActor
-
     public init(segmentStart: SequenceNumber, windowSize: UInt16)
     {
-        self.actor = TCPDownstreamStrawActor(segmentStart: segmentStart, windowSize: windowSize)
+        self.window = SequenceNumberRange(lowerBound: segmentStart, size: windowSize)
+        self.privateWindowSize = windowSize
     }
 
     public func write(_ data: Data) throws
     {
-        AsyncAwaitThrowingEffectSynchronizer.sync
-        {
-            try await self.actor.write(data)
-        }
+        self.functionLock.wait()
+
+        self.straw.write(data)
+        self.window.increaseUpperBound(by: data.count)
+
+        self.functionLock.signal()
     }
 
     public func read() throws -> SegmentData
     {
-        let result: SegmentData = try AsyncAwaitThrowingSynchronizer<SegmentData>.sync
-        {
-            return try await self.actor.read()
-        }
+        self.functionLock.wait()
+
+        let data = try self.straw.read()
+        self.window.increaseUpperBound(by: data.count)
+        let result = SegmentData(data: data, window: window)
+
+        self.functionLock.signal()
 
         return result
     }
 
     public func read(size: Int) throws -> SegmentData
     {
-        let result: SegmentData = try AsyncAwaitThrowingSynchronizer<SegmentData>.sync
-        {
-            return try await self.actor.read(size: size)
-        }
+        self.functionLock.wait()
+
+        let data = try self.straw.read(size: size)
+        self.window.increaseUpperBound(by: data.count)
+        let result = SegmentData(data: data, window: window)
+
+        self.functionLock.signal()
 
         return result
     }
 
     public func read(maxSize: Int) throws -> SegmentData
     {
-        let result: SegmentData = try AsyncAwaitThrowingSynchronizer<SegmentData>.sync
-        {
-            return try await self.actor.read(maxSize: maxSize)
-        }
+        self.functionLock.wait()
+
+        let data = try self.straw.read(maxSize: maxSize)
+        self.window.increaseUpperBound(by: data.count)
+        let result = SegmentData(data: data, window: window)
+
+        self.functionLock.signal()
 
         return result
     }
 
     public func clear(tcp: InternetProtocols.TCP) throws
     {
-        AsyncAwaitThrowingEffectSynchronizer.sync
+        self.functionLock.wait()
+
+        guard SequenceNumber(tcp.acknowledgementNumber) == self.window.lowerBound else
         {
-            return try await self.actor.clear(tcp: tcp)
+            self.functionLock.signal()
+            throw TCPUpstreamStrawError.segmentMismatch
         }
+
+        self.window = SequenceNumberRange(lowerBound: tcp.window.upperBound, upperBound: self.window.upperBound)
+
+        self.functionLock.signal()
     }
 }
