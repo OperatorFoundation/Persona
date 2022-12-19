@@ -16,7 +16,7 @@ import FoundationNetworking
 #endif
 
 import Gardener
-import Keychain
+import KeychainCli
 import Nametag
 import Net
 import Spacetime
@@ -53,16 +53,12 @@ extension PersonaCommandLine
                 throw NewCommandError.portInUse(port)
             }
 
-            #if os(macOS) || os(iOS) || os(tvOS) || os(watchOS)
-            let keychain = Keychain()
-            #else
             guard let keychain = Keychain(baseDirectory: File.homeDirectory().appendingPathComponent(".persona-server")) else
             {
                 throw NewCommandError.couldNotLoadKeychain
             }
-            #endif
 
-            guard let privateKeyKeyAgreement = keychain.generateAndSavePrivateKey(label: "Persona.KeyAgreement", type: .P256KeyAgreement) else
+            guard let privateKeyKeyAgreement = keychain.generateAndSavePrivateKey(label: "Persona.KeyAgreement", type: KeyType.P256KeyAgreement) else
             {
                 throw NewCommandError.couldNotGeneratePrivateKey
             }
