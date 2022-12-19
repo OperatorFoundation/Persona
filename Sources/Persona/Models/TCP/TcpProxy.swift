@@ -106,7 +106,7 @@ public actor TcpProxy
         {
             tcpLogger?.debug("* Processing a packet. This is an existing proxy connection, calling proxyConnection.processLocalPacket(tcp)")
 
-            AsyncAwaitThrowingEffectSynchronizer.sync
+            Task
             {
                 try await proxyConnection.processUpstreamPacket(tcp)
             }
@@ -116,6 +116,8 @@ public actor TcpProxy
             tcpLogger?.debug("* Processing a packet. This is a new destination, calling handleNewConnection()")
             try self.handleNewConnection(tcp: tcp, sourceAddress: sourceAddress, sourcePort: sourcePort, destinationAddress: destinationAddress, destinationPort: destinationPort, conduit: conduit)
         }
+        print("Finished processing upstream packet")
+        tcpLogger?.debug("Finished processing upstream packet")
     }
 
     func handleNewConnection(tcp: InternetProtocols.TCP, sourceAddress: IPv4Address, sourcePort: UInt16, destinationAddress: IPv4Address, destinationPort: UInt16, conduit: Conduit) throws

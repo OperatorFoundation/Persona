@@ -106,20 +106,26 @@ public actor TcpProxyConnection: Equatable
         {
             try await self.sendSynAck(conduit)
         }
-
+        
         Task
         {
-            await self.pumpUpstream()
+            while await self.open {
+                await self.pumpUpstream()
+            }
         }
 
         Task
         {
-            await self.pumpDownstream()
+            while await self.open {
+                await self.pumpDownstream()
+            }
         }
 
         Task
         {
-            await self.pumpAcks()
+            while await self.open {
+                await self.pumpAck()
+            }
         }
 
         tcpLogger?.debug("* TCPProxyConnection init complete\n")
@@ -465,72 +471,63 @@ public actor TcpProxyConnection: Equatable
 
     func pumpUpstream()
     {
-        while self.open
+        do
         {
-            do
-            {
-                let segment = try self.upstreamStraw.read()
+            let segment = try self.upstreamStraw.read()
 
-                guard self.connection.write(data: segment.data) else
-                {
-                    self.tcpLogger?.error("Upstream write failed, closing connection")
-                    self.close()
-                    return
-                }
-
-                try self.upstreamStraw.clear(segment: segment)
-            }
-            catch
+            guard self.connection.write(data: segment.data) else
             {
+                self.tcpLogger?.error("Upstream write failed, closing connection")
                 self.close()
                 return
             }
+
+            try self.upstreamStraw.clear(segment: segment)
+        }
+        catch
+        {
+            self.close()
+            return
         }
     }
 
     func pumpDownstream()
     {
-        while self.open
+        let windowSize = self.downstreamStraw.windowSize
+
+        // If a read from the server connection fails, the the server connection is closed.
+        guard let data = self.connection.read(maxSize: Int(windowSize)) else
         {
-            let windowSize = self.downstreamStraw.windowSize
+            // Fully close the server connection and let users know the connection is closed if they try to write data.
+            self.close()
 
-            // If a read from the server connection fails, the the server connection is closed.
-            guard let data = self.connection.read(maxSize: Int(windowSize)) else
-            {
-                // Fully close the server connection and let users know the connection is closed if they try to write data.
-                self.close()
-
-                // Start to close the client connection.
-                // FIXME - find the right acknowledgeNumber for this.
+            // Start to close the client connection.
+            // FIXME - find the right acknowledgeNumber for this.
 //                try self.startClose(sequenceNumber: self.sndNxt, acknowledgementNumber: SequenceNumber(tcp.sequenceNumber))
 
-                return
-            }
-
-            self.processDownstreamPacket(data)
+            return
         }
+
+        self.processDownstreamPacket(data)
     }
 
-    func pumpAcks()
+    func pumpAck()
     {
-        while self.open
+        let ackSequenceNumber = self.upstreamStraw.acknowledgementNumber
+        let sequenceNumber = self.downstreamStraw.sequenceNumber
+
+        tcpLogger?.debug("* acking cleared bytes \(sequenceNumber) \(ackSequenceNumber)")
+
+        do
         {
-            let ackSequenceNumber = self.upstreamStraw.acknowledgementNumber
-            let sequenceNumber = self.downstreamStraw.sequenceNumber
+            try self.sendPacket(sequenceNumber: sequenceNumber, acknowledgementNumber: ackSequenceNumber, ack: true)
+        }
+        catch
+        {
+            tcpLogger?.debug("! Error: failed to send ack \(sequenceNumber) \(ackSequenceNumber), closing stream")
 
-            tcpLogger?.debug("* acking cleared bytes \(sequenceNumber) \(ackSequenceNumber)")
-
-            do
-            {
-                try self.sendPacket(sequenceNumber: sequenceNumber, acknowledgementNumber: ackSequenceNumber, ack: true)
-            }
-            catch
-            {
-                tcpLogger?.debug("! Error: failed to send ack \(sequenceNumber) \(ackSequenceNumber), closing stream")
-
-                self.close()
-                return
-            }
+            self.close()
+            return
         }
     }
 
@@ -562,13 +559,7 @@ public actor TcpProxyConnection: Equatable
     func sendSynAck(_ conduit: Conduit) throws
     {
         tcpLogger?.debug("* sending SynAck")
-        let iss = AsyncAwaitSynchronizer<SequenceNumber>.sync
-        {
-            () -> SequenceNumber in
-
-            self.tcpLogger?.debug("Calling getSequencNumber().")
-            return self.downstreamStraw.sequenceNumber
-        }
+        let iss = self.downstreamStraw.sequenceNumber
         tcpLogger?.debug("ISS:\(iss)")
 
         let rcvNxt = self.upstreamStraw.acknowledgementNumber

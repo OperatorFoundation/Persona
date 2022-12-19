@@ -25,7 +25,7 @@ public actor TCPUpstreamStrawActor
 
     public func getAcknowledgementNumber() -> SequenceNumber
     {
-        self.ackLock.wait()
+        //self.ackLock.wait()
 
         return self.window.lowerBound
     }

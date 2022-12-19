@@ -71,7 +71,7 @@ extension PersonaCommandLine
 
             let serverConfig = ServerConfig(name: name, host: ip, port: port)
             let serverConfigData = try encoder.encode(serverConfig)
-            let serverConfigURL = URL(fileURLWithPath: File.currentDirectory()).appendingPathComponent("persona-server.json")
+            let serverConfigURL = URL(fileURLWithPath: File.homeDirectory().path).appendingPathComponent("persona-server.json")
             try serverConfigData.write(to: serverConfigURL)
             print("Wrote config to \(serverConfigURL.path)")
 
@@ -97,7 +97,7 @@ extension PersonaCommandLine
 
         mutating func run() throws
         {
-            let configURL = URL(fileURLWithPath: File.currentDirectory()).appendingPathComponent("persona-server.json")
+            let configURL = URL(fileURLWithPath: File.homeDirectory().path).appendingPathComponent("persona-server.json")
             let configData = try Data(contentsOf: configURL)
             let decoder = JSONDecoder()
             let config = try decoder.decode(ServerConfig.self, from: configData)
