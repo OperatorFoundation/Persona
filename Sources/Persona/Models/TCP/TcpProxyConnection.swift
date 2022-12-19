@@ -14,7 +14,7 @@ import Net
 import Puppy
 import Transmission
 
-public actor TcpProxyConnection: Equatable
+public class TcpProxyConnection: Equatable
 {
     static public func ==(_ x: TcpProxyConnection, _ y: TcpProxyConnection) -> Bool
     {
@@ -104,27 +104,27 @@ public actor TcpProxyConnection: Equatable
 
         Task
         {
-            try await self.sendSynAck(conduit)
+            try self.sendSynAck(conduit)
         }
         
         Task
         {
-            while await self.open {
-                await self.pumpUpstream()
+            while self.open {
+                self.pumpUpstream()
             }
         }
 
         Task
         {
-            while await self.open {
-                await self.pumpDownstream()
+            while self.open {
+                self.pumpDownstream()
             }
         }
 
         Task
         {
-            while await self.open {
-                await self.pumpAck()
+            while self.open {
+                self.pumpAck()
             }
         }
 
@@ -701,10 +701,7 @@ public actor TcpProxyConnection: Equatable
         {
             timer in
 
-            Task
-            {
-                await self.close()
-            }
+            self.close()
         }
     }
 

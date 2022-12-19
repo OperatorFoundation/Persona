@@ -106,10 +106,7 @@ public actor TcpProxy
         {
             tcpLogger?.debug("* Processing a packet. This is an existing proxy connection, calling proxyConnection.processLocalPacket(tcp)")
 
-            Task
-            {
-                try await proxyConnection.processUpstreamPacket(tcp)
-            }
+            try proxyConnection.processUpstreamPacket(tcp)
         }
         else
         {
