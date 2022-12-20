@@ -97,16 +97,16 @@ public class TcpProxyConnection: Equatable
 
         let iss = Self.isn()
 
-        self.downstreamStraw = TCPDownstreamStraw(segmentStart: iss.increment(), windowSize: rcvWnd)
-        self.upstreamStraw = TCPUpstreamStraw(segmentStart: irs.increment())
+        let sequenceNumber = iss.increment()
+        let acknowledgementNumber = irs.increment()
+
+        self.downstreamStraw = TCPDownstreamStraw(segmentStart: sequenceNumber, windowSize: rcvWnd)
+        self.upstreamStraw = TCPUpstreamStraw(segmentStart: acknowledgementNumber)
 
         self.tcpLogger = tcpLogger
 
-        Task
-        {
-            try self.sendSynAck(conduit)
-        }
-        
+        try self.sendSynAck(sequenceNumber: sequenceNumber, acknowledgementNumber: acknowledgementNumber, conduit)
+
         Task
         {
             while self.open {
@@ -556,16 +556,10 @@ public class TcpProxyConnection: Equatable
         }
     }
 
-    func sendSynAck(_ conduit: Conduit) throws
+    func sendSynAck(sequenceNumber: SequenceNumber, acknowledgementNumber: SequenceNumber, _ conduit: Conduit) throws
     {
         tcpLogger?.debug("* sending SynAck")
-        let iss = self.downstreamStraw.sequenceNumber
-        tcpLogger?.debug("ISS:\(iss)")
-
-        let rcvNxt = self.upstreamStraw.acknowledgementNumber
-        tcpLogger?.debug("rcvNxt:\(rcvNxt)")
-        
-        try self.sendPacket(sequenceNumber: iss, acknowledgementNumber: rcvNxt, syn: true, ack: true)
+        try self.sendPacket(sequenceNumber: sequenceNumber, acknowledgementNumber: acknowledgementNumber, syn: true, ack: true)
     }
 
     func sendAck(_ tcp: InternetProtocols.TCP, _ state: States) throws
