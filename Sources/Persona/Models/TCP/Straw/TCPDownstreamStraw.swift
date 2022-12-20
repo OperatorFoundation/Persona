@@ -17,7 +17,7 @@ public class TCPDownstreamStraw
     var privateWindowSize: UInt16
 
     let functionLock: DispatchSemaphore = DispatchSemaphore(value: 0)
-    let ackLock: CountingLock = CountingLock()
+    let countLock: CountingLock = CountingLock()
 
     public var sequenceNumber: SequenceNumber
     {
@@ -65,6 +65,7 @@ public class TCPDownstreamStraw
 
         self.straw.write(data)
         self.window.increaseUpperBound(by: data.count)
+        try self.countLock.add(amount: data.count)
 
         self.functionLock.signal()
     }
@@ -73,7 +74,12 @@ public class TCPDownstreamStraw
     {
         self.functionLock.wait()
 
+        try self.countLock.waitFor(amount: 1)
+
         let data = try self.straw.read()
+
+        try self.countLock.waitFor(amount: data.count - 1)
+
         self.window.increaseUpperBound(by: data.count)
         let result = SegmentData(data: data, window: window)
 
@@ -85,6 +91,8 @@ public class TCPDownstreamStraw
     public func read(size: Int) throws -> SegmentData
     {
         self.functionLock.wait()
+
+        try self.countLock.waitFor(amount: size)
 
         let data = try self.straw.read(size: size)
         self.window.increaseUpperBound(by: data.count)
@@ -99,7 +107,12 @@ public class TCPDownstreamStraw
     {
         self.functionLock.wait()
 
+        try self.countLock.waitFor(amount: 1)
+
         let data = try self.straw.read(maxSize: maxSize)
+
+        try self.countLock.waitFor(amount: data.count - 1)
+
         self.window.increaseUpperBound(by: data.count)
         let result = SegmentData(data: data, window: window)
 

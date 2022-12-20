@@ -16,7 +16,7 @@ public class CountingLock
     {
     }
 
-    public func add(_ amount: Int) throws
+    public func add(amount: Int) throws
     {
         functionLock.wait()
 
@@ -34,9 +34,14 @@ public class CountingLock
         functionLock.signal()
     }
 
-    public func subtract(_ amount: Int) throws
+    public func waitFor(amount: Int) throws
     {
         functionLock.wait()
+
+        if amount == 0
+        {
+            return
+        }
 
         guard amount > 0 else
         {
