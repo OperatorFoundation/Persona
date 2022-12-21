@@ -216,7 +216,7 @@ public class TcpProxyConnection: Equatable
                          ESTABLISHED STATE
                          */
 
-                        try self.downstreamStraw.clear(tcp: tcp)
+                        try self.downstreamStraw.clear(acknowledgementNumber: SequenceNumber(tcp.acknowledgementNumber), sequenceNumber: tcp.window.upperBound)
 
                         // Additional processing for specific states
                         switch state
