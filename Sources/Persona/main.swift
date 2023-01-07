@@ -26,6 +26,9 @@ import Transmission
 // run in one XCode window while you run the flower test in another
 struct PersonaCommandLine: ParsableCommand
 {
+    static var clientConfigURL = URL(fileURLWithPath: File.currentDirectory()).appendingPathComponent("persona-client.json")
+    static var serverConfigURL = URL(fileURLWithPath: File.homeDirectory().path).appendingPathComponent("persona-server.json")
+    
     static let configuration = CommandConfiguration(
         commandName: "persona",
         subcommands: [New.self, Run.self]
@@ -41,7 +44,7 @@ extension PersonaCommandLine
 
         @Argument(help: "Port on which to run the server")
         var port: Int
-
+        
         mutating public func run() throws
         {
             let ip: String = try Ipify.getPublicIP()
@@ -63,19 +66,13 @@ extension PersonaCommandLine
                 throw NewCommandError.couldNotGeneratePrivateKey
             }
 
-            let encoder = JSONEncoder()
-
             let serverConfig = ServerConfig(name: name, host: ip, port: port)
-            let serverConfigData = try encoder.encode(serverConfig)
-            let serverConfigURL = URL(fileURLWithPath: File.homeDirectory().path).appendingPathComponent("persona-server.json")
-            try serverConfigData.write(to: serverConfigURL)
+            try serverConfig.save(to: serverConfigURL)
             print("Wrote config to \(serverConfigURL.path)")
-
+            
             let publicKeyKeyAgreement = privateKeyKeyAgreement.publicKey
             let clientConfig = ClientConfig(name: name, host: ip, port: port, serverPublicKey: publicKeyKeyAgreement)
-            let clientConfigData = try encoder.encode(clientConfig)
-            let clientConfigURL = URL(fileURLWithPath: File.currentDirectory()).appendingPathComponent("persona-client.json")
-            try clientConfigData.write(to: clientConfigURL)
+            try clientConfig.save(to: clientConfigURL)
             print("Wrote config to \(clientConfigURL.path)")
         }
     }
@@ -93,12 +90,11 @@ extension PersonaCommandLine
 
         mutating func run() throws
         {
-            let configURL = URL(fileURLWithPath: File.homeDirectory().path).appendingPathComponent("persona-server.json")
-            let configData = try Data(contentsOf: configURL)
-            let decoder = JSONDecoder()
-            let config = try decoder.decode(ServerConfig.self, from: configData)
-            print("Read config from \(configURL.path)")
-
+            guard let config = ServerConfig(url: serverConfigURL) else
+            {
+                throw RunCommandError.invalidConfigFile
+            }
+            
             let lifecycle = ServiceLifecycle()
 
             let eventLoopGroup = MultiThreadedEventLoopGroup(numberOfThreads: System.coreCount)
@@ -160,5 +156,11 @@ public enum NewCommandError: Error
     case couldNotGeneratePrivateKey
     case couldNotLoadKeychain
     case nametagError
+    case portInUse(Int)
+}
+
+public enum RunCommandError: Error
+{
+    case invalidConfigFile
     case portInUse(Int)
 }

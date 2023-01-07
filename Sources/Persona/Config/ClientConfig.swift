@@ -8,6 +8,7 @@
 import Foundation
 
 import Keychain
+import Gardener
 
 public struct ClientConfig: Codable
 {
@@ -22,5 +23,49 @@ public struct ClientConfig: Codable
         self.host = host
         self.port = port
         self.serverPublicKey = serverPublicKey
+    }
+    
+    init?(from data: Data)
+    {
+        let decoder = JSONDecoder()
+        do
+        {
+            let decoded = try decoder.decode(ClientConfig.self, from: data)
+            self = decoded
+        }
+        catch
+        {
+            print("Error received while attempting to decode a server configuration json file: \(error)")
+            return nil
+        }
+    }
+    
+    public init?(path: String)
+    {
+        let url = URL(fileURLWithPath: path)
+        
+        self.init(url: url)
+    }
+    
+    public init?(url: URL)
+    {
+        do
+        {
+            let data = try Data(contentsOf: url)
+            self.init(from: data)
+        }
+        catch
+        {
+            print("Error decoding client config file: \(error)")
+            
+            return nil
+        }
+    }
+    
+    public func save(to fileURL: URL) throws
+    {
+        let encoder = JSONEncoder()
+        let serverConfigData = try encoder.encode(self)
+        try serverConfigData.write(to: fileURL)
     }
 }
