@@ -106,6 +106,7 @@ public class TcpProxyConnection: Equatable
         self.tcpLogger = tcpLogger
 
         try self.sendSynAck(sequenceNumber: sequenceNumber, acknowledgementNumber: acknowledgementNumber, conduit)
+        self.state = .established
 
         Task
         {
