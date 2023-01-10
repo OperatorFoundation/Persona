@@ -26,7 +26,7 @@ import Transmission
 // run in one XCode window while you run the flower test in another
 struct PersonaCommandLine: ParsableCommand
 {
-    static let clientConfigURL = URL(fileURLWithPath: File.currentDirectory()).appendingPathComponent("persona-client.json")
+    static let clientConfigURL = URL(fileURLWithPath: File.homeDirectory().path).appendingPathComponent("persona-client.json")
     static let serverConfigURL = URL(fileURLWithPath: File.homeDirectory().path).appendingPathComponent("persona-server.json")
     
     static let configuration = CommandConfiguration(
@@ -42,12 +42,12 @@ extension PersonaCommandLine
         @Argument(help: "Human-readable name for your server to use in invites")
         var name: String
 
-        @Argument(help: "optional IP address to listen on")
-        var ip: String?
-
         @Argument(help: "Port on which to run the server")
         var port: Int
         
+        @Argument(help: "optional IP address to listen on")
+        var ip: String?
+
         mutating public func run() throws
         {
             let keychainDirectoryURL = File.homeDirectory().appendingPathComponent(".persona-server")
