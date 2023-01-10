@@ -26,8 +26,8 @@ import Transmission
 // run in one XCode window while you run the flower test in another
 struct PersonaCommandLine: ParsableCommand
 {
-    static var clientConfigURL = URL(fileURLWithPath: File.currentDirectory()).appendingPathComponent("persona-client.json")
-    static var serverConfigURL = URL(fileURLWithPath: File.homeDirectory().path).appendingPathComponent("persona-server.json")
+    static let clientConfigURL = URL(fileURLWithPath: File.currentDirectory()).appendingPathComponent("persona-client.json")
+    static let serverConfigURL = URL(fileURLWithPath: File.homeDirectory().path).appendingPathComponent("persona-server.json")
     
     static let configuration = CommandConfiguration(
         commandName: "persona",
@@ -47,33 +47,9 @@ extension PersonaCommandLine
         
         mutating public func run() throws
         {
-            let ip: String = try Ipify.getPublicIP()
-
-            if let test = TransmissionConnection(host: ip, port: port)
-            {
-                test.close()
-
-                throw NewCommandError.portInUse(port)
-            }
-
-            guard let keychain = Keychain(baseDirectory: File.homeDirectory().appendingPathComponent(".persona-server")) else
-            {
-                throw NewCommandError.couldNotLoadKeychain
-            }
-
-            guard let privateKeyKeyAgreement = keychain.generateAndSavePrivateKey(label: "Persona.KeyAgreement", type: KeyType.P256KeyAgreement) else
-            {
-                throw NewCommandError.couldNotGeneratePrivateKey
-            }
-
-            let serverConfig = ServerConfig(name: name, host: ip, port: port)
-            try serverConfig.save(to: serverConfigURL)
-            print("Wrote config to \(serverConfigURL.path)")
-            
-            let publicKeyKeyAgreement = privateKeyKeyAgreement.publicKey
-            let clientConfig = ClientConfig(name: name, host: ip, port: port, serverPublicKey: publicKeyKeyAgreement)
-            try clientConfig.save(to: clientConfigURL)
-            print("Wrote config to \(clientConfigURL.path)")
+            let keychainDirectoryURL = File.homeDirectory().appendingPathComponent(".persona-server")
+            let keychainLabel = "Persona.KeyAgreement"
+            try Persona.generateNew(name: name, port: port, serverConfigURL: serverConfigURL, clientConfigURL: clientConfigURL, keychainURL: keychainDirectoryURL, keychainLabel: keychainLabel)
         }
     }
 }

@@ -15,6 +15,7 @@ import Chord
 import Flower
 import Gardener
 import InternetProtocols
+import KeychainCli
 import Net
 import Puppy
 import Spacetime
@@ -68,8 +69,6 @@ public class Persona: Universe
         {
             tcpLogger.add(file)
         }
-
-        
         
         tcpLogger.debug("PersonaTCPLogger Start")
     
@@ -116,9 +115,8 @@ public class Persona: Universe
             }
         }
 
-        display("listening on \(listenAddr) \(listenPort)")
-        
         let listener = try self.listen(listenAddr, listenPort)
+        display("listening on \(listenAddr) \(listenPort)")
 
         while true
         {
@@ -590,6 +588,46 @@ public class Persona: Universe
                 }
             }
         }
+    }
+    
+    /// Creates a new `KeyType.P256KeyAgreement` key and saves it to the system keychain,
+    /// generates a server config and a client config, and saves the config pair as JSON files to the provided file URLs
+    ///
+    /// - parameter name: A `String` that will be used to name the server, this will also be used to name the config files.
+    /// - parameter port: The port that the server will listen on as an `Int`.
+    /// - parameter serverConfigURL: The file `URL` where the server config file should be saved.
+    /// - parameter clientConfigURL: The file `URL` where the client config file should be saved.
+    /// - parameter keychainURL: The directory `URL` where the keychain should be created.
+    /// - parameter keychainLabel: A `String` that will be used to name the new keys.
+    static public func generateNew(name: String, port: Int, serverConfigURL: URL, clientConfigURL: URL, keychainURL: URL, keychainLabel: String) throws
+    {
+        let ip: String = try Ipify.getPublicIP()
+        
+        guard let keychain = Keychain(baseDirectory: keychainURL) else
+        {
+            throw NewCommandError.couldNotLoadKeychain
+        }
+
+        guard let privateKeyKeyAgreement = keychain.generateAndSavePrivateKey(label: keychainLabel, type: KeyType.P256KeyAgreement) else
+        {
+            throw NewCommandError.couldNotGeneratePrivateKey
+        }
+
+        if let test = TransmissionConnection(host: ip, port: port)
+        {
+            test.close()
+
+            throw NewCommandError.portInUse(port)
+        }
+        
+        let serverConfig = ServerConfig(name: name, host: ip, port: port)
+        try serverConfig.save(to: serverConfigURL)
+        print("Wrote config to \(serverConfigURL.path)")
+
+        let publicKeyKeyAgreement = privateKeyKeyAgreement.publicKey
+        let clientConfig = ClientConfig(name: name, host: ip, port: port, serverPublicKey: publicKeyKeyAgreement)
+        try clientConfig.save(to: clientConfigURL)
+        print("Wrote config to \(clientConfigURL.path)")
     }
 }
 

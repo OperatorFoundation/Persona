@@ -11,11 +11,6 @@ import Net
 
 extension IPv4Address: Stringable
 {
-    public var string: String
-    {
-        let data = self.rawValue
-        return "\(data[0]).\(data[1]).\(data[2]).\(data[3])"
-    }
 
     public init(string: String)
     {
