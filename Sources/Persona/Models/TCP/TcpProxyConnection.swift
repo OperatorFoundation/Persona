@@ -649,24 +649,6 @@ public class TcpProxyConnection: Equatable
         do
         {
             let windowSize = self.upstreamStraw.windowSize
-
-            if self.remotePort == 2234 // Print traffic to the TCP Echo Server to the TCP log for debugging
-            {
-                self.tcpLogger?.debug("*** Creating an IPv4 packet ***")
-                self.tcpLogger?.debug("* source address: \(self.remoteAddress.string):\(self.remotePort)")
-                self.tcpLogger?.debug("* destination address: \(self.localAddress.string):\(self.localPort)")
-                self.tcpLogger?.debug("* sequenceNumber:")
-                self.tcpLogger?.debug("* \(sequenceNumber.uint32)")
-                self.tcpLogger?.debug("* \(sequenceNumber.data.hex)")
-                self.tcpLogger?.debug("* acknowledgementNumber:")
-                self.tcpLogger?.debug("* \(acknowledgementNumber.uint32)")
-                self.tcpLogger?.debug("* \(acknowledgementNumber.data.hex)")
-                self.tcpLogger?.debug("* syn: \(syn)")
-                self.tcpLogger?.debug("* ack: \(ack)")
-                self.tcpLogger?.debug("* fin: \(fin)")
-                self.tcpLogger?.debug("* rst: \(rst)")
-                self.tcpLogger?.debug("* window size \(windowSize)")
-            }
             
             guard let ipv4 = try IPv4(sourceAddress: self.remoteAddress, destinationAddress: self.localAddress, sourcePort: self.remotePort, destinationPort: self.localPort, sequenceNumber: sequenceNumber, acknowledgementNumber: acknowledgementNumber, syn: syn, ack: ack, fin: fin, rst: rst, windowSize: windowSize, payload: nil) else
             {
@@ -674,12 +656,19 @@ public class TcpProxyConnection: Equatable
                 throw TcpProxyError.badIpv4Packet
             }
             
-            self.tcpLogger?.debug("* IPv4 Packet created 💖")
+            // Show the packet description in our log
+            if self.remotePort == 2234 // Print traffic to the TCP Echo Server to the TCP log for debugging
+            {
+                let packet = Packet(ipv4Bytes: ipv4.data, timestamp: Date())
+                self.tcpLogger?.debug("************************************************************\n")
+                self.tcpLogger?.debug("* \(packet.tcp?.description ?? "No tcp packet")")
+                self.tcpLogger?.debug("* Downstream IPv4 Packet created 💖")
+                self.tcpLogger?.debug("************************************************************\n")
+            }
+            
             
             let message = Message.IPDataV4(ipv4.data)
             
-            self.tcpLogger?.debug("* IPDataV4 Message created: \(message)")
-            self.tcpLogger?.debug("************************************************************\n")
             self.conduit.flowerConnection.writeMessage(message: message)
         }
         catch

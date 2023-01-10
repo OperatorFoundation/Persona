@@ -101,20 +101,16 @@ public actor TcpProxy
         
         let destinationPort = tcp.destinationPort
         print("* Destination Port: \(destinationPort)")
-        tcpLogger?.debug("\n************************************************************")
+        
         if let proxyConnection = self.findConnection(localAddress: sourceAddress, localPort: sourcePort, remoteAddress: destinationAddress, remotePort: destinationPort, tcp: tcp)
         {
-            tcpLogger?.debug("* Processing a packet. This is an existing proxy connection, calling proxyConnection.processLocalPacket(tcp)")
-
             try proxyConnection.processUpstreamPacket(tcp)
         }
         else
         {
-            tcpLogger?.debug("* Processing a packet. This is a new destination, calling handleNewConnection()")
             try self.handleNewConnection(tcp: tcp, sourceAddress: sourceAddress, sourcePort: sourcePort, destinationAddress: destinationAddress, destinationPort: destinationPort, conduit: conduit)
         }
         print("Finished processing upstream packet")
-        tcpLogger?.debug("Finished processing upstream packet")
     }
 
     func handleNewConnection(tcp: InternetProtocols.TCP, sourceAddress: IPv4Address, sourcePort: UInt16, destinationAddress: IPv4Address, destinationPort: UInt16, conduit: Conduit) throws
@@ -157,7 +153,14 @@ public actor TcpProxy
         }
         else if tcp.syn // A new connection requires a SYN packet
         {
-            tcpLogger?.debug("* TcpProxy handleNewConnection received a syn")
+            if tcp.destinationPort == 2234
+            {
+                tcpLogger?.debug("* TcpProxy handleNewConnection received a syn")
+                tcpLogger?.debug("\n************************************************************")
+                tcpLogger?.debug("* \(tcp.description)")
+                tcpLogger?.debug("* Upstream packet parsed ❣️")
+                tcpLogger?.debug("\n************************************************************")
+            }
             
             // connect() automatically send a syn-ack back for the syn internally
             guard let networkConnection = try? self.universe.connect(destinationAddress.string, Int(destinationPort), ConnectionType.tcp) else
