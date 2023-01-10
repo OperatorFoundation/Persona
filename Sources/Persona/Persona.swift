@@ -599,10 +599,18 @@ public class Persona: Universe
     /// - parameter clientConfigURL: The file `URL` where the client config file should be saved.
     /// - parameter keychainURL: The directory `URL` where the keychain should be created.
     /// - parameter keychainLabel: A `String` that will be used to name the new keys.
-    static public func generateNew(name: String, port: Int, serverConfigURL: URL, clientConfigURL: URL, keychainURL: URL, keychainLabel: String) throws
+    static public func generateNew(name: String, ip: String?, port: Int, serverConfigURL: URL, clientConfigURL: URL, keychainURL: URL, keychainLabel: String) throws
     {
-        let ip: String = try Ipify.getPublicIP()
-        
+        let address: String
+        if let ip = ip
+        {
+            address = ip
+        }
+        else
+        {
+            address = try Ipify.getPublicIP()
+        }
+
         guard let keychain = Keychain(baseDirectory: keychainURL) else
         {
             throw NewCommandError.couldNotLoadKeychain
@@ -613,19 +621,19 @@ public class Persona: Universe
             throw NewCommandError.couldNotGeneratePrivateKey
         }
 
-        if let test = TransmissionConnection(host: ip, port: port)
+        if let test = TransmissionConnection(host: address, port: port)
         {
             test.close()
 
             throw NewCommandError.portInUse(port)
         }
         
-        let serverConfig = ServerConfig(name: name, host: ip, port: port)
+        let serverConfig = ServerConfig(name: name, host: address, port: port)
         try serverConfig.save(to: serverConfigURL)
         print("Wrote config to \(serverConfigURL.path)")
 
         let publicKeyKeyAgreement = privateKeyKeyAgreement.publicKey
-        let clientConfig = ClientConfig(name: name, host: ip, port: port, serverPublicKey: publicKeyKeyAgreement)
+        let clientConfig = ClientConfig(name: name, host: address, port: port, serverPublicKey: publicKeyKeyAgreement)
         try clientConfig.save(to: clientConfigURL)
         print("Wrote config to \(clientConfigURL.path)")
     }

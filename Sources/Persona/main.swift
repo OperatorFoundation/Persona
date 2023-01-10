@@ -42,6 +42,9 @@ extension PersonaCommandLine
         @Argument(help: "Human-readable name for your server to use in invites")
         var name: String
 
+        @Argument(help: "optional IP address to listen on")
+        var ip: String?
+
         @Argument(help: "Port on which to run the server")
         var port: Int
         
@@ -49,7 +52,7 @@ extension PersonaCommandLine
         {
             let keychainDirectoryURL = File.homeDirectory().appendingPathComponent(".persona-server")
             let keychainLabel = "Persona.KeyAgreement"
-            try Persona.generateNew(name: name, port: port, serverConfigURL: serverConfigURL, clientConfigURL: clientConfigURL, keychainURL: keychainDirectoryURL, keychainLabel: keychainLabel)
+            try Persona.generateNew(name: name, ip: ip, port: port, serverConfigURL: serverConfigURL, clientConfigURL: clientConfigURL, keychainURL: keychainDirectoryURL, keychainLabel: keychainLabel)
         }
     }
 }
