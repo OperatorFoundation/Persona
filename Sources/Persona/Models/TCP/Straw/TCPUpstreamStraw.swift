@@ -73,17 +73,28 @@ public class TCPUpstreamStraw
     func inWindow(_ tcp: InternetProtocols.TCP) -> Bool
     {
         self.functionLock.wait()
-
-        guard SequenceNumber(tcp.sequenceNumber) == self.window.upperBound else
+        
+        let sequenceNumberData = tcp.sequenceNumber
+        let sequenceNumber = SequenceNumber(sequenceNumberData)
+        
+        print(" ^ inWindow sequenceNumber - \(sequenceNumber)")
+        print(" ^ inWindow upperBound - \(self.window.upperBound)")
+        print(" ^ inWindow privateWindowSize \(privateWindowSize)")
+        
+        
+        guard sequenceNumber == self.window.upperBound else
         {
             self.functionLock.signal()
+            print(" ^ inWindow upperBound and sequence number do not match")
             return false
         }
 
         if let payload = tcp.payload
         {
+            print(" ^ inWindow payload.count - \(payload.count)")
             guard payload.count <= self.privateWindowSize else
             {
+                print(" ^ inWindow Payload is too large - \(payload.count)")
                 self.functionLock.signal()
                 return false
             }

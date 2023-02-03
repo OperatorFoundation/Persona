@@ -190,7 +190,7 @@ public class Persona: Universe
     {
         print("👯 handleTcpEchoConnection called")
         
-        guard let received = connection.read(maxSize: 41) else
+        guard let received = connection.read(maxSize: 100) else
         {
             print("❌ TCP Echo server failed to read bytes, continuing with this connection, closing")
             connection.close()
@@ -538,7 +538,7 @@ public class Persona: Universe
     {
         do
         {
-            try self.save(identifier: self.recordID, codable: message)
+            try self.save(identifier: self.recordID, object: message)
             self.recordID = self.recordID + 1
         }
         catch
