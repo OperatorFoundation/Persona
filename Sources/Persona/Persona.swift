@@ -56,7 +56,8 @@ public class Persona: Universe
         let logger = Logger(label: "org.OperatorFoundation.PersonaLogger")
         #endif
         
-        let logFileURL = URL(fileURLWithPath: "PersonaTcpLog.log")
+        let logFileURL = File.homeDirectory().appendingPathComponent("PersonaTcpLog.log", isDirectory: false)
+        
         if File.exists(logFileURL.path)
         {
             let _ = File.delete(atPath: logFileURL.path)
@@ -176,7 +177,7 @@ public class Persona: Universe
         while true
         {
             let connection = try echoListener.accept()
-            print("New TCP echo connection")
+            print("👯 New TCP echo connection")
 
             self.echoTcpConnectionQueue.async
             {
@@ -187,6 +188,8 @@ public class Persona: Universe
 
     func handleTcpEchoConnection(connection: TransmissionTypes.Connection)
     {
+        print("👯 handleTcpEchoConnection called")
+        
         guard let received = connection.read(maxSize: 41) else
         {
             print("❌ TCP Echo server failed to read bytes, continuing with this connection, closing")
