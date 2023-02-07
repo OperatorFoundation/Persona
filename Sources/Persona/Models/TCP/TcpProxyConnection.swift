@@ -96,16 +96,14 @@ public class TcpProxyConnection: Equatable
         self.state = .synReceived
 
         let iss = Self.isn()
-
-        let sequenceNumber = iss.increment()
         let acknowledgementNumber = irs.increment()
 
-        self.downstreamStraw = TCPDownstreamStraw(segmentStart: sequenceNumber, windowSize: rcvWnd)
+        self.downstreamStraw = TCPDownstreamStraw(segmentStart: iss, windowSize: rcvWnd)
         self.upstreamStraw = TCPUpstreamStraw(segmentStart: acknowledgementNumber)
 
         self.tcpLogger = tcpLogger
 
-        try self.sendSynAck(sequenceNumber: sequenceNumber, acknowledgementNumber: acknowledgementNumber, conduit)
+        try self.sendSynAck(sequenceNumber: iss, acknowledgementNumber: acknowledgementNumber, conduit)
         self.state = .established
 
         Task
@@ -122,12 +120,13 @@ public class TcpProxyConnection: Equatable
             }
         }
 
-        Task
-        {
-            while self.open {
-                self.pumpAck()
-            }
-        }
+        // FIXME: Don't call this in a loop
+//        Task
+//        {
+//            while self.open {
+//                self.pumpAck()
+//            }
+//        }
 
         tcpLogger?.debug("* TCPProxyConnection init complete\n")
     }
@@ -135,6 +134,18 @@ public class TcpProxyConnection: Equatable
     // This is called for everything except the first syn received.
     public func processUpstreamPacket(_ tcp: InternetProtocols.TCP) throws
     {
+        guard (!tcp.syn) else
+        {
+            print("Duplicate syn received")
+            tcpLogger?.debug("Duplicate syn received")
+            return
+        }
+        
+        if tcp.payload != nil
+        {
+            print("received a packet with a payload")
+        }
+        
         // For the most part, we can only handle packets that are inside the TCP window.
         // Otherwise, they might be old packets from a previous connection or redundant retransmissions.
         if self.upstreamStraw.inWindow(tcp)
@@ -217,7 +228,8 @@ public class TcpProxyConnection: Equatable
                          ESTABLISHED STATE
                          */
 
-                        try self.downstreamStraw.clear(acknowledgementNumber: SequenceNumber(tcp.acknowledgementNumber), sequenceNumber: tcp.window.upperBound)
+                        // FIXME: handle downstream straw
+//                        try self.downstreamStraw.clear(acknowledgementNumber: SequenceNumber(tcp.acknowledgementNumber), sequenceNumber: tcp.window.upperBound)
 
                         // Additional processing for specific states
                         switch state
@@ -239,40 +251,39 @@ public class TcpProxyConnection: Equatable
                                     // If a write to the server fails, the the server connection is closed.
                                     // Start closing the client connection.
 
+                                    try self.upstreamStraw.write(tcp)
                                     print("* Persona.processLocalPacket: payload upstream write complete")
+                                    
+                                    /*
+                                     When the TCP takes responsibility for delivering the data to the
+                                     user it must also acknowledge the receipt of the data.
+                                     */
+
+                                    /*
+                                     Once the TCP takes responsibility for the data it advances
+                                     RCV.NXT over the data accepted, and adjusts RCV.WND as
+                                     apporopriate to the current buffer availability.  The total of
+                                     RCV.NXT and RCV.WND should not be reduced.
+
+                                     Please note the window management suggestions in section 3.7.
+                                     */
+
+                                    /*
+                                     Send an acknowledgment of the form:
+
+                                     <SEQ=SND.NXT><ACK=RCV.NXT><CTL=ACK>
+
+                                     This acknowledgment should be piggybacked on a segment being
+                                     transmitted if possible without incurring undue delay.
+                                     */
+
+                                    let sndNxt = self.downstreamStraw.sequenceNumber
+                                    let rcvNxt = self.upstreamStraw.acknowledgementNumber
+
+                                    self.tcpLogger?.debug("processLocalPacket() called")
+
+                                    try self.sendPacket(sequenceNumber: sndNxt, acknowledgementNumber: rcvNxt, ack: true)
                                 }
-
-                                try self.upstreamStraw.write(tcp)
-
-                                /*
-                                 When the TCP takes responsibility for delivering the data to the
-                                 user it must also acknowledge the receipt of the data.
-                                 */
-
-                                /*
-                                 Once the TCP takes responsibility for the data it advances
-                                 RCV.NXT over the data accepted, and adjusts RCV.WND as
-                                 apporopriate to the current buffer availability.  The total of
-                                 RCV.NXT and RCV.WND should not be reduced.
-
-                                 Please note the window management suggestions in section 3.7.
-                                 */
-
-                                /*
-                                 Send an acknowledgment of the form:
-
-                                 <SEQ=SND.NXT><ACK=RCV.NXT><CTL=ACK>
-
-                                 This acknowledgment should be piggybacked on a segment being
-                                 transmitted if possible without incurring undue delay.
-                                 */
-
-                                let sndNxt = self.downstreamStraw.sequenceNumber
-                                let rcvNxt = self.upstreamStraw.acknowledgementNumber
-
-                                self.tcpLogger?.debug("processLocalPacket() called")
-
-                                try self.sendPacket(sequenceNumber: sndNxt, acknowledgementNumber: rcvNxt, ack: true)
 
                                 switch state
                                 {
@@ -517,8 +528,6 @@ public class TcpProxyConnection: Equatable
         let ackSequenceNumber = self.upstreamStraw.acknowledgementNumber
         let sequenceNumber = self.downstreamStraw.sequenceNumber
 
-        tcpLogger?.debug("* acking cleared bytes \(sequenceNumber) \(ackSequenceNumber)")
-
         do
         {
             try self.sendPacket(sequenceNumber: sequenceNumber, acknowledgementNumber: ackSequenceNumber, ack: true)
@@ -543,6 +552,14 @@ public class TcpProxyConnection: Equatable
             {
                 self.tcpLogger?.error("Error making downstream IPv4 packet")
                 return
+            }
+            
+            if tcp.sourcePort == 2234
+            {
+                self.tcpLogger?.debug("************************************************************\n")
+                self.tcpLogger?.debug("* \(tcp.description)")
+                self.tcpLogger?.debug("* Sending a response packet to the client from the echo server 💕")
+                self.tcpLogger?.debug("************************************************************\n")
             }
 
             let message = Message.IPDataV4(ipv4.data)

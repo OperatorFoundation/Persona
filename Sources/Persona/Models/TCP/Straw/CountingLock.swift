@@ -9,7 +9,6 @@ import Foundation
 
 public class CountingLock
 {
-    let functionLock: DispatchSemaphore = DispatchSemaphore(value: 1)
     let countingLock: DispatchSemaphore = DispatchSemaphore(value: 0)
 
     public init()
@@ -23,14 +22,10 @@ public class CountingLock
             return
         }
 
-        functionLock.wait()
-
         for _ in 0..<amount
         {
             self.countingLock.signal()
         }
-
-        functionLock.signal()
     }
 
     public func add(amount: UInt16)
@@ -40,14 +35,10 @@ public class CountingLock
             return
         }
 
-        functionLock.wait()
-
         for _ in 0..<amount
         {
             self.countingLock.signal()
         }
-
-        functionLock.signal()
     }
 
     public func waitFor(amount: Int)
@@ -57,14 +48,10 @@ public class CountingLock
             return
         }
 
-        functionLock.wait()
-
         for _ in 0..<amount
         {
             self.countingLock.wait()
         }
-
-        functionLock.signal()
     }
 }
 

@@ -15,7 +15,7 @@ import Straw
 public class TCPUpstreamStraw
 {
     // static private properties
-    static let maxBufferSize: UInt16 = UInt16.max
+    static let maxBufferSize: UInt32 = UInt32(UInt16.max)
 
     // public computed properties
     public var acknowledgementNumber: SequenceNumber
@@ -39,7 +39,7 @@ public class TCPUpstreamStraw
 
         self.functionLock.signal()
 
-        return result
+        return UInt16(result)
     }
 
     public var ackUpdated: Bool
@@ -48,9 +48,9 @@ public class TCPUpstreamStraw
     }
 
     // private computed properties
-    var privateWindowSize: UInt16
+    var privateWindowSize: UInt32
     {
-        return Self.maxBufferSize - UInt16(self.straw.count)
+        return Self.maxBufferSize - UInt32(self.straw.count)
     }
 
     // private let properties
@@ -66,6 +66,7 @@ public class TCPUpstreamStraw
     // public constructors
     public init(segmentStart: SequenceNumber)
     {
+        print(" ^ Creating window, segment start - \(segmentStart)")
         self.window = SequenceNumberRange(lowerBound: segmentStart, size: Self.maxBufferSize)
     }
 
@@ -78,14 +79,15 @@ public class TCPUpstreamStraw
         let sequenceNumber = SequenceNumber(sequenceNumberData)
         
         print(" ^ inWindow sequenceNumber - \(sequenceNumber)")
+        print(" ^ inWindow lowerBound - \(self.window.lowerBound)")
         print(" ^ inWindow upperBound - \(self.window.upperBound)")
         print(" ^ inWindow privateWindowSize \(privateWindowSize)")
         
         
-        guard sequenceNumber == self.window.upperBound else
+        guard self.window.contains(sequenceNumber: sequenceNumber) else
         {
             self.functionLock.signal()
-            print(" ^ inWindow upperBound and sequence number do not match")
+            print(" ^ inWindow sequence number is not in the expected window")
             return false
         }
 
@@ -106,40 +108,41 @@ public class TCPUpstreamStraw
 
     public func write(_ segment: InternetProtocols.TCP) throws
     {
+        defer
+        {
+            self.functionLock.signal()
+        }
         self.functionLock.wait()
 
         guard let payload = segment.payload else
         {
-            self.functionLock.signal()
             return
         }
 
-        let segmentWindow = segment.window
-        guard segmentWindow.lowerBound == SequenceNumber(segmentWindow.lowerBound.uint32 + UInt32(self.straw.count)) else
+        // TODO: Handle out of sequence things
+        guard segment.window.lowerBound == self.window.lowerBound else
         {
-            self.functionLock.signal()
             throw TCPUpstreamStrawError.misorderedSegment
         }
 
         self.straw.write(payload)
-        self.window.increaseUpperBound(by: payload.count)
+        try self.window.increaseLowerBounds(by: payload.count)
         self.readLock.add(amount: payload.count)
-
-        self.functionLock.signal()
     }
 
     public func read() throws -> SegmentData
     {
         self.readLock.waitFor(amount: 1) // We need at least 1 byte.
 
+        defer
+        {
+            self.functionLock.signal()
+        }
         self.functionLock.wait()
 
         let data = try self.straw.read()
-        self.window.increaseUpperBound(by: data.count)
         let result = SegmentData(data: data, window: window)
         self.readLock.waitFor(amount: data.count - 1) // We already waited for the first byte, decrement the counter for the rest of the bytes.
-
-        self.functionLock.signal()
 
         return result
     }
@@ -153,13 +156,14 @@ public class TCPUpstreamStraw
 
         self.readLock.waitFor(amount: size)
 
+        defer
+        {
+            self.functionLock.signal()
+        }
         self.functionLock.wait()
 
         let data = try self.straw.read(size: size)
-        self.window.increaseUpperBound(by: data.count)
         let result = SegmentData(data: data, window: window)
-
-        self.functionLock.signal()
 
         return result
     }
@@ -173,14 +177,15 @@ public class TCPUpstreamStraw
 
         self.readLock.waitFor(amount: 1) // We need at least 1 byte.
 
+        defer
+        {
+            self.functionLock.signal()
+        }
         self.functionLock.wait()
 
         let data = try self.straw.read(maxSize: maxSize)
-        self.window.increaseUpperBound(by: data.count)
         let result = SegmentData(data: data, window: window)
         self.readLock.waitFor(amount: data.count - 1) // We already waited for the first byte, decrement the counter for the rest of the bytes.
-
-        self.functionLock.signal()
 
         return result
     }
@@ -192,18 +197,19 @@ public class TCPUpstreamStraw
             throw TCPUpstreamStrawError.badClearSize(segment.window.size)
         }
 
+        defer
+        {
+            self.functionLock.signal()
+        }
         self.functionLock.wait()
 
         guard segment.window.lowerBound == self.window.lowerBound else
         {
-            self.functionLock.signal()
             throw TCPUpstreamStrawError.segmentMismatch
         }
 
-        self.window = SequenceNumberRange(lowerBound: segment.window.upperBound, upperBound: self.window.upperBound)
+        try self.window.increaseUpperBounds(by: segment.data.count)
         self.privateAckUpdated = true
-
-        self.functionLock.signal()
     }
 }
 
@@ -228,5 +234,5 @@ public enum TCPUpstreamStrawError: Error
     case misorderedSegment
     case segmentMismatch
     case badReadSize(Int)
-    case badClearSize(UInt16)
+    case badClearSize(UInt32)
 }

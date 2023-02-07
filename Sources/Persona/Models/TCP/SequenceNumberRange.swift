@@ -14,15 +14,19 @@ public class SequenceNumberRange
     public var lowerBound: SequenceNumber
     public var upperBound: SequenceNumber
 
-    public var size: UInt16
+    public var size: UInt32
     {
         if lowerBound < upperBound
         {
-            return UInt16(upperBound.uint32 - lowerBound.uint32)
+            return upperBound.uint32 - lowerBound.uint32
         }
         else
         {
-            return UInt16((upperBound.uint32 + UInt32(UInt16.max)) - lowerBound.uint32)
+            // If the upper bound has exceeded UInt32.max, it will wrap around to 0.
+            // In this case, the lower bound will be larger than the upper bound.
+            // Allow for this by taking the difference between max and lower bound, and adding the upper bound
+            // to get the correct size after an upper bound wrap.
+            return ((uint32.max - lowerBound.uint32) + upperBound.uint32)
         }
     }
 
@@ -32,36 +36,100 @@ public class SequenceNumberRange
         self.upperBound = upperBound
     }
 
-    public init(lowerBound: SequenceNumber, size: UInt16)
+    public init(lowerBound: SequenceNumber, size: UInt32)
     {
+        print(" ^ window init, lowerBound - \(lowerBound)")
         self.lowerBound = lowerBound
 
-        let upperBound = lowerBound.uint32 + UInt32(size)
-        if upperBound > UInt32(UInt16.max)
+        let maxSize = UInt32.max - lowerBound.uint32
+        
+        if size > maxSize
         {
-            self.upperBound = SequenceNumber(upperBound - UInt32(UInt16.max))
+            // Overflow
+            self.upperBound = SequenceNumber(size - maxSize)
         }
         else
         {
-            self.upperBound = SequenceNumber(upperBound)
+            self.upperBound = SequenceNumber(lowerBound.uint32 + size)
         }
     }
-
-    public func increaseUpperBound(by: Int)
+    
+    public func increaseUpperBounds(by increaseAmount: Int) throws
     {
-        self.increaseUpperBound(by: UInt16(by))
-    }
-
-    public func increaseUpperBound(by: UInt16)
-    {
-        let upperBound = self.upperBound.uint32 + UInt32(by)
-        if upperBound > UInt32(UInt16.max)
+        guard (increaseAmount <= UInt16.max) else
         {
-            self.upperBound = SequenceNumber(upperBound - UInt32(UInt16.max))
+            throw SequenceNumberError.outOfBounds(badNumber: increaseAmount)
+        }
+        
+        let increaseAmountUInt32 = UInt32(increaseAmount)
+        
+        // Overflow state?
+        if lowerBound.uint32 < upperBound.uint32
+        {
+            // Normal State
+            
+            // Will adding the new amount put us in an overflow state?
+            if UInt32.max - upperBound.uint32 > increaseAmountUInt32
+            {
+                // Nah
+                upperBound = upperBound.add(increaseAmount)
+            }
+            else
+            {
+                // Yes
+                upperBound = SequenceNumber(increaseAmountUInt32 - (UInt32.max - upperBound.uint32))
+            }
         }
         else
         {
-            self.upperBound = SequenceNumber(upperBound)
+            // Overflow State
+            upperBound = upperBound.add(increaseAmount)
+        }
+    }
+    
+    public func increaseLowerBounds(by increaseAmount: Int) throws
+    {
+        guard (increaseAmount <= UInt16.max) else
+        {
+            throw SequenceNumberError.outOfBounds(badNumber: increaseAmount)
+        }
+        
+        let increaseAmountUInt32 = UInt32(increaseAmount)
+        
+        // Overflow state?
+        if lowerBound.uint32 < upperBound.uint32
+        {
+            // Normal State
+            lowerBound = lowerBound.add(increaseAmount)
+        }
+        else
+        {
+            // Overflow State
+            
+            // Will adding the new amount put us out of the overflow state?
+            if UInt32.max - lowerBound.uint32 > increaseAmountUInt32
+            {
+                // Yes
+                lowerBound = SequenceNumber(increaseAmountUInt32 - (UInt32.max - lowerBound.uint32))
+            }
+            else
+            {
+                // Nope
+                lowerBound = lowerBound.add(increaseAmount)
+            }
+        }
+    }
+    
+    public func contains(sequenceNumber: SequenceNumber) -> Bool
+    {
+        if lowerBound.uint32 < upperBound.uint32
+        {
+            return (sequenceNumber >= lowerBound && sequenceNumber <= upperBound)
+        }
+        else
+        {
+            // Overflow case
+            return (sequenceNumber >= upperBound || sequenceNumber <= lowerBound)
         }
     }
 }
@@ -70,6 +138,11 @@ extension InternetProtocols.TCP
 {
     public var window: SequenceNumberRange
     {
-        return SequenceNumberRange(lowerBound: SequenceNumber(self.sequenceNumber), size: self.windowSize)
+        return SequenceNumberRange(lowerBound: SequenceNumber(self.sequenceNumber), size: UInt32(self.windowSize))
     }
+}
+
+public enum SequenceNumberError: Error
+{
+    case outOfBounds(badNumber: Int)
 }
