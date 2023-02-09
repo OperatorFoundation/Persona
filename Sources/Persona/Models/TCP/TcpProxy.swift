@@ -155,13 +155,11 @@ public actor TcpProxy
         {
             if tcp.destinationPort == 2234
             {
-                tcpLogger?.debug("* TcpProxy handleNewConnection received a syn")
                 tcpLogger?.debug("\n************************************************************")
-                tcpLogger?.debug("* \(tcp.description)")
-                tcpLogger?.debug("* Upstream packet parsed ❣️")
+                tcpLogger?.debug("* ⮕ SYN SEQ:\(tcp.sequenceNumber) ❣️")
                 tcpLogger?.debug("\n************************************************************")
             }
-            
+
             // connect() automatically send a syn-ack back for the syn internally
             guard let networkConnection = try? self.universe.connect(destinationAddress.string, Int(destinationPort), ConnectionType.tcp) else
             {

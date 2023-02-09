@@ -661,10 +661,26 @@ public class TcpProxyConnection: Equatable
             if self.remotePort == 2234 // Print traffic to the TCP Echo Server to the TCP log for debugging
             {
                 let packet = Packet(ipv4Bytes: ipv4.data, timestamp: Date())
-                self.tcpLogger?.debug("************************************************************\n")
-                self.tcpLogger?.debug("* \(packet.tcp?.description ?? "No tcp packet")")
-                self.tcpLogger?.debug("* Downstream IPv4 Packet created 💖")
-                self.tcpLogger?.debug("************************************************************\n")
+
+                if let tcp = packet.tcp, tcp.syn, tcp.ack
+                {
+                    self.tcpLogger?.debug("************************************************************\n")
+                    self.tcpLogger?.debug("* ⬅ SYN/ACK SEQ:\(tcp.sequenceNumber) ACK:\(tcp.acknowledgementNumber) 💖")
+                    self.tcpLogger?.debug("************************************************************\n")
+                }
+                else if let tcp = packet.tcp, tcp.ack, tcp.payload == nil
+                {
+                    self.tcpLogger?.debug("************************************************************\n")
+                    self.tcpLogger?.debug("* ⬅ ACK SEQ:\(tcp.sequenceNumber) ACK:\(tcp.acknowledgementNumber) 💖")
+                    self.tcpLogger?.debug("************************************************************\n")
+                }
+                else
+                {
+                    self.tcpLogger?.debug("************************************************************\n")
+                    self.tcpLogger?.debug("* \(packet.tcp?.description ?? "No tcp packet")")
+                    self.tcpLogger?.debug("* Downstream IPv4 Packet created 💖")
+                    self.tcpLogger?.debug("************************************************************\n")
+                }
             }
             
             
