@@ -12,6 +12,7 @@ import Foundation
 import InternetProtocols
 import Net
 import Puppy
+import SwiftHexTools
 import Transmission
 
 public class TcpProxyConnection: Equatable
@@ -127,8 +128,6 @@ public class TcpProxyConnection: Equatable
 //                self.pumpAck()
 //            }
 //        }
-
-        tcpLogger?.debug("* TCPProxyConnection init complete\n")
     }
 
     // This is called for everything except the first syn received.
@@ -248,6 +247,20 @@ public class TcpProxyConnection: Equatable
                                 if tcp.payload != nil
                                 {
                                     self.tcpLogger?.debug("* Persona.processLocalPacket: tcp payload received on an established connection, buffering 🏆")
+                                    self.tcpLogger?.debug("* SEQ:\(tcp.sequenceNumber) ACK:\(tcp.acknowledgementNumber)")
+                                    if let payload = tcp.payload
+                                    {
+                                        let payloadString = String(decoding: payload, as: UTF8.self)
+                                        if payloadString.isEmpty
+                                        {
+                                            self.tcpLogger?.debug("* Payload (\(payload.count) bytes): [\(payload.hex)]")
+                                        }
+                                        else
+                                        {
+                                            self.tcpLogger?.debug("* Payload (\(payload.count) bytes): \"\(payloadString)\" [\(payload.hex)]")
+                                        }
+                                    }
+
                                     // If a write to the server fails, the the server connection is closed.
                                     // Start closing the client connection.
 
@@ -279,8 +292,6 @@ public class TcpProxyConnection: Equatable
 
                                     let sndNxt = self.downstreamStraw.sequenceNumber
                                     let rcvNxt = self.upstreamStraw.acknowledgementNumber
-
-                                    self.tcpLogger?.debug("processLocalPacket() called")
 
                                     try self.sendPacket(sequenceNumber: sndNxt, acknowledgementNumber: rcvNxt, ack: true)
                                 }
@@ -427,6 +438,8 @@ public class TcpProxyConnection: Equatable
         else
         {
             print("* Persona.processLocalPacket: NOT inWindow")
+            tcpLogger?.debug("☠️ Packet NOT IN WINDOW")
+            tcpLogger?.debug("* \(tcp.description)")
             /*
              If an incoming segment is not acceptable, an acknowledgment
              should be sent in reply (unless the RST bit is set, if so drop
@@ -558,7 +571,6 @@ public class TcpProxyConnection: Equatable
             {
                 self.tcpLogger?.debug("************************************************************\n")
                 self.tcpLogger?.debug("* \(tcp.description)")
-                self.tcpLogger?.debug("* Sending a response packet to the client from the echo server 💕")
                 self.tcpLogger?.debug("************************************************************\n")
             }
 

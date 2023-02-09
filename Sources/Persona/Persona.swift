@@ -276,11 +276,6 @@ public class Persona: Universe
 
         print("Persona.handleFirstMessage: received an \(message.description)")
 
-        if self.mode == .record
-        {
-            self.recordMessage(message)
-        }
-        
         switch message
         {
             case .IPRequestV4:
@@ -348,10 +343,7 @@ public class Persona: Universe
 
             throw PersonaError.connectionClosed
         }
-        
-        tcpLogger.debug("\n************************************************************")
-        tcpLogger.debug("* Persona.handleNextMessage: received a \(message.description)")
-        
+
         switch message
         {
             case .IPDataV4(let data):
@@ -367,8 +359,6 @@ public class Persona: Universe
 
                 if let tcp = packet.tcp
                 {
-                    tcpLogger.debug("*** Parsing a TCP Packet ***")
-
                     guard let ipv4Source = IPv4Address(data: ipv4Packet.sourceAddress) else
                     {
                         // Drop this packet, but then continue processing more packets
@@ -386,34 +376,20 @@ public class Persona: Universe
                     let destinationPort = NWEndpoint.Port(integerLiteral: tcp.destinationPort)
                     let destinationEndpoint = EndpointV4(host: ipv4Destination, port: destinationPort)
                     let streamID = generateStreamID(source: sourceEndpoint, destination: destinationEndpoint)
-                    
-                    if tcp.destinationPort == 2234 {
-                        if tcp.destinationPort == 2234
-                        {
-                            tcpLogger.debug("* TcpProxy handleNewConnection received a syn")
-                            tcpLogger.debug("\n************************************************************")
-                            tcpLogger.debug("* \(tcp.description)")
-                            tcpLogger.debug("* Upstream IPV4 packet parsed ❣️")
-                            tcpLogger.debug("\n************************************************************")
-                        }
-                    }
-                    
+                                        
                     if tcp.syn // If the syn flag is set, we will ignore all other flags (including acks) and treat this as a syn packet
                     {
                         let parsedMessage: Message = .TCPOpenV4(destinationEndpoint, streamID)
-                        tcpLogger.debug("* tcp.syn received. Message is TCPOpenV4")
                         try self.handleParsedMessage(address, parsedMessage, packet)
                     }
                     else if tcp.rst // TODO: Flower should be informed if a close message is an rst or a fin
                     {
                         let parsedMessage: Message = .TCPClose(streamID)
-                        tcpLogger.debug("* tcp.rst received. Message is TCPClose")
                         try self.handleParsedMessage(address, parsedMessage, packet)
                     }
                     else if tcp.fin // TODO: Flower should be informed if a close message is an rst or a fin
                     {
                         let parsedMessage: Message = .TCPClose(streamID)
-                        tcpLogger.debug("* tcp.fin received. Message is TCPClose")
                         try self.handleParsedMessage(address, parsedMessage, packet)
                     }
                     else
@@ -422,15 +398,11 @@ public class Persona: Universe
                         if let payload = tcp.payload
                         {
                             let parsedMessage: Message = .TCPData(streamID, payload)
-                            tcpLogger.debug("* Received a payload. Parsed the message as TCPData")
-                            
                             try self.handleParsedMessage(address, parsedMessage, packet)
                         }
                         else if tcp.ack
                         {
                             let parsedMessage: Message = .TCPData(streamID, Data())
-                            print("* No payload but receives an ack. Parsed the message as TCPData with no payload")
-                            
                             try self.handleParsedMessage(address, parsedMessage, packet)
                         }
                     }
@@ -532,19 +504,6 @@ public class Persona: Universe
         self.recordID = self.recordID + 1
 
         return message
-    }
-
-    public func recordMessage(_ message: Message)
-    {
-        do
-        {
-            try self.save(identifier: self.recordID, object: message)
-            self.recordID = self.recordID + 1
-        }
-        catch
-        {
-            print("Could not record message")
-        }
     }
 
     public func shutdown()
