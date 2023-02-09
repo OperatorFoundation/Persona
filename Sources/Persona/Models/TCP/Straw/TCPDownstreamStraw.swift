@@ -15,11 +15,13 @@ public class TCPDownstreamStraw
     // Public computed properties
     public var sequenceNumber: SequenceNumber
     {
+        defer
+        {
+            self.functionLock.signal()
+        }
         self.functionLock.wait()
 
         let result = self.window.lowerBound
-
-        self.functionLock.signal()
 
         return result
     }
@@ -28,22 +30,26 @@ public class TCPDownstreamStraw
     {
         get
         {
+            defer
+            {
+                self.functionLock.signal()
+            }
             self.functionLock.wait()
 
             let result = self.privateWindowSize
 
-            self.functionLock.signal()
-
-            return result
+            return UInt16(result)
         }
 
         set
         {
+            defer
+            {
+                self.functionLock.signal()
+            }
             self.functionLock.wait()
 
-            self.privateWindowSize = newValue
-
-            self.functionLock.signal()
+            self.privateWindowSize = UInt32(newValue)
         }
     }
 
@@ -54,39 +60,45 @@ public class TCPDownstreamStraw
 
     // Private var properties
     var window: SequenceNumberRange
-    var privateWindowSize: UInt16
+    var privateWindowSize: UInt32
 
     // Public constructors
     public init(segmentStart: SequenceNumber, windowSize: UInt16)
     {
-        self.window = SequenceNumberRange(lowerBound: segmentStart, size: windowSize)
-        self.privateWindowSize = windowSize
+        self.window = SequenceNumberRange(lowerBound: segmentStart.increment(), size: UInt32(windowSize))
+        self.privateWindowSize = UInt32(windowSize)
     }
 
     // Public functions
     public func write(_ data: Data) throws
     {
+        defer
+        {
+            self.functionLock.signal()
+        }
         self.functionLock.wait()
 
         self.straw.write(data)
-        self.window.increaseUpperBound(by: data.count)
+        // FIXME: Figure out how to adjust the bounds correctly
+//        try self.window.increaseBounds(by: data.count)
         self.countLock.add(amount: data.count)
-
-        self.functionLock.signal()
     }
 
     public func read() throws -> SegmentData
     {
         self.countLock.waitFor(amount: 1)
 
+        defer
+        {
+            self.functionLock.signal()
+        }
         self.functionLock.wait()
 
         let data = try self.straw.read()
-        self.window.increaseUpperBound(by: data.count)
+        // FIXME: Figure out how to adjust the bounds correctly
+//        try self.window.increaseBounds(by: data.count)
         let result = SegmentData(data: data, window: window)
         self.countLock.waitFor(amount: data.count - 1)
-
-        self.functionLock.signal()
 
         return result
     }
@@ -95,13 +107,16 @@ public class TCPDownstreamStraw
     {
         self.countLock.waitFor(amount: size)
 
+        defer
+        {
+            self.functionLock.signal()
+        }
         self.functionLock.wait()
 
         let data = try self.straw.read(size: size)
-        self.window.increaseUpperBound(by: data.count)
+        // FIXME: Figure out how to adjust the bounds correctly
+//        try self.window.increaseBounds(by: data.count)
         let result = SegmentData(data: data, window: window)
-
-        self.functionLock.signal()
 
         return result
     }
@@ -110,20 +125,27 @@ public class TCPDownstreamStraw
     {
         self.countLock.waitFor(amount: 1)
 
+        defer
+        {
+            self.functionLock.signal()
+        }
         self.functionLock.wait()
 
         let data = try self.straw.read(maxSize: maxSize)
-        self.window.increaseUpperBound(by: data.count)
+        // FIXME: Figure out how to adjust the bounds correctly
+//        try self.window.increaseBounds(by: data.count)
         let result = SegmentData(data: data, window: window)
         self.countLock.waitFor(amount: data.count - 1)
-
-        self.functionLock.signal()
 
         return result
     }
 
     public func clear(acknowledgementNumber: SequenceNumber, sequenceNumber: SequenceNumber) throws
     {
+        defer
+        {
+            self.functionLock.signal()
+        }
         self.functionLock.wait()
 
         guard acknowledgementNumber == self.window.lowerBound else
@@ -133,7 +155,5 @@ public class TCPDownstreamStraw
         }
 
         self.window = SequenceNumberRange(lowerBound: sequenceNumber, upperBound: self.window.upperBound)
-
-        self.functionLock.signal()
     }
 }
