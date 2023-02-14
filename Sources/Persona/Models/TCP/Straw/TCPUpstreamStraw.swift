@@ -62,6 +62,7 @@ public class TCPUpstreamStraw
     var lastAck: SequenceNumber? = nil
     var window: SequenceNumberRange
     var privateAckUpdated = false
+    var open = true
 
     // public constructors
     public init(segmentStart: SequenceNumber)
@@ -113,6 +114,11 @@ public class TCPUpstreamStraw
             self.functionLock.signal()
         }
         self.functionLock.wait()
+        
+        guard self.open else
+        {
+            throw TCPUpstreamStrawError.strawClosed
+        }
 
         guard let payload = segment.payload else
         {
@@ -211,6 +217,13 @@ public class TCPUpstreamStraw
         try self.window.increaseUpperBounds(by: segment.data.count)
         self.privateAckUpdated = true
     }
+    
+    public func close()
+    {
+        let newWindow = SequenceNumberRange(lowerBound: self.window.lowerBound.add(1), upperBound: self.window.upperBound)
+        self.window = newWindow
+        self.open = false
+    }
 }
 
 // public helpers structs
@@ -233,6 +246,7 @@ public enum TCPUpstreamStrawError: Error
     case badSegmentWindow
     case misorderedSegment
     case segmentMismatch
+    case strawClosed
     case badReadSize(Int)
     case badClearSize(UInt32)
 }

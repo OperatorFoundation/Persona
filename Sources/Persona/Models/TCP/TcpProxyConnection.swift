@@ -167,7 +167,7 @@ public class TcpProxyConnection: Equatable
                  active OPEN case, enter the CLOSED state and delete the TCB,
                  and return.
                  */
-                self.close()
+                self.closeUpstream()
                 return
             }
             else if tcp.syn
@@ -182,7 +182,7 @@ public class TcpProxyConnection: Equatable
                  */
 
                 try self.sendRst(self.conduit, tcp, States.closed)
-                self.close()
+                self.closeUpstream()
                 return
             }
             else if tcp.ack
@@ -368,7 +368,7 @@ public class TcpProxyConnection: Equatable
 
                                 if self.retransmissionQueue.isEmpty
                                 {
-                                    self.close()
+                                    self.closeUpstream()
                                 }
 
                             default:
@@ -393,9 +393,18 @@ public class TcpProxyConnection: Equatable
                     // - ack incoming fin packets
                     switch self.state
                     {
-                        // FIXME - don't we need to send a fin?
                         case .synReceived, .established:
                             self.state = .closeWait
+                            
+                            if self.downstreamStraw.isEmpty
+                            {
+                                self.closeUpstream()
+                                try self.closeDownstream()
+                            }
+                            else
+                            {
+                                // TODO: case where we still have data to send
+                            }
 
                         case .finWait1:
                             if self.retransmissionQueue.isEmpty
@@ -472,10 +481,11 @@ public class TcpProxyConnection: Equatable
         }
     }
 
-    public func close()
+    public func closeUpstream()
     {
         self.open = false
         self.connection.close()
+        self.upstreamStraw.close()
 
         AsyncAwaitThrowingEffectSynchronizer.sync
         {
@@ -503,7 +513,7 @@ public class TcpProxyConnection: Equatable
             guard self.connection.write(data: segment.data) else
             {
                 self.tcpLogger?.error("Upstream write failed, closing connection")
-                self.close()
+                self.closeUpstream()
                 return
             }
 
@@ -511,7 +521,7 @@ public class TcpProxyConnection: Equatable
         }
         catch
         {
-            self.close()
+            self.closeUpstream()
             return
         }
     }
@@ -524,7 +534,7 @@ public class TcpProxyConnection: Equatable
         guard let data = self.connection.read(maxSize: Int(windowSize)) else
         {
             // Fully close the server connection and let users know the connection is closed if they try to write data.
-            self.close()
+            self.closeUpstream()
 
             // Start to close the client connection.
             // FIXME - find the right acknowledgeNumber for this.
@@ -549,7 +559,7 @@ public class TcpProxyConnection: Equatable
         {
             tcpLogger?.debug("! Error: failed to send ack \(sequenceNumber) \(ackSequenceNumber), closing stream")
 
-            self.close()
+            self.closeUpstream()
             return
         }
     }
@@ -558,32 +568,16 @@ public class TcpProxyConnection: Equatable
     {
         do
         {
-            let windowSize = self.downstreamStraw.windowSize
-
-            let tcp = try InternetProtocols.TCP(sourcePort: self.remotePort, destinationPort: self.localPort, windowSize: windowSize, payload: data)
-            guard let ipv4 = try InternetProtocols.IPv4(sourceAddress: self.remoteAddress, destinationAddress: self.localAddress, payload: tcp.data, protocolNumber: .TCP) else
-            {
-                self.tcpLogger?.error("Error making downstream IPv4 packet")
-                return
-            }
-            
-            if tcp.sourcePort == 2234
-            {
-                self.tcpLogger?.debug("************************************************************\n")
-                self.tcpLogger?.debug("* \(tcp.description)")
-                self.tcpLogger?.debug("************************************************************\n")
-            }
-
-            let message = Message.IPDataV4(ipv4.data)
-            self.conduit.flowerConnection.writeMessage(message: message)
-
-            self.lastUsed = Date() // now
+            try self.sendPacket(sequenceNumber: self.downstreamStraw.sequenceNumber, acknowledgementNumber: self.upstreamStraw.acknowledgementNumber, ack: true, payload: data)
+            try self.downstreamStraw.clear(bytesSent: data.count)
         }
         catch
         {
             self.tcpLogger?.error("Error sending downstream packet \(error)")
             return
         }
+        
+        self.lastUsed = Date() // now
     }
 
     func sendSynAck(sequenceNumber: SequenceNumber, acknowledgementNumber: SequenceNumber, _ conduit: Conduit) throws
@@ -659,26 +653,26 @@ public class TcpProxyConnection: Equatable
         }
     }
 
-    func startClose(sequenceNumber: SequenceNumber, acknowledgementNumber: SequenceNumber) throws
+    func closeDownstream() throws
     {
         self.state = .finWait1
         self.tcpLogger?.debug("startClose() called")
-        try self.sendFin(sequenceNumber: sequenceNumber, acknowledgementNumber: acknowledgementNumber)
+        try self.sendFinAck(sequenceNumber: self.downstreamStraw.sequenceNumber, acknowledgementNumber: self.upstreamStraw.acknowledgementNumber)
     }
 
-    func sendFin(sequenceNumber: SequenceNumber, acknowledgementNumber: SequenceNumber) throws
+    func sendFinAck(sequenceNumber: SequenceNumber, acknowledgementNumber: SequenceNumber) throws
     {
         self.tcpLogger?.debug("sendFin() called")
         try self.sendPacket(sequenceNumber: sequenceNumber, acknowledgementNumber: acknowledgementNumber, ack: true, fin: true)
     }
 
-    func sendPacket(sequenceNumber: SequenceNumber = SequenceNumber(0), acknowledgementNumber: SequenceNumber = SequenceNumber(0), syn: Bool = false, ack: Bool = false, fin: Bool = false, rst: Bool = false) throws
+    func sendPacket(sequenceNumber: SequenceNumber = SequenceNumber(0), acknowledgementNumber: SequenceNumber = SequenceNumber(0), syn: Bool = false, ack: Bool = false, fin: Bool = false, rst: Bool = false, payload: Data? = nil) throws
     {
         do
         {
             let windowSize = self.upstreamStraw.windowSize
             
-            guard let ipv4 = try IPv4(sourceAddress: self.remoteAddress, destinationAddress: self.localAddress, sourcePort: self.remotePort, destinationPort: self.localPort, sequenceNumber: sequenceNumber, acknowledgementNumber: acknowledgementNumber, syn: syn, ack: ack, fin: fin, rst: rst, windowSize: windowSize, payload: nil) else
+            guard let ipv4 = try IPv4(sourceAddress: self.remoteAddress, destinationAddress: self.localAddress, sourcePort: self.remotePort, destinationPort: self.localPort, sequenceNumber: sequenceNumber, acknowledgementNumber: acknowledgementNumber, syn: syn, ack: ack, fin: fin, rst: rst, windowSize: windowSize, payload: payload) else
             {
                 self.tcpLogger?.debug("* sendPacket() failed to initialize IPv4 packet.")
                 throw TcpProxyError.badIpv4Packet
@@ -728,7 +722,7 @@ public class TcpProxyConnection: Equatable
         {
             timer in
 
-            self.close()
+            self.closeUpstream()
         }
     }
 

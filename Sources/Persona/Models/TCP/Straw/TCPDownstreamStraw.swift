@@ -25,6 +25,17 @@ public class TCPDownstreamStraw
 
         return result
     }
+    
+    public var isEmpty: Bool
+    {
+        defer
+        {
+            self.functionLock.signal()
+        }
+        self.functionLock.wait()
+
+        return self.window.upperBound == self.window.lowerBound
+    }
 
     public var windowSize: UInt16
     {
@@ -140,20 +151,15 @@ public class TCPDownstreamStraw
         return result
     }
 
-    public func clear(acknowledgementNumber: SequenceNumber, sequenceNumber: SequenceNumber) throws
+    public func clear(bytesSent: Int) throws
     {
         defer
         {
             self.functionLock.signal()
         }
         self.functionLock.wait()
-
-        guard acknowledgementNumber == self.window.lowerBound else
-        {
-            self.functionLock.signal()
-            throw TCPUpstreamStrawError.segmentMismatch
-        }
-
-        self.window = SequenceNumberRange(lowerBound: sequenceNumber, upperBound: self.window.upperBound)
+        
+        let newLowerBound = self.window.lowerBound.add(bytesSent)
+        self.window = SequenceNumberRange(lowerBound: newLowerBound, upperBound: self.window.upperBound)
     }
 }
