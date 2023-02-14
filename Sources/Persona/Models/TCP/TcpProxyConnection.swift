@@ -588,13 +588,11 @@ public class TcpProxyConnection: Equatable
 
     func sendSynAck(sequenceNumber: SequenceNumber, acknowledgementNumber: SequenceNumber, _ conduit: Conduit) throws
     {
-        tcpLogger?.debug("* sending SynAck")
         try self.sendPacket(sequenceNumber: sequenceNumber, acknowledgementNumber: acknowledgementNumber, syn: true, ack: true)
     }
 
     func sendAck(_ tcp: InternetProtocols.TCP, _ state: States) throws
     {
-        tcpLogger?.debug("* sending Ack")
         let sndNxt = self.downstreamStraw.sequenceNumber
         let rcvNxt = self.upstreamStraw.acknowledgementNumber
 
