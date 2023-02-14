@@ -247,7 +247,7 @@ public class TcpProxyConnection: Equatable
                                 if tcp.payload != nil
                                 {
                                     self.tcpLogger?.debug("* Persona.processLocalPacket: tcp payload received on an established connection, buffering 🏆")
-                                    self.tcpLogger?.debug("* SEQ:\(tcp.sequenceNumber) ACK:\(tcp.acknowledgementNumber)")
+                                    self.tcpLogger?.debug("* SEQ:\(SequenceNumber(tcp.sequenceNumber)) ACK:\(SequenceNumber(tcp.acknowledgementNumber))")
                                     if let payload = tcp.payload
                                     {
                                         let payloadString = String(decoding: payload, as: UTF8.self)
@@ -694,13 +694,13 @@ public class TcpProxyConnection: Equatable
                 if let tcp = packet.tcp, tcp.syn, tcp.ack
                 {
                     self.tcpLogger?.debug("************************************************************\n")
-                    self.tcpLogger?.debug("* ⬅ SYN/ACK SEQ:\(tcp.sequenceNumber) ACK:\(tcp.acknowledgementNumber) 💖")
+                    self.tcpLogger?.debug("* ⬅ SYN/ACK SEQ:\(SequenceNumber(tcp.sequenceNumber)) ACK:\(SequenceNumber(tcp.acknowledgementNumber)) 💖")
                     self.tcpLogger?.debug("************************************************************\n")
                 }
                 else if let tcp = packet.tcp, tcp.ack, tcp.payload == nil
                 {
                     self.tcpLogger?.debug("************************************************************\n")
-                    self.tcpLogger?.debug("* ⬅ ACK SEQ:\(tcp.sequenceNumber) ACK:\(tcp.acknowledgementNumber) 💖")
+                    self.tcpLogger?.debug("* ⬅ ACK SEQ:\(SequenceNumber(tcp.sequenceNumber)) ACK:\(SequenceNumber(tcp.acknowledgementNumber)) 💖")
                     self.tcpLogger?.debug("************************************************************\n")
                 }
                 else
