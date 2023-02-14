@@ -156,7 +156,7 @@ public actor TcpProxy
             if tcp.destinationPort == 2234
             {
                 tcpLogger?.debug("\n************************************************************")
-                tcpLogger?.debug("* ⮕ SYN SEQ:\(tcp.sequenceNumber) ❣️")
+                tcpLogger?.debug("* ⮕ SYN SEQ:\(SequenceNumber(tcp.sequenceNumber)) ❣️")
                 tcpLogger?.debug("\n************************************************************")
             }
 
