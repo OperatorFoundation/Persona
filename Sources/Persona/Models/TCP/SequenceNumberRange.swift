@@ -26,7 +26,7 @@ public class SequenceNumberRange
             // In this case, the lower bound will be larger than the upper bound.
             // Allow for this by taking the difference between max and lower bound, and adding the upper bound
             // to get the correct size after an upper bound wrap.
-            return ((uint32.max - lowerBound.uint32) + upperBound.uint32)
+            return ((UInt32.max - lowerBound.uint32) + upperBound.uint32)
         }
     }
 
