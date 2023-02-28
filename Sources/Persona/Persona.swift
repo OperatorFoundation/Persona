@@ -126,9 +126,8 @@ public class Persona: Universe
             let connection = try listener.accept()
 
             display("New connection")
-
-            // MARK: async cannot be replaced with Task because it is not currently supported on Linux
-            connectionsQueue.async
+            
+            Task
             {
                 self.handleIncomingConnection(connection)
             }
