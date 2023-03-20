@@ -129,6 +129,7 @@ public class Persona: Universe
             
             Task
             {
+                display("Persona.main() calling handleIncomingConnection()")
                 self.handleIncomingConnection(connection)
             }
         }
