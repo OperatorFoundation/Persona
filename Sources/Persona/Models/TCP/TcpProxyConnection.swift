@@ -135,14 +135,14 @@ public class TcpProxyConnection: Equatable
     {
         guard (!tcp.syn) else
         {
-            print("Duplicate syn received")
+            print("* Duplicate syn received")
             tcpLogger?.debug("Duplicate syn received")
             return
         }
         
         if tcp.payload != nil
         {
-            print("received a packet with a payload")
+            print("* received a packet with a payload")
         }
         
         // For the most part, we can only handle packets that are inside the TCP window.
@@ -265,7 +265,7 @@ public class TcpProxyConnection: Equatable
                                     // Start closing the client connection.
 
                                     try self.upstreamStraw.write(tcp)
-                                    print("* Persona.processLocalPacket: payload upstream write complete")
+                                    print("* Persona.processLocalPacket: payload upstream write complete\n")
                                     
                                     /*
                                      When the TCP takes responsibility for delivering the data to the
@@ -516,6 +516,9 @@ public class TcpProxyConnection: Equatable
                 self.closeUpstream()
                 return
             }
+            
+            print("\n* Sent received data (\(segment.data.count) bytes) upstream.")
+            print("* Data sent upstream: \n\(segment.data.hex)\n")
 
             try self.upstreamStraw.clear(segment: segment)
         }

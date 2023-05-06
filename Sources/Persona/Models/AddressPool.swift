@@ -24,7 +24,7 @@ struct AddressPool
     {
         guard let index = used.firstIndex(of: false) else
         {
-            print("allocate failed in AddressPool")
+            print("* allocate failed in AddressPool")
             return nil
         }
 
@@ -39,7 +39,7 @@ struct AddressPool
 
         guard let index = Int(stringIndex) else
         {
-            print("deallocate failed in AddressPool")
+            print("* deallocate failed in AddressPool")
             return
         }
 

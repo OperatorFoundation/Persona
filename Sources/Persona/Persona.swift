@@ -98,7 +98,7 @@ public class Persona: Universe
             }
             catch
             {
-                print("UDP echo listener failed")
+                print("* UDP echo listener failed")
             }
         }
 
@@ -112,7 +112,7 @@ public class Persona: Universe
             }
             catch
             {
-                print("TCP echo listener failed")
+                print("* TCP echo listener failed")
             }
         }
 
@@ -121,15 +121,14 @@ public class Persona: Universe
 
         while true
         {
-            display("Waiting to accept a connection.")
+            display("* Waiting to accept a connection.")
 
             let connection = try listener.accept()
 
-            display("New connection")
+            display("* New connection")
             
             Task
             {
-                display("Persona.main() calling handleIncomingConnection()")
                 self.handleIncomingConnection(connection)
             }
         }
@@ -144,7 +143,7 @@ public class Persona: Universe
             // We are expecting to receive a specific message from MoonbounceAndroid: ᓚᘏᗢ Catbus is UDP tops! ᓚᘏᗢ
             guard let received = connection.read(size: 39) else
             {
-                print("UDP Echo server failed to read 39 bytes, continuing with this connection")
+                print("* UDP Echo server failed to read 39 bytes, continuing with this connection")
                 continue
             }
             
@@ -154,21 +153,21 @@ public class Persona: Universe
                 
                 if let sourceAddress = transmissionConnection.udpOutgoingAddress
                 {
-                    print("The source address for this udp packet is: \(sourceAddress)")
+                    print("* The source address for this udp packet is: \(sourceAddress)")
                 }
                 
             }
             #endif
             
-            print("UDP Echo received a message: \(received.string)")
+            print("* UDP Echo received a message: \(received.string)")
             
             guard connection.write(string: received.string) else
             {
-                print("UDP Echo server failed to write a response, continuing with this connection.")
+                print("* UDP Echo server failed to write a response, continuing with this connection.")
                 continue
             }
             
-            print("UDP Echo server sent a response: \(received.string)")
+            print("* UDP Echo server sent a response: \(received.string)")
         }
     }
 
@@ -212,18 +211,11 @@ public class Persona: Universe
     // takes a transmission connection and wraps as a flower connection
     func handleIncomingConnection(_ connection: TransmissionTypes.Connection)
     {
-        print("Persona.handleIncomingConnection() called.")
-        
-        // FIXME - add logging
         let flowerConnection = FlowerConnection(connection: connection, log: nil, logReads: true, logWrites: true)
-        
-        print("Persona created a Flower connection from incoming connection.")
-
         let address: IPv4Address
+        
         do
         {
-            print("Persona.handleIncomingConnection: Calling handleFirstMessage()")
-            
             address = try self.handleFirstMessageOfConnection(flowerConnection)
         }
         catch
@@ -248,15 +240,12 @@ public class Persona: Universe
     // deals with IP assignment
     func handleFirstMessageOfConnection(_ flowerConnection: FlowerConnection) throws -> IPv4Address
     {
-        print("Persona.handleFirstMessage() called")
         let message: Message
         if self.mode == .live || self.mode == .record
         {
-            print("Persona.handleFirstMessage: attempting to read from our flower connection...")
-            
             guard let m = flowerConnection.readMessage() else
             {
-                print("Persona.handleFirstMessage: failed to read a flower message. Connection closed")
+                print("* Persona.handleFirstMessage: failed to read a flower message. Connection closed")
                 throw PersonaError.connectionClosed
             }
             message = m
@@ -269,12 +258,10 @@ public class Persona: Universe
             }
             catch
             {
-                print("Connection closed")
+                print("* Connection closed")
                 throw PersonaError.connectionClosed
             }
         }
-
-        print("Persona.handleFirstMessage: received an \(message.description)")
 
         switch message
         {
@@ -282,7 +269,7 @@ public class Persona: Universe
                 guard let address = pool.allocate() else
                 {
                     // FIXME - close connection
-                    print("Address allocation failure")
+                    print("* Address allocation failure")
                     throw PersonaError.addressPoolAllocationFailed
                 }
 
@@ -294,7 +281,6 @@ public class Persona: Universe
 
                 conduitCollection.addConduit(address: address, flowerConnection: flowerConnection)
 
-                print("Persona.handleFirstMessage: calling flowerConnection.writeMessage()")
                 flowerConnection.writeMessage(message: .IPAssignV4(ipv4))
 
                 return IPv4Address(address)!
@@ -315,7 +301,7 @@ public class Persona: Universe
                 throw PersonaError.unsupportedFirstMessage(message)
             default:
                 // FIXME - close connection
-                print("Bad first message: \(message.description)")
+                print("* Bad first message: \(message.description)")
                 throw PersonaError.unsupportedFirstMessage(message)
         }
     }
@@ -332,7 +318,7 @@ public class Persona: Universe
 
             if let logs = flowerConnection.readLog
             {
-                print("Readlogs:")
+                print("* Persona Readlogs:")
                 print("******************")
                 for log in logs
                 {
@@ -355,8 +341,6 @@ public class Persona: Universe
                     throw PersonaError.packetNotIPv4(data)
                 }
                 
-                print("* Persona.handleNextMessage: received an IPV4 packet")
-
                 if let tcp = packet.tcp
                 {
                     guard let ipv4Source = IPv4Address(data: ipv4Packet.sourceAddress) else
@@ -437,7 +421,6 @@ public class Persona: Universe
     // wraps into a new packet with same destination and data and server's source address
     func handleParsedMessage(_ address: IPv4Address, _ message: Message, _ packet: Packet) throws
     {
-        print("\n* Persona.handleParsedMessage()")
         switch message
         {
             case .UDPDataV4(_, _):

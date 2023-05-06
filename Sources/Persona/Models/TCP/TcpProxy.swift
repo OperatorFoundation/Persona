@@ -110,7 +110,6 @@ public actor TcpProxy
         {
             try self.handleNewConnection(tcp: tcp, sourceAddress: sourceAddress, sourcePort: sourcePort, destinationAddress: destinationAddress, destinationPort: destinationPort, conduit: conduit)
         }
-        print("Finished processing upstream packet")
     }
 
     func handleNewConnection(tcp: InternetProtocols.TCP, sourceAddress: IPv4Address, sourcePort: UInt16, destinationAddress: IPv4Address, destinationPort: UInt16, conduit: Conduit) throws
@@ -197,12 +196,10 @@ public actor TcpProxy
 
     func addConnection(proxy: TcpProxy, localAddress: IPv4Address, localPort: UInt16, remoteAddress: IPv4Address, remotePort: UInt16, conduit: Conduit, connection: Transmission.Connection, irs: SequenceNumber, rcvWnd: UInt16) throws
     {
-        print("* Making a TcpProxyConnection")
         do
         {
             let connection = try TcpProxyConnection(proxy: proxy, localAddress: localAddress, localPort: localPort, remoteAddress: remoteAddress, remotePort: remotePort, conduit: conduit, connection: connection, irs: irs, tcpLogger: tcpLogger, rcvWnd: rcvWnd)
             self.connections.append(connection)
-            print("* Created a TcpProxyConnection")
         }
         catch
         {

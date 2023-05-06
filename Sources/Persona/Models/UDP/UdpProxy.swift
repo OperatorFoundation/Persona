@@ -26,7 +26,6 @@ public class UdpProxy
     {
         guard let ipv4 = packet.ipv4 else
         {
-            print(packet)
             throw UdpProxyError.notIPv4Packet(packet)
         }
 
@@ -140,7 +139,6 @@ class UdpProxyConnection
 
     public func processLocalPacket(_ udp: UDP)
     {
-        print("Persona.UdpProxy.processLocalPacket() called")
         guard let payload = udp.payload else
         {
             return
@@ -167,8 +165,6 @@ class UdpProxyConnection
             {
                 return
             }
-
-            print(ipv4)
 
             let message = Message.IPDataV4(ipv4.data)
             self.conduit.flowerConnection.writeMessage(message: message)
