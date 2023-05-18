@@ -13,11 +13,12 @@ From the Persona directory in your macOS / Linux command line terminal;
 • To see what subcommands you have available to you:
 
 ```
-$ swift run
+swift run
 ```
 
-```
-example print out
+
+example print out:
+
 USAGE: Persona <subcommand>
 
 OPTIONS:
@@ -28,30 +29,32 @@ SUBCOMMANDS:
   run
 
   See 'Persona help <subcommand>' for detailed help.
-```
+
 ===
 
 • To create new client / server configs:
 
 ```
-$ swift run Persona new <exampleConfigName> <port> <ip>
+swift run Persona new <exampleConfigName> <port> <ip>
 ```
 
-```
+example print out:
+  
 Wrote config to ~/persona-server.json
 Wrote config to ~/persona-client.json
-```
+
 ===
 
 • To run the server:
 
 ```
-$ swift run Persona run
+swift run Persona run
 ```
 
-```
+example print out:
+  
 ...
 listening on 127.0.0.1 2121
 Waiting to accept a connection
 ...
-```
+
