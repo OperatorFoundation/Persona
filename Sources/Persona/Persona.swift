@@ -89,6 +89,19 @@ public class Persona: Universe
 
         let echoUdpListener = try self.listen(listenAddr, echoPort, type: .udp)
 
+        #if os(macOS) || os(iOS)
+        Task
+        {
+            do
+            {
+                try self.handleUdpEchoListener(echoListener: echoUdpListener)
+            }
+            catch
+            {
+                print("* UDP echo listener failed")
+            }
+        }
+        #else
         // MARK: async cannot be replaced with Task because it is not currently supported on Linux
         echoUdpQueue.async
         {
@@ -101,9 +114,23 @@ public class Persona: Universe
                 print("* UDP echo listener failed")
             }
         }
+        #endif
 
         let echoTcpListener = try self.listen(listenAddr, echoPort + 1, type: .tcp)
 
+        #if os(macOS) || os(iOS)
+        Task
+        {
+            do
+            {
+                try self.handleTcpEchoListener(echoListener: echoTcpListener)
+            }
+            catch
+            {
+                print("* TCP echo listener failed")
+            }
+        }
+        #else
         echoTcpQueue.async
         {
             do
@@ -115,6 +142,7 @@ public class Persona: Universe
                 print("* TCP echo listener failed")
             }
         }
+        #endif
 
         let listener = try self.listen(listenAddr, listenPort)
         display("listening on \(listenAddr) \(listenPort)")
@@ -127,10 +155,17 @@ public class Persona: Universe
 
             display("* New connection")
             
+            #if os(macOS) || os(iOS)
             Task
             {
                 self.handleIncomingConnection(connection)
             }
+            #else
+            connectionsQueue.async
+            {
+                self.handleIncomingConnection(connection)
+            }
+            #endif
         }
     }
     
