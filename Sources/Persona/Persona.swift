@@ -213,7 +213,7 @@ public class Persona: Universe
             let connection = try echoListener.accept()
             print("👯 New TCP echo connection")
 
-            self.echoTcpConnectionQueue.async
+            Task
             {
                 self.handleTcpEchoConnection(connection: connection)
             }
@@ -224,9 +224,18 @@ public class Persona: Universe
     {
         print("👯 handleTcpEchoConnection called")
         
+        // TODO: Add a loop
+        
         guard let received = connection.read(maxSize: 100) else
         {
             print("❌ TCP Echo server failed to read bytes, continuing with this connection, closing")
+            connection.close()
+            return
+        }
+        
+        guard received.count > 0 else
+        {
+            print("❌ TCP Echo server read 0 bytes, continuing with this connection, closing")
             connection.close()
             return
         }
@@ -240,7 +249,7 @@ public class Persona: Universe
             return
         }
        
-        print("🐈 TCP Echo server sent a response: \(received.string)")
+        print("🐈 TCP Echo server sent a response of \(received): \(received.string)")
     }
     
     // takes a transmission connection and wraps as a flower connection
