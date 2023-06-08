@@ -144,7 +144,11 @@ public class Persona: Universe
         }
         #endif
 
-        let listener = try self.listen(listenAddr, listenPort)
+//        let listener = try self.listen(listenAddr, listenPort)
+        guard let listener = TransmissionListener(port: listenPort, logger: self.logger) else
+        {
+            throw PersonaError.listenFailed
+        }
         display("listening on \(listenAddr) \(listenPort)")
 
         while true
@@ -620,4 +624,5 @@ public enum PersonaError: Error
     case unsupportedPacketType(Data)
     case emptyPayload
     case echoListenerFailure
+    case listenFailed
 }
