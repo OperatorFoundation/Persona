@@ -116,8 +116,13 @@ public class Persona: Universe
         }
         #endif
 
-        let echoTcpListener = try self.listen(listenAddr, echoPort + 1, type: .tcp)
-
+//        let echoTcpListener = try self.listen(listenAddr, echoPort + 1, type: .tcp)
+        
+        guard let echoTcpListener = TransmissionListener(port: echoPort + 1, logger: self.logger) else
+        {
+            throw PersonaError.listenFailed
+        }
+        
         #if os(macOS) || os(iOS)
         Task
         {
@@ -228,32 +233,33 @@ public class Persona: Universe
     {
         print("👯 handleTcpEchoConnection called")
         
-        // TODO: Add a loop
-        
-        guard let received = connection.read(maxSize: 100) else
+        while true
         {
-            print("❌ TCP Echo server failed to read bytes, continuing with this connection, closing")
-            connection.close()
-            return
-        }
-        
-        guard received.count > 0 else
-        {
-            print("❌ TCP Echo server read 0 bytes, continuing with this connection, closing")
-            connection.close()
-            return
-        }
+            guard let received = connection.read(maxSize: 536) else
+            {
+                print("❌ TCP Echo server failed to read bytes, continuing with this connection, closing")
+                connection.close()
+                return
+            }
+            
+            guard received.count > 0 else
+            {
+                print("❌ TCP Echo server read 0 bytes, continuing with this connection, closing")
+                connection.close()
+                return
+            }
 
-        print("🐈 TCP Echo received a message: \(received) - \(received.hex)")
+            print("🐈 TCP Echo received a message: \(received) - \(received.hex)")
 
-        guard connection.write(data: received) else
-        {
-            print("❌ TCP Echo server failed to write a response, continuing with this connection, closing")
-            connection.close()
-            return
+            guard connection.write(data: received) else
+            {
+                print("❌ TCP Echo server failed to write a response, continuing with this connection, closing")
+                connection.close()
+                return
+            }
+           
+            print("🐈 TCP Echo server sent a response of \(received): \(received.string)")
         }
-       
-        print("🐈 TCP Echo server sent a response of \(received): \(received.string)")
     }
     
     // takes a transmission connection and wraps as a flower connection

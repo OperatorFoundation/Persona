@@ -682,7 +682,7 @@ public class TcpProxyConnection: Equatable
             }
             
             // Show the packet description in our log
-            if self.remotePort == 2234 // Print traffic to the TCP Echo Server to the TCP log for debugging
+            if self.remotePort == 2234 // Print traffic from the TCP Echo Server to the TCP log for debugging
             {
                 let packet = Packet(ipv4Bytes: ipv4.data, timestamp: Date())
 
@@ -696,6 +696,14 @@ public class TcpProxyConnection: Equatable
                 {
                     self.tcpLogger?.debug("************************************************************\n")
                     self.tcpLogger?.debug("* ⬅ ACK SEQ:\(SequenceNumber(tcp.sequenceNumber)) ACK:\(SequenceNumber(tcp.acknowledgementNumber)) 💖")
+                    self.tcpLogger?.debug("************************************************************\n")
+                }
+                else if let tcp = packet.tcp, tcp.payload != nil
+                {
+                    self.tcpLogger?.debug("************************************************************\n")
+                    self.tcpLogger?.debug("* ⬅ ACK SEQ:\(SequenceNumber(tcp.sequenceNumber)) ACK:\(SequenceNumber(tcp.acknowledgementNumber)) 💖 📦")
+                    self.tcpLogger?.debug("Payload size: \(tcp.payload!.count)")
+                    self.tcpLogger?.debug("Payload:\n\(tcp.payload!.hex)")
                     self.tcpLogger?.debug("************************************************************\n")
                 }
                 else
