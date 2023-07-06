@@ -149,12 +149,11 @@ public class Persona: Universe
         }
         #endif
 
-//        let listener = try self.listen(listenAddr, listenPort)
         guard let listener = TransmissionListener(port: listenPort, logger: self.logger) else
         {
             throw PersonaError.listenFailed
         }
-        display("listening on \(listenAddr) \(listenPort)")
+        display("* listening on \(listenAddr) \(listenPort)")
 
         while true
         {
@@ -320,16 +319,18 @@ public class Persona: Universe
         switch message
         {
             case .IPRequestV4:
+                print("* Received an IP assignment request")
                 guard let address = pool.allocate() else
                 {
                     // FIXME - close connection
-                    print("* Address allocation failure")
+                    print("* Address allocation failure. IP assignment failed.")
                     throw PersonaError.addressPoolAllocationFailed
                 }
 
                 guard let ipv4 = IPv4Address(address) else
                 {
                     // FIXME - address could not be parsed as an IPv4 address
+                    print("* The allocated address was not a valid IPV4 address. IP assignment failed.")
                     throw PersonaError.addressStringIsNotIPv4(address)
                 }
 
