@@ -1,7 +1,7 @@
 import Chord
 import Flower
 import InternetProtocols
-import Network
+import Net
 import Simulation
 import Spacetime
 import Transmission
@@ -15,7 +15,8 @@ final class PersonaTests: XCTestCase
 {
     func testTaskGroup() async
     {
-        let string = await withTaskGroup(of: String.self) {
+        let string = await withTaskGroup(of: String.self)
+        {
             group -> String in
             
             group.addTask
