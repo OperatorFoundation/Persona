@@ -89,7 +89,7 @@ public class Persona: Universe
 
         let echoUdpListener = try self.listen(listenAddr, echoPort, type: .udp)
 
-        #if os(macOS) || os(iOS)
+        #if os(macOS)
         Task
         {
             do

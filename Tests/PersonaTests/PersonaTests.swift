@@ -2,15 +2,69 @@ import Chord
 import Flower
 import InternetProtocols
 import Network
-@testable import Persona
 import Simulation
 import Spacetime
 import Transmission
 import Universe
+
 import XCTest
+
+@testable import Persona
 
 final class PersonaTests: XCTestCase
 {
+    func testTaskGroup() async
+    {
+        let string = await withTaskGroup(of: String.self) {
+            group -> String in
+            
+            group.addTask
+            {
+                sleep(5)
+                print("Task 1.")
+                return "Hello"
+            }
+            
+            group.addTask
+            {
+                print("Task 2.")
+                return "From"
+            }
+            
+            group.addTask
+            {
+                print("Task 3.")
+                return "A"
+                
+            }
+            
+            
+            group.addTask
+            {
+                print("Task 4.")
+                return "Task"
+                
+            }
+            
+            group.addTask
+            {
+                print("Task 5.")
+                return "Group"
+            }
+            
+            var collected = [String]()
+            
+            for await value in group {
+                collected.append(value)
+            }
+            
+            return collected.joined(separator: " ")
+        }
+        
+        print(string)
+    }
+    
+    
     func testUdpSend() throws
     {
         let queue = BlockingQueue<Bool>()
