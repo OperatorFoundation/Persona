@@ -15,6 +15,10 @@ let package = Package(
         .executable(
             name: "UdpEchoServer",
             targets: ["UdpEchoServer"]
+        ),
+        .executable(
+            name: "TcpEchoServer",
+            targets: ["TcpEchoServer"]
         )
     ],
     dependencies: [
@@ -22,7 +26,7 @@ let package = Package(
         // .package(url: /* package url */, from: "1.0.0"),
         .package(url: "https://github.com/sushichop/Puppy.git", from: "0.6.0"),
         .package(url: "https://github.com/apple/swift-argument-parser.git", from: "1.2.2"),
-        .package(url: "https://github.com/apple/swift-log.git", from: "1.0.0"),
+        .package(url: "https://github.com/apple/swift-log.git", from: "1.5.2"),
         .package(url: "https://github.com/apple/swift-nio.git", from: "2.0.0"),
         .package(url: "https://github.com/swift-server/swift-service-lifecycle", from: "1.0.0-alpha.11"),
 
@@ -69,6 +73,21 @@ let package = Package(
             ]),
         .executableTarget(
             name: "UdpEchoServer",
+            dependencies: [
+                .product(name: "ArgumentParser", package: "swift-argument-parser"),
+                .product(name: "Lifecycle", package: "swift-service-lifecycle"),
+                .product(name: "Logging", package: "swift-log"),
+                .product(name: "NIO", package: "swift-nio"),
+                "Datable",
+                "Puppy",
+                "SwiftHexTools",
+                "TransmissionTypes",
+                .product(name: "Simulation", package: "Spacetime"),
+                .product(name: "Spacetime", package: "Spacetime"),
+                .product(name: "Universe", package: "Spacetime"),
+            ]),
+        .executableTarget(
+            name: "Tcpgit EchoServer",
             dependencies: [
                 .product(name: "ArgumentParser", package: "swift-argument-parser"),
                 .product(name: "Lifecycle", package: "swift-service-lifecycle"),
