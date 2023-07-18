@@ -1,6 +1,6 @@
 //
 //  UdpProxy.swift
-//  
+//
 //
 //  Created by Dr. Brandon Wiley on 3/7/22.
 //
@@ -84,9 +84,9 @@ public class UdpProxy
             connection in
 
             return (connection.localAddress  == localAddress ) &&
-                   (connection.localPort     == localPort    ) &&
-                   (connection.remoteAddress == remoteAddress) &&
-                   (connection.remotePort    == remotePort   )
+            (connection.localPort     == localPort    ) &&
+            (connection.remoteAddress == remoteAddress) &&
+            (connection.remotePort    == remotePort   )
         }
     }
 }

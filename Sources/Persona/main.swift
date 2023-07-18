@@ -17,11 +17,10 @@ import FoundationNetworking
 
 import Gardener
 import KeychainCli
-import Nametag
 import Net
-import Spacetime
 import Simulation
-import Transmission
+import Spacetime
+import TransmissionAsync
 
 // run in one XCode window while you run the flower test in another
 struct PersonaCommandLine: ParsableCommand
@@ -79,28 +78,9 @@ extension PersonaCommandLine
             let eventLoopGroup = MultiThreadedEventLoopGroup(numberOfThreads: System.coreCount)
             lifecycle.registerShutdown(label: "eventLoopGroup", .sync(eventLoopGroup.syncShutdownGracefully))
 
-            let simulation: Simulation
-            let universe: Persona
-            switch (self.record, self.play)
-            {
-                case (true, true):
-                    print("Packet recording and playback cannot be enabled at the same time.")
-                    return
-
-                case (true, false):
-                    simulation = Simulation(capabilities: Capabilities(.display, .networkConnect, .networkListen, .persistence))
-                    universe = Persona(listenAddr: config.host, listenPort: config.port, effects: simulation.effects, events: simulation.events, mode: .record)
-
-                case (false, true):
-                    simulation = Simulation(capabilities: Capabilities(.display, .networkConnect, .networkListen, .persistence))
-                    universe = Persona(listenAddr: config.host, listenPort: config.port, effects: simulation.effects, events: simulation.events, mode: .playback)
-
-                case (false, false):
-                    simulation = Simulation(capabilities: Capabilities(.display, .networkConnect, .networkListen))
-                    universe = Persona(listenAddr: config.host, listenPort: config.port, effects: simulation.effects, events: simulation.events, mode: .live)
-            }
-
-            lifecycle.register(label: "persona", start: .sync(universe.run), shutdown: .sync(universe.shutdown))
+            let simulation = Simulation(capabilities: Capabilities(.display, .networkConnect, .networkListen))
+            let persona = Persona(listenAddr: config.host, listenPort: config.port + 1, effects: simulation.effects, events: simulation.events)
+            lifecycle.register(label: "persona", start: .sync(persona.run), shutdown: .sync(persona.shutdown))
 
             lifecycle.start
             {

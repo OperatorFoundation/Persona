@@ -68,7 +68,7 @@ public actor TcpProxy
     public func processUpstreamPacket(_ conduit: Conduit, _ packet: Packet) throws
     {
         print("\n* Persona.TcpProxy: Attempting to process a TCP packet.")
-        
+
         guard let ipv4Packet = packet.ipv4 else
         {
             throw TcpProxyError.notIPv4Packet(packet)
@@ -98,10 +98,10 @@ public actor TcpProxy
 
         let sourcePort = tcp.sourcePort
         print("* Source Port: \(sourcePort)")
-        
+
         let destinationPort = tcp.destinationPort
         print("* Destination Port: \(destinationPort)")
-        
+
         if let proxyConnection = self.findConnection(localAddress: sourceAddress, localPort: sourcePort, remoteAddress: destinationAddress, remotePort: destinationPort, tcp: tcp)
         {
             try proxyConnection.processUpstreamPacket(tcp)
@@ -129,7 +129,7 @@ public actor TcpProxy
 
              An incoming RST should be ignored.  Return.
              */
-            
+
             return
         }
         else if tcp.ack
@@ -167,16 +167,16 @@ public actor TcpProxy
                 try self.sendRst(sourceAddress: sourceAddress, sourcePort: sourcePort, destinationAddress: destinationAddress, destinationPort: destinationPort, conduit, tcp, .closed)
                 return
             }
-            
+
             do
             {
                 try self.addConnection(proxy: self, localAddress: sourceAddress, localPort: sourcePort, remoteAddress: destinationAddress, remotePort: destinationPort, conduit: conduit, connection: networkConnection, irs: SequenceNumber(tcp.sequenceNumber), rcvWnd: tcp.windowSize)
-                
+
             }
             catch
             {
                 print("* Failed to add the connection. Trying sendRst() instead.")
-                
+
                 try self.sendRst(sourceAddress: sourceAddress, sourcePort: sourcePort, destinationAddress: destinationAddress, destinationPort: destinationPort, conduit, tcp, .closed)
                 return
             }
@@ -215,9 +215,9 @@ public actor TcpProxy
             connection in
 
             return (connection.localAddress  == localAddress ) &&
-                   (connection.localPort     == localPort    ) &&
-                   (connection.remoteAddress == remoteAddress) &&
-                   (connection.remotePort    == remotePort   )
+            (connection.localPort     == localPort    ) &&
+            (connection.remoteAddress == remoteAddress) &&
+            (connection.remotePort    == remotePort   )
         }
     }
 
@@ -257,9 +257,9 @@ public actor TcpProxy
 
                  Return.
                  */
-                
+
                 print("* TCP state is closed")
-                
+
                 if tcp.rst
                 {
                     print("* received tcp.reset, doing nothing")
@@ -290,7 +290,7 @@ public actor TcpProxy
 
                      <SEQ=SEG.ACK><CTL=RST>
                      */
-                    
+
                     print("* received tcp.ack, calling send packet with tcp.acknowledgementNumber, and ack: true")
 
                     self.tcpLogger?.debug("(proxy)sendRst() called")
@@ -317,7 +317,7 @@ public actor TcpProxy
         }
 
         let message = Message.IPDataV4(ipv4.data)
-        
+
         print("* Created an IPDataV4 message, asking flower to write the message...")
         conduit.flowerConnection.writeMessage(message: message)
     }

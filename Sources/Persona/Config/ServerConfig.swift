@@ -10,9 +10,9 @@ import Gardener
 
 public struct ServerConfig: Codable
 {
-    let name: String
-    let host: String
-    let port: Int
+    public let name: String
+    public let host: String
+    public let port: Int
 
     public init(name: String, host: String, port: Int)
     {

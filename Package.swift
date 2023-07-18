@@ -1,4 +1,4 @@
-// swift-tools-version:5.8
+// swift-tools-version:5.7
 // The swift-tools-version declares the minimum version of Swift required to build this package.
 
 import PackageDescription
@@ -12,6 +12,10 @@ let package = Package(
             name: "Persona",
             targets: ["Persona"]
         ),
+        .executable(
+            name: "UdpEchoServer",
+            targets: ["UdpEchoServer"]
+        )
     ],
     dependencies: [
         // Dependencies declare other packages that this package depends on.
@@ -32,6 +36,8 @@ let package = Package(
         .package(url: "https://github.com/OperatorFoundation/Spacetime", branch: "main"),
         .package(url: "https://github.com/OperatorFoundation/Straw", branch: "main"),
         .package(url: "https://github.com/OperatorFoundation/SwiftHexTools", branch: "main"),
+        .package(url: "https://github.com/OperatorFoundation/Transmission", branch: "main"),
+        .package(url: "https://github.com/OperatorFoundation/TransmissionAsync", branch: "main"),
         .package(url: "https://github.com/OperatorFoundation/TransmissionTypes", branch: "main"),
     ],
     targets: [
@@ -53,6 +59,23 @@ let package = Package(
                 "Net",
                 "Puppy",
                 "Straw",
+                "SwiftHexTools",
+                "Transmission",
+                "TransmissionAsync",
+                "TransmissionTypes",
+                .product(name: "Simulation", package: "Spacetime"),
+                .product(name: "Spacetime", package: "Spacetime"),
+                .product(name: "Universe", package: "Spacetime"),
+            ]),
+        .executableTarget(
+            name: "UdpEchoServer",
+            dependencies: [
+                .product(name: "ArgumentParser", package: "swift-argument-parser"),
+                .product(name: "Lifecycle", package: "swift-service-lifecycle"),
+                .product(name: "Logging", package: "swift-log"),
+                .product(name: "NIO", package: "swift-nio"),
+                "Datable",
+                "Puppy",
                 "SwiftHexTools",
                 "TransmissionTypes",
                 .product(name: "Simulation", package: "Spacetime"),

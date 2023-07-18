@@ -12,10 +12,10 @@ import Gardener
 
 public struct ClientConfig: Codable
 {
-    let name: String
-    let host: String
-    let port: Int
-    let serverPublicKey: PublicKey
+    public let name: String
+    public let host: String
+    public let port: Int
+    public let serverPublicKey: PublicKey
 
     public init(name: String, host: String, port: Int, serverPublicKey: PublicKey)
     {
