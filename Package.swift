@@ -87,7 +87,7 @@ let package = Package(
                 .product(name: "Universe", package: "Spacetime"),
             ]),
         .executableTarget(
-            name: "Tcpgit EchoServer",
+            name: "TcpEchoServer",
             dependencies: [
                 .product(name: "ArgumentParser", package: "swift-argument-parser"),
                 .product(name: "Lifecycle", package: "swift-service-lifecycle"),
