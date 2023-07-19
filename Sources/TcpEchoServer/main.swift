@@ -17,9 +17,7 @@ import FoundationNetworking
 
 import Gardener
 import Net
-import Persona
-import Simulation
-import Spacetime
+import PersonaConfig
 
 // run in one XCode window while you run the flower test in another
 struct TcpEchoServerCommandLine: ParsableCommand

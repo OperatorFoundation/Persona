@@ -17,6 +17,7 @@ import Gardener
 import Puppy
 import Spacetime
 import SwiftHexTools
+import Transmission
 import TransmissionTypes
 import Universe
 

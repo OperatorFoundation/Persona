@@ -18,7 +18,7 @@ import FoundationNetworking
 import Gardener
 import KeychainCli
 import Net
-import Persona
+import PersonaConfig
 import Simulation
 import Spacetime
 
