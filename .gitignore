@@ -1,3 +1,4 @@
+*.pid
 dataDatabase
 .idea
 Packate.resolved
