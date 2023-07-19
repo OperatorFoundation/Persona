@@ -20,7 +20,7 @@ import SwiftHexTools
 import TransmissionTypes
 import Universe
 
-public class UdpEchoServer: Universe
+public class TcpEchoServer: Universe
 {
     var udpEchoLogger = Puppy()
 

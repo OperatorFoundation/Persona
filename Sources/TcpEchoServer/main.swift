@@ -73,7 +73,7 @@ extension TcpEchoServerCommandLine
     }
 }
 
-UdpEchoServerCommandLine.main()
+TcpEchoServerCommandLine.main()
 
 public enum TcpEchoServerErrorCommandLineError: Error
 {

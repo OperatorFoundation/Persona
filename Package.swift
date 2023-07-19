@@ -79,6 +79,7 @@ let package = Package(
                 .product(name: "Logging", package: "swift-log"),
                 .product(name: "NIO", package: "swift-nio"),
                 "Datable",
+                "Persona",
                 "Puppy",
                 "SwiftHexTools",
                 "TransmissionTypes",
@@ -87,13 +88,14 @@ let package = Package(
                 .product(name: "Universe", package: "Spacetime"),
             ]),
         .executableTarget(
-            name: "Tcpgit EchoServer",
+            name: "TcpEchoServer",
             dependencies: [
                 .product(name: "ArgumentParser", package: "swift-argument-parser"),
                 .product(name: "Lifecycle", package: "swift-service-lifecycle"),
                 .product(name: "Logging", package: "swift-log"),
                 .product(name: "NIO", package: "swift-nio"),
                 "Datable",
+                "Persona",
                 "Puppy",
                 "SwiftHexTools",
                 "TransmissionTypes",
