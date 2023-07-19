@@ -15,118 +15,74 @@ import Logging
 import Chord
 import Gardener
 import Puppy
-import Spacetime
 import SwiftHexTools
-import TransmissionTypes
-import Universe
+import TransmissionAsync
 
-public class UdpEchoServer: Universe
+public class TcpEchoServer
 {
-    var udpEchoLogger = Puppy()
+    var tcpEchoLogger = Puppy()
 
-    let echoUdpQueue = DispatchQueue(label: "EchoUdpQueue")
+    let echoTcpQueue = DispatchQueue(label: "EchoTcpQueue")
 
     let listenAddr: String
     let listenPort: Int
+    #if os(macOS)
+    let logger: os.Logger
+    #else
+    let logger: Logging.Logger
+    #endif
 
-    public init(listenAddr: String, listenPort: Int, effects: BlockingQueue<Effect>, events: BlockingQueue<Event>)
+    public init(listenAddr: String, listenPort: Int)
     {
         self.listenAddr = listenAddr
         self.listenPort = listenPort
 
 #if os(macOS) || os(iOS)
-        let logger = Logger(subsystem: "org.OperatorFoundation.PersonaLogger", category: "Persona")
+        self.logger = Logger(subsystem: "org.OperatorFoundation.PersonaLogger", category: "TcpEchoServer")
 #else
-        let logger = Logger(label: "org.OperatorFoundation.PersonaLogger")
+        self.logger = Logger(label: "org.OperatorFoundation.PersonaLogger")
 #endif
 
-        let logFileURL = File.homeDirectory().appendingPathComponent("PersonaUdpEcho.log", isDirectory: false)
+        let logFileURL = File.homeDirectory().appendingPathComponent("PersonaTcpEcho.log", isDirectory: false)
 
         if File.exists(logFileURL.path)
         {
             let _ = File.delete(atPath: logFileURL.path)
         }
 
-        if let file = try? FileLogger("UdpEchoServerLogger",
+        if let file = try? FileLogger("TcpEchoServerLogger",
                                       logLevel: .debug,
                                       fileURL: logFileURL,
                                       filePermission: "600")  // Default permission is "640".
         {
-            udpEchoLogger.add(file)
+            tcpEchoLogger.add(file)
         }
 
-        udpEchoLogger.debug("UdpEchoServer Start")
-
-        super.init(effects: effects, events: events, logger: logger)
+        tcpEchoLogger.debug("TcpEchoServer Start")
     }
 
-    public override func main() throws
+    public func run() throws
     {
-        let echoUdpListener = try self.listen(listenAddr, listenPort, type: .udp)
+        let listener = try AsyncTcpSocketListener(host: self.listenAddr, port: self.listenPort, self.logger)
 
-#if os(macOS) || os(iOS)
-        Task
-        {
-            do
-            {
-                try self.handleUdpEchoListener(echoListener: echoUdpListener)
-            }
-            catch
-            {
-                print("* UDP echo listener failed")
-            }
-        }
-#else
-        // MARK: async cannot be replaced with Task because it is not currently supported on Linux
-        echoUdpQueue.async
-        {
-            do
-            {
-                try self.handleUdpEchoListener(echoListener: echoUdpListener)
-            }
-            catch
-            {
-                print("* UDP echo listener failed")
-            }
-        }
-#endif
-    }
-
-    func handleUdpEchoListener(echoListener: TransmissionTypes.Listener) throws
-    {
         while true
         {
-            let connection = try echoListener.accept()
-
-            // We are expecting to receive a specific message from MoonbounceAndroid: ᓚᘏᗢ Catbus is UDP tops! ᓚᘏᗢ
-            guard let received = connection.read(size: 39) else
+            let connection: AsyncConnection = try AsyncAwaitThrowingSynchronizer<AsyncConnection>.sync
             {
-                print("* UDP Echo server failed to read 39 bytes, continuing with this connection")
-                continue
+                return try await listener.accept()
             }
 
-#if os(Linux)
-            if let transmissionConnection = connection as? TransmissionConnection
+            AsyncAwaitThrowingEffectSynchronizer.sync
             {
-
-                if let sourceAddress = transmissionConnection.udpOutgoingAddress
-                {
-                    print("* The source address for this udp packet is: \(sourceAddress)")
-                }
-
+                try await self.handleTcpEchoConnection(connection: connection)
             }
-#endif
-
-            print("* UDP Echo received a message: \(received.string)")
-
-            guard connection.write(string: received.string) else
-            {
-                print("* UDP Echo server failed to write a response, continuing with this connection.")
-                continue
-            }
-
-            print("* UDP Echo server sent a response: \(received.string)")
         }
+    }
+
+    func handleTcpEchoConnection(connection: AsyncConnection) async throws
+    {
+        let received = try await connection.readSize(1)
+        try await connection.write(received)
     }
 
     public func shutdown()
@@ -134,7 +90,7 @@ public class UdpEchoServer: Universe
     }
 }
 
-public enum UdpEchoServerError: Error
+public enum TcpEchoServerError: Error
 {
     case connectionClosed
     case echoListenerFailure

@@ -18,4 +18,6 @@ kill `cat udpecho.pid`
 kill -9 `cat udpecho.pid`
 kill `cat tcpecho.pid`
 kill -9 `cat tcpecho.pid`
+rm udpecho.pid
+rm tcpecho.pid
 

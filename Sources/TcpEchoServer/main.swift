@@ -16,7 +16,6 @@ import FoundationNetworking
 #endif
 
 import Gardener
-import KeychainCli
 import Net
 import Persona
 import Simulation
@@ -49,10 +48,9 @@ extension TcpEchoServerCommandLine
             let eventLoopGroup = MultiThreadedEventLoopGroup(numberOfThreads: System.coreCount)
             lifecycle.registerShutdown(label: "eventLoopGroup", .sync(eventLoopGroup.syncShutdownGracefully))
 
-            let simulation = Simulation(capabilities: Capabilities(.display, .networkConnect, .networkListen))
-            let universe = TcpEchoServer(listenAddr: config.host, listenPort: config.port + 1, effects: simulation.effects, events: simulation.events)
+            let server = TcpEchoServer(listenAddr: config.host, listenPort: config.port + 1)
 
-            lifecycle.register(label: "tcpecho", start: .sync(universe.run), shutdown: .sync(universe.shutdown))
+            lifecycle.register(label: "tcpecho", start: .sync(server.run), shutdown: .sync(server.shutdown))
 
             lifecycle.start
             {
@@ -73,7 +71,7 @@ extension TcpEchoServerCommandLine
     }
 }
 
-UdpEchoServerCommandLine.main()
+TcpEchoServerCommandLine.main()
 
 public enum TcpEchoServerErrorCommandLineError: Error
 {
