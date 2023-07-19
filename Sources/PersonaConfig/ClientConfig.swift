@@ -7,7 +7,7 @@
 
 import Foundation
 
-import Keychain
+import KeychainCli
 import Gardener
 
 public struct ClientConfig: Codable
