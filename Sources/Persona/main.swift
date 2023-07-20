@@ -6,10 +6,12 @@
 //
 
 import ArgumentParser
-import Lifecycle
+#if os(macOS)
+import os.log
+#else
 import Logging
+#endif
 import Foundation
-import NIO
 #if os(macOS) || os(iOS)
 #else
 import FoundationNetworking
@@ -17,11 +19,6 @@ import FoundationNetworking
 
 import Gardener
 import KeychainCli
-import Net
-import PersonaConfig
-import Simulation
-import Spacetime
-import TransmissionAsync
 
 // run in one XCode window while you run the flower test in another
 struct PersonaCommandLine: ParsableCommand
@@ -61,55 +58,15 @@ extension PersonaCommandLine
 {
     struct Run: ParsableCommand
     {
-        @Flag(help: "Record packets for later replay")
-        var record: Bool = false
-
-        @Flag(help: "Play back recorded packets")
-        var play: Bool = false
-
-        mutating func run() throws
+        mutating func run() async throws
         {
-            guard let config = ServerConfig(url: serverConfigURL) else
-            {
-                throw RunCommandError.invalidConfigFile
-            }
-            
-            let lifecycle = ServiceLifecycle()
-
-            let eventLoopGroup = MultiThreadedEventLoopGroup(numberOfThreads: System.coreCount)
-            lifecycle.registerShutdown(label: "eventLoopGroup", .sync(eventLoopGroup.syncShutdownGracefully))
-
-            let simulation = Simulation(capabilities: Capabilities(.display, .networkConnect, .networkListen))
-            let persona = Persona(listenAddr: config.host, listenPort: config.port + 1, effects: simulation.effects, events: simulation.events)
-            lifecycle.register(label: "persona", start: .sync(persona.run), shutdown: .sync(persona.shutdown))
-
-            lifecycle.start
-            {
-                error in
-
-                if let error = error
-                {
-                    print("failed starting Persona ☠️: \(error)")
-                }
-                else
-                {
-                    print("Persona started successfully 🚀")
-                }
-            }
-
-            lifecycle.wait()
+            let persona = Persona()
+            try await persona.run()
         }
     }
 }
 
 PersonaCommandLine.main()
-
-public enum ServerMode
-{
-    case live
-    case playback
-    case record
-}
 
 public enum NewCommandError: Error
 {

@@ -66,7 +66,7 @@ final class PersonaTests: XCTestCase
     }
     
     
-    func testUdpSend() throws
+    func testUdpSend() async throws
     {
         let queue = BlockingQueue<Bool>()
         let lock = DispatchSemaphore(value: 0)
@@ -78,7 +78,7 @@ final class PersonaTests: XCTestCase
 
         Task
         {
-            startPersonaServer(queue, lock)
+            try await startPersonaServer()
         }
 
         Task
@@ -134,23 +134,13 @@ final class PersonaTests: XCTestCase
         }
     }
 
-    func startPersonaServer(_ queue: BlockingQueue<Bool>, _ lock: DispatchSemaphore)
+    func startPersonaServer() async throws
     {
-        lock.wait()
+        let persona = Persona()
 
-        let simulation = Simulation(capabilities: Capabilities(.display, .networkConnect, .networkListen))
-        let universe = Persona(listenAddr: "0.0.0.0", listenPort: 1234, effects: simulation.effects, events: simulation.events)
-
-        do
+        Task
         {
-            lock.signal()
-            try universe.run()
-        }
-        catch
-        {
-            print(error)
-            queue.enqueue(element: false)
-            return
+            try await persona.run()
         }
     }
 

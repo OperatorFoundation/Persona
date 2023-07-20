@@ -13,7 +13,7 @@ import InternetProtocols
 import Net
 import Puppy
 import SwiftHexTools
-import Transmission
+import TransmissionAsync
 
 public class TcpProxyConnection: Equatable
 {
@@ -60,8 +60,7 @@ public class TcpProxyConnection: Equatable
     let remoteAddress: IPv4Address
     let remotePort: UInt16
 
-    let conduit: Conduit
-    let connection: Transmission.Connection
+    let connection: AsyncConnection
     
     var downstreamStraw: TCPDownstreamStraw
     var upstreamStraw: TCPUpstreamStraw
@@ -79,7 +78,7 @@ public class TcpProxyConnection: Equatable
     var retransmissionTimer: Timer? = nil
 
     // init() automatically send a syn-ack back for the syn (we only open a connect on receiving a syn)
-    public init(proxy: TcpProxy, localAddress: IPv4Address, localPort: UInt16, remoteAddress: IPv4Address, remotePort: UInt16, conduit: Conduit, connection: Transmission.Connection, irs: SequenceNumber, tcpLogger: Puppy?, rcvWnd: UInt16) throws
+    public init(proxy: TcpProxy, localAddress: IPv4Address, localPort: UInt16, remoteAddress: IPv4Address, remotePort: UInt16, connection: AsyncConnection, irs: SequenceNumber, tcpLogger: Puppy?, rcvWnd: UInt16) async throws
     {
         print("\n* TCPProxyConnection init")
         self.proxy = proxy
@@ -89,7 +88,6 @@ public class TcpProxyConnection: Equatable
         self.remoteAddress = remoteAddress
         self.remotePort = remotePort
 
-        self.conduit = conduit
         self.connection = connection
 
         self.lastUsed = Date() // now
@@ -104,20 +102,20 @@ public class TcpProxyConnection: Equatable
 
         self.tcpLogger = tcpLogger
 
-        try self.sendSynAck(sequenceNumber: iss, acknowledgementNumber: acknowledgementNumber, conduit)
+        try await self.sendSynAck(sequenceNumber: iss, acknowledgementNumber: acknowledgementNumber)
         self.state = .established
 
         Task
         {
             while self.open {
-                self.pumpUpstream()
+                try await self.pumpUpstream()
             }
         }
 
         Task
         {
             while self.open {
-                self.pumpDownstream()
+                try await self.pumpDownstream()
             }
         }
 
@@ -131,7 +129,7 @@ public class TcpProxyConnection: Equatable
     }
 
     // This is called for everything except the first syn received.
-    public func processUpstreamPacket(_ tcp: InternetProtocols.TCP) throws
+    public func processUpstreamPacket(_ tcp: InternetProtocols.TCP) async throws
     {
         guard (!tcp.syn) else
         {
@@ -167,7 +165,7 @@ public class TcpProxyConnection: Equatable
                  active OPEN case, enter the CLOSED state and delete the TCB,
                  and return.
                  */
-                self.closeUpstream()
+                try await self.closeUpstream()
                 return
             }
             else if tcp.syn
@@ -181,8 +179,8 @@ public class TcpProxyConnection: Equatable
                  the CLOSED state, delete the TCB, and return.
                  */
 
-                try self.sendRst(self.conduit, tcp, States.closed)
-                self.closeUpstream()
+                try await self.sendRst(tcp, States.closed)
+                try await self.closeUpstream()
                 return
             }
             else if tcp.ack
@@ -216,7 +214,7 @@ public class TcpProxyConnection: Equatable
 //                        else
 //                        {
                         print("🛑 Syn received state but the segment acknowledgment is not acceptable. Sending reset.")
-                        try self.sendRst(self.conduit, tcp, self.state)
+                        try await self.sendRst(tcp, self.state)
 
                         return
 //                        }
@@ -293,7 +291,7 @@ public class TcpProxyConnection: Equatable
                                     let sndNxt = self.downstreamStraw.sequenceNumber
                                     let rcvNxt = self.upstreamStraw.acknowledgementNumber
 
-                                    try self.sendPacket(sequenceNumber: sndNxt, acknowledgementNumber: rcvNxt, ack: true)
+                                    try await self.sendPacket(sequenceNumber: sndNxt, acknowledgementNumber: rcvNxt, ack: true)
                                 }
 
                                 switch state
@@ -368,7 +366,7 @@ public class TcpProxyConnection: Equatable
 
                                 if self.retransmissionQueue.isEmpty
                                 {
-                                    self.closeUpstream()
+                                    try await self.closeUpstream()
                                 }
 
                             default:
@@ -398,8 +396,8 @@ public class TcpProxyConnection: Equatable
                             
                             if self.downstreamStraw.isEmpty
                             {
-                                self.closeUpstream()
-                                try self.closeDownstream()
+                                try await self.closeUpstream()
+                                try await self.closeDownstream()
                             }
                             else
                             {
@@ -474,17 +472,17 @@ public class TcpProxyConnection: Equatable
                 let rcvNxt = self.upstreamStraw.acknowledgementNumber
 
                 // Send an ack
-                try self.sendPacket(sequenceNumber: sndNxt, acknowledgementNumber: rcvNxt, ack: true)
+                try await self.sendPacket(sequenceNumber: sndNxt, acknowledgementNumber: rcvNxt, ack: true)
                 // Drop the unacceptable segment
                 return
             }
         }
     }
 
-    public func closeUpstream()
+    public func closeUpstream() async throws
     {
         self.open = false
-        self.connection.close()
+        try await self.connection.close()
         self.upstreamStraw.close()
 
         AsyncAwaitThrowingEffectSynchronizer.sync
@@ -504,16 +502,20 @@ public class TcpProxyConnection: Equatable
         }
     }
 
-    func pumpUpstream()
+    func pumpUpstream() async throws
     {
         do
         {
             let segment = try self.upstreamStraw.read()
 
-            guard self.connection.write(data: segment.data) else
+            do
+            {
+                try await self.connection.write(segment.data)
+            }
+            catch
             {
                 self.tcpLogger?.error("Upstream write failed, closing connection")
-                self.closeUpstream()
+                try await self.closeUpstream()
                 return
             }
             
@@ -524,20 +526,25 @@ public class TcpProxyConnection: Equatable
         }
         catch
         {
-            self.closeUpstream()
+            try await self.closeUpstream()
             return
         }
     }
 
-    func pumpDownstream()
+    func pumpDownstream() async throws
     {
         let windowSize = self.downstreamStraw.windowSize
 
         // If a read from the server connection fails, the the server connection is closed.
-        guard let data = self.connection.read(maxSize: Int(windowSize)) else
+        do
+        {
+            let data = try await self.connection.readMaxSize(Int(windowSize))
+            try await self.processDownstreamPacket(data)
+        }
+        catch
         {
             // Fully close the server connection and let users know the connection is closed if they try to write data.
-            self.closeUpstream()
+            try await self.closeUpstream()
 
             // Start to close the client connection.
             // FIXME - find the right acknowledgeNumber for this.
@@ -545,33 +552,31 @@ public class TcpProxyConnection: Equatable
 
             return
         }
-
-        self.processDownstreamPacket(data)
     }
 
-    func pumpAck()
+    func pumpAck() async throws
     {
         let ackSequenceNumber = self.upstreamStraw.acknowledgementNumber
         let sequenceNumber = self.downstreamStraw.sequenceNumber
 
         do
         {
-            try self.sendPacket(sequenceNumber: sequenceNumber, acknowledgementNumber: ackSequenceNumber, ack: true)
+            try await self.sendPacket(sequenceNumber: sequenceNumber, acknowledgementNumber: ackSequenceNumber, ack: true)
         }
         catch
         {
             tcpLogger?.debug("! Error: failed to send ack \(sequenceNumber) \(ackSequenceNumber), closing stream")
 
-            self.closeUpstream()
+            try await self.closeUpstream()
             return
         }
     }
 
-    func processDownstreamPacket(_ data: Data)
+    func processDownstreamPacket(_ data: Data) async throws
     {
         do
         {
-            try self.sendPacket(sequenceNumber: self.downstreamStraw.sequenceNumber, acknowledgementNumber: self.upstreamStraw.acknowledgementNumber, ack: true, payload: data)
+            try await self.sendPacket(sequenceNumber: self.downstreamStraw.sequenceNumber, acknowledgementNumber: self.upstreamStraw.acknowledgementNumber, ack: true, payload: data)
             try self.downstreamStraw.clear(bytesSent: data.count)
         }
         catch
@@ -583,20 +588,20 @@ public class TcpProxyConnection: Equatable
         self.lastUsed = Date() // now
     }
 
-    func sendSynAck(sequenceNumber: SequenceNumber, acknowledgementNumber: SequenceNumber, _ conduit: Conduit) throws
+    func sendSynAck(sequenceNumber: SequenceNumber, acknowledgementNumber: SequenceNumber) async throws
     {
-        try self.sendPacket(sequenceNumber: sequenceNumber, acknowledgementNumber: acknowledgementNumber, syn: true, ack: true)
+        try await self.sendPacket(sequenceNumber: sequenceNumber, acknowledgementNumber: acknowledgementNumber, syn: true, ack: true)
     }
 
-    func sendAck(_ tcp: InternetProtocols.TCP, _ state: States) throws
+    func sendAck(_ tcp: InternetProtocols.TCP, _ state: States) async throws
     {
         let sndNxt = self.downstreamStraw.sequenceNumber
         let rcvNxt = self.upstreamStraw.acknowledgementNumber
 
-        try self.sendPacket(sequenceNumber: sndNxt, acknowledgementNumber: rcvNxt, syn: true, ack: true)
+        try await self.sendPacket(sequenceNumber: sndNxt, acknowledgementNumber: rcvNxt, syn: true, ack: true)
     }
 
-    func sendRst(_ conduit: Conduit, _ tcp: InternetProtocols.TCP, _ state: States) throws
+    func sendRst(_ tcp: InternetProtocols.TCP, _ state: States) async throws
     {
         tcpLogger?.debug("* sending Rst")
         switch state
@@ -630,13 +635,13 @@ public class TcpProxyConnection: Equatable
                 else if tcp.ack
                 {
                     self.tcpLogger?.debug("sendRst() called")
-                    try self.sendPacket(sequenceNumber: SequenceNumber(tcp.acknowledgementNumber), rst: true)
+                    try await self.sendPacket(sequenceNumber: SequenceNumber(tcp.acknowledgementNumber), rst: true)
                 }
                 else
                 {
                     let acknowledgementNumber = SequenceNumber(tcp.sequenceNumber).add(TcpProxy.sequenceLength(tcp))
                     self.tcpLogger?.debug("sendRst() called")
-                    try self.sendPacket(acknowledgementNumber: acknowledgementNumber, ack: true, rst: true)
+                    try await self.sendPacket(acknowledgementNumber: acknowledgementNumber, ack: true, rst: true)
                 }
 
             case .synReceived:
@@ -649,27 +654,27 @@ public class TcpProxyConnection: Equatable
                  and send it.
                  */
                 self.tcpLogger?.debug("sendRst() called")
-                try self.sendPacket(sequenceNumber: SequenceNumber(tcp.acknowledgementNumber), rst: true)
+                try await self.sendPacket(sequenceNumber: SequenceNumber(tcp.acknowledgementNumber), rst: true)
 
             default:
                 return // FIXME
         }
     }
 
-    func closeDownstream() throws
+    func closeDownstream() async throws
     {
         self.state = .finWait1
         self.tcpLogger?.debug("startClose() called")
-        try self.sendFinAck(sequenceNumber: self.downstreamStraw.sequenceNumber, acknowledgementNumber: self.upstreamStraw.acknowledgementNumber)
+        try await self.sendFinAck(sequenceNumber: self.downstreamStraw.sequenceNumber, acknowledgementNumber: self.upstreamStraw.acknowledgementNumber)
     }
 
-    func sendFinAck(sequenceNumber: SequenceNumber, acknowledgementNumber: SequenceNumber) throws
+    func sendFinAck(sequenceNumber: SequenceNumber, acknowledgementNumber: SequenceNumber) async throws
     {
         self.tcpLogger?.debug("sendFin() called")
-        try self.sendPacket(sequenceNumber: sequenceNumber, acknowledgementNumber: acknowledgementNumber, ack: true, fin: true)
+        try await self.sendPacket(sequenceNumber: sequenceNumber, acknowledgementNumber: acknowledgementNumber, ack: true, fin: true)
     }
 
-    func sendPacket(sequenceNumber: SequenceNumber = SequenceNumber(0), acknowledgementNumber: SequenceNumber = SequenceNumber(0), syn: Bool = false, ack: Bool = false, fin: Bool = false, rst: Bool = false, payload: Data? = nil) throws
+    func sendPacket(sequenceNumber: SequenceNumber = SequenceNumber(0), acknowledgementNumber: SequenceNumber = SequenceNumber(0), syn: Bool = false, ack: Bool = false, fin: Bool = false, rst: Bool = false, payload: Data? = nil) async throws
     {
         do
         {
@@ -714,11 +719,8 @@ public class TcpProxyConnection: Equatable
                     self.tcpLogger?.debug("************************************************************\n")
                 }
             }
-            
-            
-            let message = Message.IPDataV4(ipv4.data)
-            
-            self.conduit.flowerConnection.writeMessage(message: message)
+
+            try await self.connection.write(ipv4.data)
         }
         catch
         {
@@ -733,7 +735,10 @@ public class TcpProxyConnection: Equatable
         {
             timer in
 
-            self.closeUpstream()
+            AsyncAwaitEffectSynchronizer.sync
+            {
+                try? await self.closeUpstream()
+            }
         }
     }
 
