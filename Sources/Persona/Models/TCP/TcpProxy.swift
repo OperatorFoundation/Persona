@@ -187,7 +187,7 @@ public actor TcpProxy
             catch
             {
                 // Connection failed.
-                self.logger.log("* Persona failed to connect to the destination address \(destinationAddress.string): \(destinationPort)")
+                self.logger.error("* Persona failed to connect to the destination address \(destinationAddress.string): \(destinationPort)")
                 try await self.sendRst(sourceAddress: sourceAddress, sourcePort: sourcePort, destinationAddress: destinationAddress, destinationPort: destinationPort, tcp, .closed)
                 return
             }
@@ -323,7 +323,7 @@ public actor TcpProxy
     {
         guard let ipv4 = try? IPv4(sourceAddress: sourceAddress, destinationAddress: destinationAddress, sourcePort: sourcePort, destinationPort: destinationPort, sequenceNumber: sequenceNumber, acknowledgementNumber: acknowledgementNumber, syn: false, ack: ack, fin: false, rst: true, windowSize: 0, payload: nil) else
         {
-            self.logger.log("* sendPacket() failed to create an IPV4packet")
+            self.logger.error("* sendPacket() failed to create an IPV4packet")
             throw TcpProxyError.badIpv4Packet
         }
 
