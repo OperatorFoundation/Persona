@@ -84,34 +84,15 @@ let package = Package(
         .executableTarget(
             name: "UdpEchoServer",
             dependencies: [
-                .product(name: "ArgumentParser", package: "swift-argument-parser"),
-                .product(name: "Lifecycle", package: "swift-service-lifecycle"),
                 .product(name: "Logging", package: "swift-log"),
-                .product(name: "NIO", package: "swift-nio"),
-                .product(name: "Simulation", package: "Spacetime"),
-                .product(name: "Spacetime", package: "Spacetime"),
-                .product(name: "Universe", package: "Spacetime"),
 
-                "Datable",
-                "Persona",
-                "Puppy",
-                "SwiftHexTools",
-                "Transmission",
-                "TransmissionTypes",
+                "TransmissionAsync",
             ]),
         .executableTarget(
             name: "TcpEchoServer",
             dependencies: [
-                .product(name: "ArgumentParser", package: "swift-argument-parser"),
-                .product(name: "Lifecycle", package: "swift-service-lifecycle"),
                 .product(name: "Logging", package: "swift-log"),
-                .product(name: "NIO", package: "swift-nio"),
 
-                "Chord",
-                "Datable",
-                "PersonaConfig",
-                "Puppy",
-                "SwiftHexTools",
                 "TransmissionAsync",
             ]),
         .testTarget(
