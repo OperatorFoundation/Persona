@@ -23,8 +23,6 @@ public class Persona
     let connection: AsyncConnection
 
     var tcpLogger = Puppy()
-    var pool = AddressPool()
-    var conduitCollection = ConduitCollection()
 
     var udpProxy: UdpProxy! = nil
     var tcpProxy: TcpProxy! = nil
@@ -79,43 +77,13 @@ public class Persona
     func handleMessage(_ data: Data) async throws
     {
         let packet = Packet(ipv4Bytes: data, timestamp: Date(), debugPrints: true)
-        guard let ipv4Packet = packet.ipv4 else
+
+        if packet.tcp != nil
         {
-            // Drop this packet, but then continue processing more packets
-            print("* Persona.handleNextMessage: received data was not an IPV4 packet, ignoring this packet.")
-            throw PersonaError.packetNotIPv4(data)
-        }
-
-        if let tcp = packet.tcp
-        {
-            guard let ipv4Source = IPv4Address(data: ipv4Packet.sourceAddress) else
-            {
-                // Drop this packet, but then continue processing more packets
-                throw PersonaError.addressDataIsNotIPv4(ipv4Packet.destinationAddress)
-            }
-
-            let sourcePort = NWEndpoint.Port(integerLiteral: tcp.sourcePort)
-            let sourceEndpoint = EndpointV4(host: ipv4Source, port: sourcePort)
-
-            guard let ipv4Destination = IPv4Address(data: ipv4Packet.destinationAddress) else
-            {
-                // Drop this packet, but then continue processing more packets
-                throw PersonaError.addressDataIsNotIPv4(ipv4Packet.destinationAddress)
-            }
-            let destinationPort = NWEndpoint.Port(integerLiteral: tcp.destinationPort)
-            let destinationEndpoint = EndpointV4(host: ipv4Destination, port: destinationPort)
-
             try await self.tcpProxy.processUpstreamPacket(packet)
         }
         else if let udp = packet.udp
         {
-            guard let ipv4Destination = IPv4Address(data: ipv4Packet.destinationAddress) else
-            {
-                // Drop this packet, but then continue processing more packets
-                throw PersonaError.addressDataIsNotIPv4(ipv4Packet.destinationAddress)
-            }
-
-            let port = NWEndpoint.Port(integerLiteral: udp.destinationPort)
             guard udp.payload != nil else
             {
                 throw PersonaError.emptyPayload

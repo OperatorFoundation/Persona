@@ -70,9 +70,9 @@ public class UdpProxy
 //        }
     }
 
-    func addConnection(localAddress: IPv4Address, localPort: UInt16, remoteAddress: IPv4Address, remotePort: UInt16, conduit: Conduit, connection: AsyncConnection) -> UdpProxyConnection
+    func addConnection(localAddress: IPv4Address, localPort: UInt16, remoteAddress: IPv4Address, remotePort: UInt16, connection: AsyncConnection) -> UdpProxyConnection
     {
-        let connection = UdpProxyConnection(localAddress: localAddress, localPort: localPort, remoteAddress: remoteAddress, remotePort: remotePort, conduit: conduit, connection: connection)
+        let connection = UdpProxyConnection(localAddress: localAddress, localPort: localPort, remoteAddress: remoteAddress, remotePort: remotePort, connection: connection)
         self.connections.append(connection)
         return connection
     }
@@ -99,13 +99,12 @@ class UdpProxyConnection
     let remoteAddress: IPv4Address
     let remotePort: UInt16
 
-    let conduit: Conduit
     let connection: AsyncConnection
 
     var lastUsed: Date
     let queue = DispatchQueue(label: "UdpProxyConnection")
 
-    public init(localAddress: IPv4Address, localPort: UInt16, remoteAddress: IPv4Address, remotePort: UInt16, conduit: Conduit, connection: AsyncConnection)
+    public init(localAddress: IPv4Address, localPort: UInt16, remoteAddress: IPv4Address, remotePort: UInt16, connection: AsyncConnection)
     {
         self.localAddress = localAddress
         self.localPort = localPort
@@ -113,7 +112,6 @@ class UdpProxyConnection
         self.remoteAddress = remoteAddress
         self.remotePort = remotePort
 
-        self.conduit = conduit
         self.connection = connection
 
         lastUsed = Date() // now

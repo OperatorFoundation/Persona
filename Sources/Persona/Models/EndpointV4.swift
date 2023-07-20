@@ -33,10 +33,13 @@ public struct EndpointV4: MaybeDatable, Hashable, Comparable, Codable
 
     public init?(data: Data)
     {
-        guard let (portData, tail) = data.splitOn(position: 2) else
+        guard data.count == 6 else
         {
             return nil
         }
+
+        let portData = data[0..<2]
+        let tail = data[2...]
 
         let p = NWEndpoint.Port(integerLiteral: portData.uint16!)
 

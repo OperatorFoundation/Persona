@@ -7,7 +7,6 @@
 import Logging
 
 import Chord
-import Flower
 import Foundation
 import InternetProtocols
 import Net

@@ -11,7 +11,6 @@ import Net
 
 extension IPv4Address: Stringable
 {
-
     public init(string: String)
     {
         self.init(string)! // FIXME - dangerous

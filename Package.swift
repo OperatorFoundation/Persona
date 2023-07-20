@@ -12,14 +12,6 @@ let package = Package(
             name: "Persona",
             targets: ["Persona"]
         ),
-        .executable(
-            name: "UdpEchoServer",
-            targets: ["UdpEchoServer"]
-        ),
-        .executable(
-            name: "TcpEchoServer",
-            targets: ["TcpEchoServer"]
-        ),
     ],
     dependencies: [
         // Dependencies declare other packages that this package depends on.
@@ -27,22 +19,15 @@ let package = Package(
         .package(url: "https://github.com/sushichop/Puppy.git", from: "0.6.0"),
         .package(url: "https://github.com/apple/swift-argument-parser.git", from: "1.2.2"),
         .package(url: "https://github.com/apple/swift-log.git", from: "1.5.2"),
-        .package(url: "https://github.com/apple/swift-nio.git", from: "2.0.0"),
-        .package(url: "https://github.com/swift-server/swift-service-lifecycle", from: "1.0.0-alpha.11"),
 
         .package(url: "https://github.com/OperatorFoundation/Datable", branch: "main"),
-        .package(url: "https://github.com/OperatorFoundation/Flower", branch: "main"),
         .package(url: "https://github.com/OperatorFoundation/Gardener", branch: "main"),
         .package(url: "https://github.com/OperatorFoundation/InternetProtocols", branch: "main"),
         .package(url: "https://github.com/OperatorFoundation/KeychainCli", branch: "main"),
-        .package(url: "https://github.com/OperatorFoundation/Nametag", branch: "main"),
         .package(url: "https://github.com/OperatorFoundation/Net", branch: "main"),
-        .package(url: "https://github.com/OperatorFoundation/Spacetime", branch: "main"),
         .package(url: "https://github.com/OperatorFoundation/Straw", branch: "main"),
         .package(url: "https://github.com/OperatorFoundation/SwiftHexTools", branch: "main"),
-        .package(url: "https://github.com/OperatorFoundation/Transmission", branch: "main"),
         .package(url: "https://github.com/OperatorFoundation/TransmissionAsync", branch: "main"),
-        .package(url: "https://github.com/OperatorFoundation/TransmissionTypes", branch: "main"),
     ],
     targets: [
         // Targets are the basic building blocks of a package. A target can define a module or a test suite.
@@ -51,38 +36,15 @@ let package = Package(
             name: "Persona",
             dependencies: [
                 .product(name: "ArgumentParser", package: "swift-argument-parser"),
-                .product(name: "Lifecycle", package: "swift-service-lifecycle"),
                 .product(name: "Logging", package: "swift-log"),
-                .product(name: "NIO", package: "swift-nio"),
                 "Datable",
-                "Flower",
                 "Gardener",
                 "InternetProtocols",
                 "KeychainCli",
-                "Nametag",
                 "Net",
                 "Puppy",
                 "Straw",
                 "SwiftHexTools",
-                "Transmission",
-                "TransmissionAsync",
-                "TransmissionTypes",
-                .product(name: "Simulation", package: "Spacetime"),
-                .product(name: "Spacetime", package: "Spacetime"),
-                .product(name: "Universe", package: "Spacetime"),
-            ]),
-        .executableTarget(
-            name: "UdpEchoServer",
-            dependencies: [
-                .product(name: "Logging", package: "swift-log"),
-
-                "TransmissionAsync",
-            ]),
-        .executableTarget(
-            name: "TcpEchoServer",
-            dependencies: [
-                .product(name: "Logging", package: "swift-log"),
-
                 "TransmissionAsync",
             ]),
         .testTarget(
