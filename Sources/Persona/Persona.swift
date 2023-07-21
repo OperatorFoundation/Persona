@@ -60,9 +60,7 @@ public class Persona
         {
             do
             {
-                self.logger.debug("Persona.run reading next message")
                 let message = try await self.connection.readWithLengthPrefix(prefixSizeInBits: 32)
-                self.logger.debug("received \(message.count) bytes")
                 try await self.handleMessage(message)
             }
             catch
@@ -75,13 +73,11 @@ public class Persona
 
     func handleMessage(_ data: Data) async throws
     {
-        self.logger.debug("handleMessage \(data.count)")
         let packet = Packet(ipv4Bytes: data, timestamp: Date(), debugPrints: true)
-        self.logger.debug("packet: \(packet)")
 
         if packet.tcp != nil
         {
-            self.logger.debug("TCP packet")
+            self.logger.debug("TCP packet \(packet.tcp!.destinationPort)")
             try await self.tcpProxy.processUpstreamPacket(packet)
         }
         else if let udp = packet.udp
