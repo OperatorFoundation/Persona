@@ -17,13 +17,11 @@ let package = Package(
         // Dependencies declare other packages that this package depends on.
         // .package(url: /* package url */, from: "1.0.0"),
         .package(url: "https://github.com/sushichop/Puppy.git", from: "0.6.0"),
-        .package(url: "https://github.com/apple/swift-argument-parser.git", from: "1.2.2"),
         .package(url: "https://github.com/apple/swift-log.git", from: "1.5.2"),
 
         .package(url: "https://github.com/OperatorFoundation/Datable", branch: "main"),
         .package(url: "https://github.com/OperatorFoundation/Gardener", branch: "main"),
         .package(url: "https://github.com/OperatorFoundation/InternetProtocols", branch: "main"),
-        .package(url: "https://github.com/OperatorFoundation/KeychainCli", branch: "main"),
         .package(url: "https://github.com/OperatorFoundation/Net", branch: "main"),
         .package(url: "https://github.com/OperatorFoundation/Straw", branch: "main"),
         .package(url: "https://github.com/OperatorFoundation/SwiftHexTools", branch: "main"),
@@ -35,12 +33,11 @@ let package = Package(
         .executableTarget(
             name: "Persona",
             dependencies: [
-                .product(name: "ArgumentParser", package: "swift-argument-parser"),
                 .product(name: "Logging", package: "swift-log"),
+
                 "Datable",
                 "Gardener",
                 "InternetProtocols",
-                "KeychainCli",
                 "Net",
                 "Puppy",
                 "Straw",
