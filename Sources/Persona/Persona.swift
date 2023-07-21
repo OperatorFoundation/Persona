@@ -68,7 +68,7 @@ public class Persona
             catch
             {
                 self.logger.error("\(error.localizedDescription)")
-                continue
+                return
             }
         }
     }
