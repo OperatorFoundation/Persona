@@ -1,3 +1,6 @@
+git pull origin main
+swift build
+
 cp etc/systemd/* /etc/systemd/system
 systemctl daemon-reload
 systemctl start persona.socket
