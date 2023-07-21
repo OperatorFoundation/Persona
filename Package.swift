@@ -18,6 +18,7 @@ let package = Package(
         // .package(url: /* package url */, from: "1.0.0"),
         .package(url: "https://github.com/sushichop/Puppy.git", from: "0.6.0"),
         .package(url: "https://github.com/apple/swift-log.git", from: "1.5.2"),
+        .package(url: "https://github.com/ianpartridge/swift-log-syslog.git", from: "1.0.2"),
 
         .package(url: "https://github.com/OperatorFoundation/Datable", branch: "main"),
         .package(url: "https://github.com/OperatorFoundation/Gardener", branch: "main"),
@@ -34,6 +35,7 @@ let package = Package(
             name: "Persona",
             dependencies: [
                 .product(name: "Logging", package: "swift-log"),
+                .product(name: "LoggingSyslog", package: "swift-log-syslog"),
 
                 "Datable",
                 "Gardener",
