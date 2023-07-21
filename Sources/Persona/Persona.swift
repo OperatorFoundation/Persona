@@ -18,6 +18,7 @@ public class Persona
 {
     let connection: AsyncConnection
 
+    let logger: Logger
     var tcpLogger = Puppy()
 
     var udpProxy: UdpProxy! = nil
@@ -25,10 +26,9 @@ public class Persona
 
     public init() throws
     {
-//        let logger = Logger(label: "org.OperatorFoundation.PersonaLogger")
         let mainLogURL = URL(fileURLWithPath: "/root/Persona/persona.log")
-        let logger = try FileLogging.logger(label: "Persona", localFile: mainLogURL)
-        logger.info("Persona Start")
+        self.logger = try FileLogging.logger(label: "Persona", localFile: mainLogURL)
+        self.logger.info("Persona Start")
         
         let logFileURL = File.homeDirectory().appendingPathComponent("PersonaTcpLog.log", isDirectory: false)
 
@@ -60,6 +60,7 @@ public class Persona
             do
             {
                 let message = try await self.connection.readWithLengthPrefix(prefixSizeInBits: 32)
+                self.logger.debug("received \(message.count) bytes")
                 try await self.handleMessage(message)
             }
             catch
