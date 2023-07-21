@@ -1,0 +1,12 @@
+# persona.socket
+
+[Unit]
+Description = Persona server
+
+[Socket]
+ListenStream = 1234
+Accept = yes
+ReusePort = yes
+
+[Install]
+WantedBy = sockets.target
