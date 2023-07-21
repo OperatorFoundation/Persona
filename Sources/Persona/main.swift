@@ -6,6 +6,7 @@
 //
 
 import Logging
+import FileLogging
 import LoggingSyslog
 import Foundation
 #if os(macOS) || os(iOS)

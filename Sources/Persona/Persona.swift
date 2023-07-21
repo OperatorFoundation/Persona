@@ -25,6 +25,7 @@ public class Persona
     public init()
     {
         let logger = Logger(label: "org.OperatorFoundation.PersonaLogger")
+        logger.info("Persona Start")
         
         let logFileURL = File.homeDirectory().appendingPathComponent("PersonaTcpLog.log", isDirectory: false)
 
