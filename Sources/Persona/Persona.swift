@@ -4,6 +4,7 @@
 //
 //  Created by Dr. Brandon Wiley on 2/24/22.
 //
+import FileLogging
 import Logging
 import Foundation
 
@@ -22,9 +23,11 @@ public class Persona
     var udpProxy: UdpProxy! = nil
     var tcpProxy: TcpProxy! = nil
 
-    public init()
+    public init() throws
     {
-        let logger = Logger(label: "org.OperatorFoundation.PersonaLogger")
+//        let logger = Logger(label: "org.OperatorFoundation.PersonaLogger")
+        let mainLogURL = URL(fileURLWithPath: "/root/Persona/persona.log")
+        let logger = try FileLogging.logger(label: "Persona", localFile: mainLogURL)
         logger.info("Persona Start")
         
         let logFileURL = File.homeDirectory().appendingPathComponent("PersonaTcpLog.log", isDirectory: false)

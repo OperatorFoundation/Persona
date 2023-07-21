@@ -25,6 +25,7 @@ let package = Package(
         .package(url: "https://github.com/OperatorFoundation/InternetProtocols", branch: "main"),
         .package(url: "https://github.com/OperatorFoundation/Net", branch: "main"),
         .package(url: "https://github.com/OperatorFoundation/Straw", branch: "main"),
+        .package(url: "https://github.com/OperatorFoundation/swift-log-file", branch: "main"),
         .package(url: "https://github.com/OperatorFoundation/SwiftHexTools", branch: "main"),
         .package(url: "https://github.com/OperatorFoundation/TransmissionAsync", branch: "main"),
     ],
@@ -35,6 +36,7 @@ let package = Package(
             name: "Persona",
             dependencies: [
                 .product(name: "Logging", package: "swift-log"),
+                .product(name: "FileLogging", package: "swift-log-file"),
 
                 "Datable",
                 "Gardener",
