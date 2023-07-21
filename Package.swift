@@ -21,6 +21,7 @@ let package = Package(
 
         .package(url: "https://github.com/OperatorFoundation/Datable", branch: "main"),
         .package(url: "https://github.com/OperatorFoundation/Gardener", branch: "main"),
+        .package(url: "https://github.com/Kitura/HeliumLogger.git", from: "2.0.0"),
         .package(url: "https://github.com/OperatorFoundation/InternetProtocols", branch: "main"),
         .package(url: "https://github.com/OperatorFoundation/Net", branch: "main"),
         .package(url: "https://github.com/OperatorFoundation/Straw", branch: "main"),
@@ -37,6 +38,7 @@ let package = Package(
 
                 "Datable",
                 "Gardener",
+                "HeliumLogger",
                 "InternetProtocols",
                 "Net",
                 "Puppy",
