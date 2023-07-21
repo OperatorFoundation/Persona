@@ -64,7 +64,7 @@ public class Persona
         {
             do
             {
-                let message = try await self.connection.readWithLengthPrefix(prefixSizeInBits: 64)
+                let message = try await self.connection.readWithLengthPrefix(prefixSizeInBits: 32)
                 try await self.handleMessage(message)
             }
             catch
