@@ -67,7 +67,6 @@ public class TCPUpstreamStraw
     // public constructors
     public init(segmentStart: SequenceNumber)
     {
-        print("* Creating window, segment start - \(segmentStart)")
         self.window = SequenceNumberRange(lowerBound: segmentStart, size: Self.maxBufferSize)
     }
 
@@ -79,25 +78,16 @@ public class TCPUpstreamStraw
         let sequenceNumberData = tcp.sequenceNumber
         let sequenceNumber = SequenceNumber(sequenceNumberData)
         
-        print("* inWindow sequenceNumber - \(sequenceNumber)")
-        print("* inWindow lowerBound - \(self.window.lowerBound)")
-        print("* inWindow upperBound - \(self.window.upperBound)")
-        print("* inWindow privateWindowSize \(privateWindowSize)")
-        
-        
         guard self.window.contains(sequenceNumber: sequenceNumber) else
         {
             self.functionLock.signal()
-            print("* inWindow sequence number is not in the expected window")
             return false
         }
 
         if let payload = tcp.payload
         {
-            print("* inWindow payload.count - \(payload.count)")
             guard payload.count <= self.privateWindowSize else
             {
-                print("* inWindow Payload is too large - \(payload.count)")
                 self.functionLock.signal()
                 return false
             }

@@ -31,7 +31,6 @@ public struct ServerConfig: Codable
         }
         catch
         {
-            print("* Persona.ServerConfig: Error received while attempting to decode a server configuration json file: \(error)")
             return nil
         }
     }
@@ -52,8 +51,6 @@ public struct ServerConfig: Codable
         }
         catch
         {
-            print("* Persona.ServerConfig: Error decoding server config file: \(error)")
-            
             return nil
         }
     }

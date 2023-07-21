@@ -5,11 +5,7 @@
 //  Created by Dr. Brandon Wiley on 3/7/22.
 //
 
-#if os(macOS)
-import os.log
-#else
 import Logging
-#endif
 import Foundation
 
 import Chord
@@ -52,19 +48,14 @@ public actor TcpProxy
         return length
     }
 
-    #if os(macOS)
-    let logger: os.Logger
-    #else
-    let logger: Logging.Logger
-    #endif
+    let logger: Logger
     let tcpLogger: Puppy?
 
     let client: AsyncConnection
 
     var connections: [TcpProxyConnection] = []
 
-    #if os(macOS)
-    public init(client: AsyncConnection, quietTime: Bool = true, logger: os.Logger, tcpLogger: Puppy?)
+    public init(client: AsyncConnection, quietTime: Bool = true, logger: Logger, tcpLogger: Puppy?)
     {
         self.client = client
         self.logger = logger
@@ -75,23 +66,10 @@ public actor TcpProxy
             TcpProxy.quietTimeLock.wait()
         }
     }
-    #else
-    public init(client: AsyncConnection, quietTime: Bool = true, logger: Logging.Logger, tcpLogger: Puppy?)
-    {
-        self.client = client
-        self.logger = logger
-        self.tcpLogger = tcpLogger
-
-        if quietTime
-        {
-            TcpProxy.quietTimeLock.wait()
-        }
-    }
-    #endif
 
     public func processUpstreamPacket(_ packet: Packet) async throws
     {
-        print("\n* Persona.TcpProxy: Attempting to process a TCP packet.")
+        self.logger.debug("\n* Persona.TcpProxy: Attempting to process a TCP packet.")
 
         guard let ipv4Packet = packet.ipv4 else
         {
@@ -102,13 +80,13 @@ public actor TcpProxy
         {
             throw TcpProxyError.invalidAddress(ipv4Packet.sourceAddress)
         }
-        print("* Source Address: \(sourceAddress.string)")
+        self.logger.debug("* Source Address: \(sourceAddress.string)")
 
         guard let destinationAddress = IPv4Address(ipv4Packet.destinationAddress) else
         {
             throw TcpProxyError.invalidAddress(ipv4Packet.destinationAddress)
         }
-        print("* Destination Address: \(destinationAddress)")
+        self.logger.debug("* Destination Address: \(destinationAddress)")
 
         guard let tcp = packet.tcp else
         {
@@ -116,10 +94,10 @@ public actor TcpProxy
         }
 
         let sourcePort = tcp.sourcePort
-        print("* Source Port: \(sourcePort)")
+        self.logger.debug("* Source Port: \(sourcePort)")
 
         let destinationPort = tcp.destinationPort
-        print("* Destination Port: \(destinationPort)")
+        self.logger.debug("* Destination Port: \(destinationPort)")
 
         if let proxyConnection = self.findConnection(localAddress: sourceAddress, localPort: sourcePort, remoteAddress: destinationAddress, remotePort: destinationPort, tcp: tcp)
         {
@@ -207,16 +185,8 @@ public actor TcpProxy
 
     func addConnection(proxy: TcpProxy, localAddress: IPv4Address, localPort: UInt16, remoteAddress: IPv4Address, remotePort: UInt16, connection: AsyncConnection, irs: SequenceNumber, rcvWnd: UInt16) async throws
     {
-        do
-        {
-            let connection = try await TcpProxyConnection(proxy: proxy, localAddress: localAddress, localPort: localPort, remoteAddress: remoteAddress, remotePort: remotePort, connection: connection, irs: irs, tcpLogger: tcpLogger, rcvWnd: rcvWnd)
-            self.connections.append(connection)
-        }
-        catch
-        {
-            print("* Failed to initialize a TcpProxyConnection: \(error)")
-            throw error
-        }
+        let connection = try await TcpProxyConnection(proxy: proxy, localAddress: localAddress, localPort: localPort, remoteAddress: remoteAddress, remotePort: remotePort, connection: connection, irs: irs, logger: logger, tcpLogger: tcpLogger, rcvWnd: rcvWnd)
+        self.connections.append(connection)
     }
 
     func findConnection(localAddress: IPv4Address, localPort: UInt16, remoteAddress: IPv4Address, remotePort: UInt16, tcp: InternetProtocols.TCP) -> TcpProxyConnection?
@@ -244,7 +214,6 @@ public actor TcpProxy
 
     func sendRst(sourceAddress: IPv4Address, sourcePort: UInt16, destinationAddress: IPv4Address, destinationPort: UInt16, _ tcp: InternetProtocols.TCP, _ state: States) async throws
     {
-        print("* Persona sendRst called")
         switch state
         {
             case .closed:
@@ -269,28 +238,28 @@ public actor TcpProxy
                  Return.
                  */
 
-                print("* TCP state is closed")
+                logger.debug("* TCP state is closed")
 
                 if tcp.rst
                 {
-                    print("* received tcp.reset, doing nothing")
+                    self.logger.debug("* received tcp.reset, doing nothing")
                     return
                 }
                 else if tcp.ack
                 {
-                    print("* received tcp.ack, calling send packet with sequenceNumber: tcp.acknowledgementNumber, and ack: true")
+                    self.logger.debug("* received tcp.ack, calling send packet with sequenceNumber: tcp.acknowledgementNumber, and ack: true")
                     self.tcpLogger?.debug("(proxy)sendRst() called")
                     try await self.sendPacket(sourceAddress: sourceAddress, sourcePort: sourcePort, destinationAddress: destinationAddress, destinationPort: destinationPort, sequenceNumber: SequenceNumber(tcp.acknowledgementNumber), ack: true)
                 }
                 else
                 {
-                    print("* calling send packet with acknowledgement#: tcp.sequenceNumber + TcpProxy.sequenceLength(tcp)")
+                    self.logger.debug("* calling send packet with acknowledgement#: tcp.sequenceNumber + TcpProxy.sequenceLength(tcp)")
                     let acknowledgementNumber = SequenceNumber(tcp.sequenceNumber).add(TcpProxy.sequenceLength(tcp))
                     self.tcpLogger?.debug("(proxy)sendRst() called")
                     try await self.sendPacket(sourceAddress: sourceAddress, sourcePort: sourcePort, destinationAddress: destinationAddress, destinationPort: destinationPort, acknowledgementNumber: acknowledgementNumber)
                 }
             case .listen:
-                print("* TCP state is listen")
+                self.logger.debug("* TCP state is listen")
                 if tcp.ack
                 {
                     /*
@@ -302,19 +271,19 @@ public actor TcpProxy
                      <SEQ=SEG.ACK><CTL=RST>
                      */
 
-                    print("* received tcp.ack, calling send packet with tcp.acknowledgementNumber, and ack: true")
+                    self.logger.debug("* received tcp.ack, calling send packet with tcp.acknowledgementNumber, and ack: true")
 
                     self.tcpLogger?.debug("(proxy)sendRst() called")
                     try await self.sendPacket(sourceAddress: sourceAddress, sourcePort: sourcePort, destinationAddress: destinationAddress, destinationPort: destinationPort, sequenceNumber: SequenceNumber(tcp.acknowledgementNumber), ack: true)
                 }
                 else
                 {
-                    print("* no tcp.ack received, doing nothing")
+                    self.logger.debug("* no tcp.ack received, doing nothing")
                     return
                 }
 
             default:
-                print("* TCP state is an unexpected value, doing nothing")
+                self.logger.debug("* TCP state is an unexpected value, doing nothing")
                 return
         }
     }

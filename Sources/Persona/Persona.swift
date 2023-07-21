@@ -4,11 +4,7 @@
 //
 //  Created by Dr. Brandon Wiley on 2/24/22.
 //
-#if os(macOS) || os(iOS)
-import os.log
-#else
 import Logging
-#endif
 import Foundation
 
 import Gardener
@@ -29,12 +25,8 @@ public class Persona
 
     public init()
     {
-#if os(macOS) || os(iOS)
-        let logger = Logger(subsystem: "org.OperatorFoundation.PersonaLogger", category: "Persona")
-#else
         let logger = Logger(label: "org.OperatorFoundation.PersonaLogger")
-#endif
-
+        
         let logFileURL = File.homeDirectory().appendingPathComponent("PersonaTcpLog.log", isDirectory: false)
 
         if File.exists(logFileURL.path)
@@ -76,7 +68,7 @@ public class Persona
 
     func handleMessage(_ data: Data) async throws
     {
-        let packet = Packet(ipv4Bytes: data, timestamp: Date(), debugPrints: true)
+        let packet = Packet(ipv4Bytes: data, timestamp: Date(), debugPrints: false)
 
         if packet.tcp != nil
         {

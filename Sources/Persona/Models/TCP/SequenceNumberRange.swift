@@ -38,7 +38,6 @@ public class SequenceNumberRange
 
     public init(lowerBound: SequenceNumber, size: UInt32)
     {
-        print("* window init, lowerBound - \(lowerBound)")
         self.lowerBound = lowerBound
 
         let maxSize = UInt32.max - lowerBound.uint32

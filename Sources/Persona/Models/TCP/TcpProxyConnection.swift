@@ -4,10 +4,10 @@
 //
 //  Created by Dr. Brandon Wiley on 3/11/22.
 //
+import Foundation
 import Logging
 
 import Chord
-import Foundation
 import InternetProtocols
 import Net
 import Puppy
@@ -50,7 +50,8 @@ public class TcpProxyConnection: Equatable
         let uint32 = UInt32(wholeMicroseconds)
         return SequenceNumber(uint32)
     }
-    
+
+    let logger: Logger
     let tcpLogger: Puppy?
     let proxy: TcpProxy
     let localAddress: IPv4Address
@@ -77,9 +78,10 @@ public class TcpProxyConnection: Equatable
     var retransmissionTimer: Timer? = nil
 
     // init() automatically send a syn-ack back for the syn (we only open a connect on receiving a syn)
-    public init(proxy: TcpProxy, localAddress: IPv4Address, localPort: UInt16, remoteAddress: IPv4Address, remotePort: UInt16, connection: AsyncConnection, irs: SequenceNumber, tcpLogger: Puppy?, rcvWnd: UInt16) async throws
+    public init(proxy: TcpProxy, localAddress: IPv4Address, localPort: UInt16, remoteAddress: IPv4Address, remotePort: UInt16, connection: AsyncConnection, irs: SequenceNumber, logger: Logger, tcpLogger: Puppy?, rcvWnd: UInt16) async throws
     {
-        print("\n* TCPProxyConnection init")
+        self.logger = logger
+        self.logger.debug("\n* TCPProxyConnection init")
         self.proxy = proxy
         self.localAddress = localAddress
         self.localPort = localPort
@@ -132,14 +134,14 @@ public class TcpProxyConnection: Equatable
     {
         guard (!tcp.syn) else
         {
-            print("* Duplicate syn received")
+            self.logger.debug("* Duplicate syn received")
             tcpLogger?.debug("Duplicate syn received")
             return
         }
         
         if tcp.payload != nil
         {
-            print("* received a packet with a payload")
+            self.logger.debug("* received a packet with a payload")
         }
         
         // For the most part, we can only handle packets that are inside the TCP window.
@@ -148,7 +150,7 @@ public class TcpProxyConnection: Equatable
         {
             if tcp.rst
             {
-                print("* Persona.processLocalPacket: received rst")
+                self.logger.debug("* Persona.processLocalPacket: received rst")
                 /*
                  SYN-RECEIVED STATE
 
@@ -169,7 +171,7 @@ public class TcpProxyConnection: Equatable
             }
             else if tcp.syn
             {
-                print("* Persona.processLocalPacket: received syn in the update window, sending rst")
+                self.logger.debug("* Persona.processLocalPacket: received syn in the update window, sending rst")
                 /*
                  If the SYN is in the window it is an error, send a reset, any
                  outstanding RECEIVEs and SEND should receive "reset" responses,
@@ -184,12 +186,12 @@ public class TcpProxyConnection: Equatable
             }
             else if tcp.ack
             {
-                print("* Persona.processLocalPacket: received ack")
+                self.logger.debug("* Persona.processLocalPacket: received ack")
                 
                 switch state
                 {
                     case .synReceived:
-                        print("* Persona.processLocalPacket: synReceived state")
+                        self.logger.debug("* Persona.processLocalPacket: synReceived state")
                         /*
                          SYN-RECEIVED STATE
 
@@ -207,19 +209,19 @@ public class TcpProxyConnection: Equatable
                         // FIXME - deal with duplicate SYNs
 //                        if (self.sndUna <= SequenceNumber(tcp.acknowledgementNumber)) && (SequenceNumber(tcp.acknowledgementNumber) <= self.sndNxt)
 //                        {
-//                            print("✅ Persona.processLocalPacket: state set to established")
+//                            self.logger.debug("✅ Persona.processLocalPacket: state set to established")
 //                            self.state = .established
 //                        }
 //                        else
 //                        {
-                        print("🛑 Syn received state but the segment acknowledgment is not acceptable. Sending reset.")
+                        self.logger.debug("🛑 Syn received state but the segment acknowledgment is not acceptable. Sending reset.")
                         try await self.sendRst(tcp, self.state)
 
                         return
 //                        }
 
                     case .established, .finWait1, .finWait2, .closeWait, .closing, .lastAck, .timeWait:
-                        print("* Persona.processLocalPacket: .established, .finWait1, .finWait2, .closeWait, .closing, .lastAck, .timeWait state")
+                        self.logger.debug("* Persona.processLocalPacket: .established, .finWait1, .finWait2, .closeWait, .closing, .lastAck, .timeWait state")
                         /*
                          ESTABLISHED STATE
                          */
@@ -231,7 +233,7 @@ public class TcpProxyConnection: Equatable
                         switch state
                         {
                             case .established, .finWait1, .finWait2:
-                                print("* Persona.processLocalPacket: .established, .finWait1, .finWait2 state")
+                                self.logger.debug("* Persona.processLocalPacket: .established, .finWait1, .finWait2 state")
                                 /*
                                  Once in the ESTABLISHED state, it is possible to deliver segment
                                  text to user RECEIVE buffers.  Text from segments can be moved
@@ -262,7 +264,7 @@ public class TcpProxyConnection: Equatable
                                     // Start closing the client connection.
 
                                     try self.upstreamStraw.write(tcp)
-                                    print("* Persona.processLocalPacket: payload upstream write complete\n")
+                                    self.logger.debug("* Persona.processLocalPacket: payload upstream write complete\n")
                                     
                                     /*
                                      When the TCP takes responsibility for delivering the data to the
@@ -296,7 +298,7 @@ public class TcpProxyConnection: Equatable
                                 switch state
                                 {
                                     case .finWait1:
-                                        print("* Persona.processLocalPacket: finWait1 state")
+                                        self.logger.debug("* Persona.processLocalPacket: finWait1 state")
                                         /*
                                          FIN-WAIT-1 STATE
 
@@ -311,7 +313,7 @@ public class TcpProxyConnection: Equatable
                                         }
 
                                     case .finWait2:
-                                        print("* Persona.processLocalPacket: finWait2 state")
+                                        self.logger.debug("* Persona.processLocalPacket: finWait2 state")
                                         /*
                                          FIN-WAIT-2 STATE
 
@@ -328,7 +330,7 @@ public class TcpProxyConnection: Equatable
                                 }
 
                             case .closeWait:
-                                print("* Persona.processLocalPacket: closeWait state")
+                                self.logger.debug("* Persona.processLocalPacket: closeWait state")
                                 /*
                                  CLOSE-WAIT STATE
 
@@ -338,7 +340,7 @@ public class TcpProxyConnection: Equatable
                                 return
 
                             case .closing:
-                                print("* Persona.processLocalPacket: closing state")
+                                self.logger.debug("* Persona.processLocalPacket: closing state")
                                 /*
                                  CLOSING STATE
 
@@ -354,7 +356,7 @@ public class TcpProxyConnection: Equatable
                                 }
 
                             case .lastAck:
-                                print("* Persona.processLocalPacket: lastAck state")
+                                self.logger.debug("* Persona.processLocalPacket: lastAck state")
                                 /*
                                  LAST-ACK STATE
 
@@ -381,7 +383,7 @@ public class TcpProxyConnection: Equatable
                 // However, the FIN packet may have its own payload.
                 if tcp.fin
                 {
-                    print("🛑 Persona.processLocalPacket: tcp.fin")
+                    self.logger.debug("🛑 Persona.processLocalPacket: tcp.fin")
                     // Closing the client TCP connection takes a while.
                     // We will close the connection to the server when we have finished closing the connection to the client.
                     // In the meantime, tidy up the loose ends of closing the connection:
@@ -436,14 +438,14 @@ public class TcpProxyConnection: Equatable
                 /*
                  if the ACK bit is off drop the segment and return
                  */
-                print("🛑 Persona.processLocalPacket: ACK bit is off, dropping the packet")
+                self.logger.debug("🛑 Persona.processLocalPacket: ACK bit is off, dropping the packet")
                 
                 return
             }
         }
         else
         {
-            print("* Persona.processLocalPacket: NOT inWindow")
+            self.logger.debug("* Persona.processLocalPacket: NOT inWindow")
             tcpLogger?.debug("☠️ Packet NOT IN WINDOW")
             tcpLogger?.debug("* \(tcp.description)")
             /*
@@ -459,13 +461,13 @@ public class TcpProxyConnection: Equatable
 
             if tcp.rst
             {
-                print("* Persona.processLocalPacket: incoming segment is not acceptable, rst bit received, dropping packet")
+                self.logger.debug("* Persona.processLocalPacket: incoming segment is not acceptable, rst bit received, dropping packet")
                 // If the rst bit is set, do not send an ack, drop the unacceptable segment and return
                 return
             }
             else
             {
-                print("* Persona.processLocalPacket: incoming segment is not acceptable, and no rst bit, sending ack and dropping packet")
+                self.logger.debug("* Persona.processLocalPacket: incoming segment is not acceptable, and no rst bit, sending ack and dropping packet")
 
                 let sndNxt = self.downstreamStraw.sequenceNumber
                 let rcvNxt = self.upstreamStraw.acknowledgementNumber
@@ -518,8 +520,8 @@ public class TcpProxyConnection: Equatable
                 return
             }
             
-            print("\n* Sent received data (\(segment.data.count) bytes) upstream.")
-            print("* Data sent upstream: \n\(segment.data.hex)\n")
+            self.logger.debug("\n* Sent received data (\(segment.data.count) bytes) upstream.")
+            self.logger.debug("* Data sent upstream: \n\(segment.data.hex)\n")
 
             try self.upstreamStraw.clear(segment: segment)
         }
@@ -686,7 +688,7 @@ public class TcpProxyConnection: Equatable
             }
             
             // Show the packet description in our log
-            if self.remotePort == 2234 // Print traffic from the TCP Echo Server to the TCP log for debugging
+            if self.remotePort == 2234 // Log traffic from the TCP Echo Server to the TCP log for debugging
             {
                 let packet = Packet(ipv4Bytes: ipv4.data, timestamp: Date())
 
