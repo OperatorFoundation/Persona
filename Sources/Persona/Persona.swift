@@ -29,7 +29,7 @@ public class Persona
         let mainLogURL = URL(fileURLWithPath: "/root/Persona/persona.log")
         self.logger = try FileLogging.logger(label: "Persona", localFile: mainLogURL)
         self.logger.info("Persona Start")
-        
+
         let logFileURL = File.homeDirectory().appendingPathComponent("PersonaTcpLog.log", isDirectory: false)
 
         if File.exists(logFileURL.path)
@@ -59,6 +59,7 @@ public class Persona
         {
             do
             {
+                self.logger.debug("Persona.run reading next message")
                 let message = try await self.connection.readWithLengthPrefix(prefixSizeInBits: 32)
                 self.logger.debug("received \(message.count) bytes")
                 try await self.handleMessage(message)
