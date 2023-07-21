@@ -12,7 +12,7 @@ import Foundation
 import FoundationNetworking
 #endif
 
-LoggingSystem.bootstrap(StreamLogHandler.standardOutput)
+LoggingSystem.bootstrap(StreamLogHandler.standardError)
 
 let persona = Persona()
 try await persona.run()
