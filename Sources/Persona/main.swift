@@ -6,15 +6,13 @@
 //
 
 import Logging
-import FileLogging
-import LoggingSyslog
 import Foundation
 #if os(macOS) || os(iOS)
 #else
 import FoundationNetworking
 #endif
 
-LoggingSystem.bootstrap(SyslogLogHandler.init)
+LoggingSystem.bootstrap(StreamLogHandler.standardOutput)
 
 let persona = Persona()
 try await persona.run()
