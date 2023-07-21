@@ -75,14 +75,19 @@ public class Persona
 
     func handleMessage(_ data: Data) async throws
     {
-        let packet = Packet(ipv4Bytes: data, timestamp: Date(), debugPrints: false)
+        self.logger.debug("handleMessage \(data.count)")
+        let packet = Packet(ipv4Bytes: data, timestamp: Date(), debugPrints: true)
+        self.logger.debug("packet: \(packet)")
 
         if packet.tcp != nil
         {
+            self.logger.debug("TCP packet")
             try await self.tcpProxy.processUpstreamPacket(packet)
         }
         else if let udp = packet.udp
         {
+            self.logger.debug("UDP packet")
+
             guard udp.payload != nil else
             {
                 throw PersonaError.emptyPayload
