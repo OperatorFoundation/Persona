@@ -33,6 +33,12 @@ server IP on port 7 over either TCP or UDP.
 Persona runs as a daemon under systemd. Therefore, there is no need to run it manually. After running the install
 script, you can connect to the Persona port and systemd will automatically launch an instance of Persona.
 
+## Updating
+
+If you are working on developing Persona, there is an script called update.sh that will update to the latest
+versiona and restart the Persona daemon. Please not that this will not update dependencies, so use the usual
+"swift package update" to update dependencies if they have changed and then run update.sh afterwards.
+
 ## Pluggable Transport Support
 
 Persona is designed to be run behind a Pluggable Transport server such as Shapeshifter Dispatcher. The dispatcher
