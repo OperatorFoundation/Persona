@@ -5,6 +5,7 @@
 //  Created by Dr. Brandon Wiley on 3/7/22.
 //
 
+import Logging
 import Foundation
 
 import InternetProtocols
@@ -15,10 +16,12 @@ public class UdpProxy
 {
     let client: AsyncConnection
     var connections: [UdpProxyConnection] = []
+    let logger: Logger
 
-    public init(client: AsyncConnection)
+    public init(client: AsyncConnection, logger: Logger)
     {
         self.client = client
+        self.logger = logger
     }
 
     public func processLocalPacket(_ packet: Packet) throws
@@ -72,7 +75,7 @@ public class UdpProxy
 
     func addConnection(localAddress: IPv4Address, localPort: UInt16, remoteAddress: IPv4Address, remotePort: UInt16, connection: AsyncConnection) -> UdpProxyConnection
     {
-        let connection = UdpProxyConnection(localAddress: localAddress, localPort: localPort, remoteAddress: remoteAddress, remotePort: remotePort, connection: connection)
+        let connection = UdpProxyConnection(localAddress: localAddress, localPort: localPort, remoteAddress: remoteAddress, remotePort: remotePort, connection: connection, logger: self.logger)
         self.connections.append(connection)
         return connection
     }
@@ -103,8 +106,9 @@ class UdpProxyConnection
 
     var lastUsed: Date
     let queue = DispatchQueue(label: "UdpProxyConnection")
+    let logger: Logger
 
-    public init(localAddress: IPv4Address, localPort: UInt16, remoteAddress: IPv4Address, remotePort: UInt16, connection: AsyncConnection)
+    public init(localAddress: IPv4Address, localPort: UInt16, remoteAddress: IPv4Address, remotePort: UInt16, connection: AsyncConnection, logger: Logger)
     {
         self.localAddress = localAddress
         self.localPort = localPort
@@ -114,29 +118,31 @@ class UdpProxyConnection
 
         self.connection = connection
 
+        self.logger = logger
+
         lastUsed = Date() // now
 
-        self.queue.async
+        Task
         {
-            Task
+            do
             {
-                do
-                {
-                    try await self.pumpRemote()
-                }
-                catch
-                {
-                    return
-                }
+                try await self.pumpRemote()
+            }
+            catch
+            {
+                return
             }
         }
     }
 
     func pumpRemote() async throws
     {
+        self.logger.debug("UdpProxConnection.pumpRemote()")
         while true
         {
+            self.logger.debug("UdpProxConnection.pumpRemote() - readMaxSize(3000)")
             let data = try await self.connection.readMaxSize(3000)
+            self.logger.debug("UdpProxConnection.pumpRemote() - read \(data.count)")
             self.processRemoteData(data)
         }
     }

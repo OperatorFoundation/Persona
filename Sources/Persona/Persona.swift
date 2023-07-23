@@ -50,7 +50,7 @@ public class Persona
         self.connection = AsyncSystemdConnection(logger)
 //        self.connection = AsyncStdioConnection(logger)
 
-        self.udpProxy = UdpProxy(client: self.connection)
+        self.udpProxy = UdpProxy(client: self.connection, logger: logger)
         self.tcpProxy = TcpProxy(client: self.connection, quietTime: false, logger: logger, tcpLogger: tcpLogger)
     }
 
