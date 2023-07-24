@@ -89,6 +89,8 @@ public class Persona
                 throw PersonaError.emptyPayload
             }
 
+            self.logger.debug("UDP packet WITH PAYLOAD")
+
             try await self.udpProxy.processLocalPacket(packet)
         }
     }
