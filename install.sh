@@ -13,4 +13,5 @@ systemctl restart xinetd
 ufw allow 22
 ufw allow 1234
 ufw deny 7
+ufw deny 1233
 ufw enable
