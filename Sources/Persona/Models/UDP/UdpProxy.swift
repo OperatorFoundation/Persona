@@ -154,7 +154,7 @@ class UdpProxyConnection
 
         let bytes = destinationBytes + payload
 
-        try await self.connection.write(bytes)
+        try await self.connection.writeWithLengthPrefix(bytes, 32)
         self.lastUsed = Date() // now
     }
 
