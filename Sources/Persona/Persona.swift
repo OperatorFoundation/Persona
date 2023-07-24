@@ -61,11 +61,12 @@ public class Persona
             do
             {
                 let message = try await self.connection.readWithLengthPrefix(prefixSizeInBits: 32)
+                self.logger.info("Persona.run read a message of size \(message.count)")
                 try await self.handleMessage(message)
             }
             catch
             {
-                self.logger.error("\(error.localizedDescription)")
+                self.logger.error("Persona.run: \(error) | \(error.localizedDescription)")
                 return
             }
         }
