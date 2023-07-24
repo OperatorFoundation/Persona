@@ -4,7 +4,7 @@ import os
 
 log = open('/root/Persona/udpproxy.log', 'w+')
 
-systemd = os.fdopen(3, 'r+b')
+systemd = os.fdopen(3, 'rb')
 while True:
     lengthBytes = systemd.read(4)
     length = int.from_bytes(lengthBytes, "big")
