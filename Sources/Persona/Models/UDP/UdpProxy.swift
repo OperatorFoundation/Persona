@@ -26,6 +26,8 @@ public class UdpProxy
 
     public func processLocalPacket(_ packet: Packet) async throws
     {
+        self.logger.trace("processLocalPacket(\(packet.rawBytes.count))")
+
         guard let ipv4 = packet.ipv4 else
         {
             throw UdpProxyError.notIPv4Packet(packet)
@@ -53,6 +55,8 @@ public class UdpProxy
 
         let sourcePort = udp.sourcePort
         let destinationPort = udp.destinationPort
+
+        self.logger.debug("processing local packet \(sourceAddress):\(sourcePort) -> \(destinationAddress):\(destinationPort)")
 
         if let proxyConnection = self.findConnection(localAddress: sourceAddress, localPort: sourcePort, remoteAddress: destinationAddress, remotePort: destinationPort)
         {

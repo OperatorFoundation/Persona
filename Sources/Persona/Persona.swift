@@ -21,7 +21,7 @@ public class Persona
     let logger: Logger
     var tcpLogger = Puppy()
 
-//    var udpProxy: UdpProxy! = nil
+    var udpProxy: UdpProxy! = nil
     var tcpProxy: TcpProxy! = nil
 
     public init() throws
@@ -48,9 +48,8 @@ public class Persona
         tcpLogger.debug("PersonaTCPLogger Start")
 
         self.connection = AsyncSystemdConnection(logger)
-//        self.connection = AsyncStdioConnection(logger)
 
-//        self.udpProxy = UdpProxy(client: self.connection, logger: logger)
+        self.udpProxy = UdpProxy(client: self.connection, logger: logger)
         self.tcpProxy = TcpProxy(client: self.connection, quietTime: false, logger: logger, tcpLogger: tcpLogger)
     }
 
@@ -90,7 +89,7 @@ public class Persona
                 throw PersonaError.emptyPayload
             }
 
-//            try await self.udpProxy.processLocalPacket(packet)
+            try await self.udpProxy.processLocalPacket(packet)
         }
     }
 }
