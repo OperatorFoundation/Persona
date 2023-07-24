@@ -1,0 +1,12 @@
+# udpproxy.socket
+
+[Unit]
+Description = UDP proxy server
+
+[Socket]
+ListenStream = 1233
+Accept = yes
+ReusePort = yes
+
+[Install]
+WantedBy = sockets.target

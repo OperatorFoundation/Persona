@@ -1,0 +1,7 @@
+# udpproxy@.service
+
+[Unit]
+Description = UDP proxy server service
+
+[Service]
+ExecStart=/root/Persona/udpproxy/udpproxy.py
