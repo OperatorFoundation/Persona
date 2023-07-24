@@ -24,53 +24,48 @@ public class UdpProxy
         self.logger = logger
     }
 
-    public func processLocalPacket(_ packet: Packet) throws
+    public func processLocalPacket(_ packet: Packet) async throws
     {
-//        guard let ipv4 = packet.ipv4 else
-//        {
-//            throw UdpProxyError.notIPv4Packet(packet)
-//        }
-//
-//        guard let sourceAddress = IPv4Address(ipv4.sourceAddress) else
-//        {
-//            throw UdpProxyError.invalidAddress(ipv4.sourceAddress)
-//        }
-//
-//        guard sourceAddress.string == conduit.address else
-//        {
-//            throw UdpProxyError.addressMismatch(sourceAddress.string, conduit.address)
-//        }
-//
-//        guard let destinationAddress = IPv4Address(ipv4.destinationAddress) else
-//        {
-//            throw UdpProxyError.invalidAddress(ipv4.destinationAddress)
-//        }
-//
-//        guard let destinationHost = NWEndpoint.Host(data: ipv4.destinationAddress) else
-//        {
-//            throw UdpProxyError.invalidAddress(ipv4.destinationAddress)
-//
-//        }
-//
-//        guard let udp = packet.udp else
-//        {
-//            throw UdpProxyError.notUdpPacket(packet)
-//        }
-//
-//        let sourcePort = udp.sourcePort
-//        let destinationPort = udp.destinationPort
-//
-//        if let proxyConnection = self.findConnection(localAddress: sourceAddress, localPort: sourcePort, remoteAddress: destinationAddress, remotePort: destinationPort)
-//        {
-//            proxyConnection.processLocalPacket(udp)
-//        }
-//        else
-//        {
-//            let networkConnection =
-//            try self.universe.connect(destinationHost.string, Int(destinationPort), ConnectionType.udp)
-//            let proxyConnection = self.addConnection(localAddress: sourceAddress, localPort: sourcePort, remoteAddress: destinationAddress, remotePort: destinationPort, conduit: conduit, connection: networkConnection)
-//            proxyConnection.processLocalPacket(udp)
-//        }
+        guard let ipv4 = packet.ipv4 else
+        {
+            throw UdpProxyError.notIPv4Packet(packet)
+        }
+
+        guard let sourceAddress = IPv4Address(ipv4.sourceAddress) else
+        {
+            throw UdpProxyError.invalidAddress(ipv4.sourceAddress)
+        }
+
+        guard let destinationAddress = IPv4Address(ipv4.destinationAddress) else
+        {
+            throw UdpProxyError.invalidAddress(ipv4.destinationAddress)
+        }
+
+        guard let destinationHost = NWEndpoint.Host(data: ipv4.destinationAddress) else
+        {
+            throw UdpProxyError.invalidAddress(ipv4.destinationAddress)
+
+        }
+
+        guard let udp = packet.udp else
+        {
+            throw UdpProxyError.notUdpPacket(packet)
+        }
+
+        let sourcePort = udp.sourcePort
+        let destinationPort = udp.destinationPort
+
+        if let proxyConnection = self.findConnection(localAddress: sourceAddress, localPort: sourcePort, remoteAddress: destinationAddress, remotePort: destinationPort)
+        {
+            try await proxyConnection.processLocalPacket(udp)
+        }
+        else
+        {
+            let networkConnection =
+            try self.universe.connect(destinationHost.string, Int(destinationPort), ConnectionType.udp)
+            let proxyConnection = self.addConnection(localAddress: sourceAddress, localPort: sourcePort, remoteAddress: destinationAddress, remotePort: destinationPort, conduit: conduit, connection: networkConnection)
+            proxyConnection.processLocalPacket(udp)
+        }
     }
 
     func addConnection(localAddress: IPv4Address, localPort: UInt16, remoteAddress: IPv4Address, remotePort: UInt16, connection: AsyncConnection) -> UdpProxyConnection
