@@ -54,6 +54,7 @@ class UdpProxy:
                 self.log.write("%s:%d - %d bytes\n" % (host, port, len(payload)))
 
                 self.upstream.sendto(payload, (host, port))
+                self.log.write("wrote %d bytes to %s:%d\n" % (len(payload), host, port))
             except:
                 self.log.write("exception in pumpUpstream")
                 self.running = False
