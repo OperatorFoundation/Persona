@@ -9,6 +9,7 @@ class UdpProxy:
         self.running = True
 
         self.log = open('/root/Persona/udpproxy.log', 'w+')
+        self.log.write("udpproxy started\n")
 
         self.upstream = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         self.upstream.bind(('0.0.0.0', 0))
@@ -25,6 +26,7 @@ class UdpProxy:
         self.thread2.join()
 
     def pumpUpstream(self):
+        self.log.write("pumpUpstream started\n")
         while self.running:
             try:
                 lengthBytes = self.downstream.read(4)
@@ -53,6 +55,7 @@ class UdpProxy:
                 self.log.write("exception in pumpUpstream")
                 self.running = False
     def pumpDownstream(self):
+        self.log.write("pumpDownstream started\n")
         while self.running:
             try:
                 data, addr = self.upstream.recvfrom(2048)
