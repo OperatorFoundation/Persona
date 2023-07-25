@@ -102,8 +102,9 @@ class UdpProxy:
                 bytes = lengthBytes + hostBytes + portBytes + data
                 self.downstream.write(bytes)
                 self.log.write("wrote %d bytes downstream" % (len(bytes)))
-            except:
-                self.log.write("exception in pumpUpstream")
+            except Exception as e:
+                self.log.write("exception in pumpUpstream\n")
+                self.log.write("%s\n" % (str(e)))
                 self.log.flush()
 
                 self.running = False
