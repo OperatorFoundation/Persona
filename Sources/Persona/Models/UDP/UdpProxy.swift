@@ -175,6 +175,8 @@ class UdpProxyConnection
             return
         }
 
+        self.logger.trace("UdpProxyConnection.processRemoteData - udp packet: \(udp)")
+
         do
         {
             guard let ipv4 = try InternetProtocols.IPv4(sourceAddress: self.remoteAddress, destinationAddress: self.localAddress, payload: udp.data, protocolNumber: InternetProtocols.IPprotocolNumber.UDP) else
@@ -182,6 +184,8 @@ class UdpProxyConnection
                 self.logger.error("UdpProxyConnection.processRemoteData - failed to make a IPv4 packet")
                 return
             }
+
+            self.logger.trace("UdpProxyConnection.processRemoteData - ipv4 packet: \(ipv4)")
 
             self.logger.error("UdpProxyConnection.processRemoteData - writing to client \(ipv4.data.count)")
             try await self.client.writeWithLengthPrefix(ipv4.data, 32)
