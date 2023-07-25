@@ -10,6 +10,8 @@ class UdpProxy:
 
         self.log = open('/root/Persona/udpproxy.log', 'w+')
         self.log.write("udpproxy started\n")
+        self.log.flush()
+
         print("udpproxy started\n")
 
         self.upstream = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
@@ -73,5 +75,8 @@ class UdpProxy:
                 self.running = False
 
 if __name__ == '__main__':
+    print("__main__")
     proxy = UdpProxy()
+    print("waiting...")
     proxy.wait()
+    print("exiting!")
