@@ -12,8 +12,6 @@ class UdpProxy:
         self.log.write("udpproxy started\n")
         self.log.flush()
 
-        print("udpproxy started\n")
-
         self.upstream = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         self.upstream.bind(('0.0.0.0', 0))
 
@@ -30,6 +28,8 @@ class UdpProxy:
 
     def pumpUpstream(self):
         self.log.write("pumpUpstream started\n")
+        self.log.flush()
+
         while self.running:
             try:
                 lengthBytes = self.downstream.read(4)
@@ -59,6 +59,8 @@ class UdpProxy:
                 self.running = False
     def pumpDownstream(self):
         self.log.write("pumpDownstream started\n")
+        self.log.flush()
+
         while self.running:
             try:
                 data, addr = self.upstream.recvfrom(2048)
@@ -75,8 +77,5 @@ class UdpProxy:
                 self.running = False
 
 if __name__ == '__main__':
-    print("__main__")
     proxy = UdpProxy()
-    print("waiting...")
     proxy.wait()
-    print("exiting!")
