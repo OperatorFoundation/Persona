@@ -20,6 +20,7 @@ public class Persona
 
     let logger: Logger
     var tcpLogger = Puppy()
+    var udpLogger = Puppy()
 
     var udpProxy: UdpProxy! = nil
     var tcpProxy: TcpProxy! = nil
@@ -31,6 +32,7 @@ public class Persona
         self.logger.info("Persona Start")
 
         let logFileURL = File.homeDirectory().appendingPathComponent("PersonaTcpLog.log", isDirectory: false)
+        let logFileURL2 = File.homeDirectory().appendingPathComponent("PersonaUdpLog.log", isDirectory: false)
 
         if File.exists(logFileURL.path)
         {
@@ -45,11 +47,21 @@ public class Persona
             tcpLogger.add(file)
         }
 
+        if let file2 = try? FileLogger("PersonaUDPLogger",
+                                      logLevel: .debug,
+                                      fileURL: logFileURL2,
+                                      filePermission: "600")  // Default permission is "640".
+        {
+            udpLogger.add(file2)
+        }
+
+
         tcpLogger.debug("PersonaTCPLogger Start")
+        udpLogger.debug("PersonaUDPLogger Start")
 
         self.connection = AsyncSystemdConnection(logger)
 
-        self.udpProxy = UdpProxy(client: self.connection, logger: logger)
+        self.udpProxy = UdpProxy(client: self.connection, logger: logger, udpLogger: udpLogger)
         self.tcpProxy = TcpProxy(client: self.connection, quietTime: false, logger: logger, tcpLogger: tcpLogger)
     }
 
