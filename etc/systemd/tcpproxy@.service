@@ -1,0 +1,7 @@
+# tcpproxy@.service
+
+[Unit]
+Description = TCP proxy server service
+
+[Service]
+ExecStart=/root/Persona/tcpproxy/main.py
