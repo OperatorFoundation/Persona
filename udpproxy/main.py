@@ -14,10 +14,8 @@ class UdpProxy:
 
         self.upstream = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         self.upstream.bind(('0.0.0.0', 0))
-        self.sockname = self.upstream.getsockname()
-        self.log.write("sockname: ")
-        self.log.write(self.sockname)
-        self.log.write("\n")
+        (self.host, self.port) = self.upstream.getsockname()
+        self.log.write("sockname: %s:%d\n" % (self.host, self.port))
         self.log.flush()
 
         self.downstream = os.fdopen(3, 'rb')
