@@ -72,7 +72,7 @@ public class UdpProxy
 
     func addConnection(localAddress: IPv4Address, localPort: UInt16, remoteAddress: IPv4Address, remotePort: UInt16, connection: AsyncConnection) -> UdpProxyConnection
     {
-        let connection = UdpProxyConnection(localAddress: localAddress, localPort: localPort, remoteAddress: remoteAddress, remotePort: remotePort, connection: connection, logger: self.logger)
+        let connection = UdpProxyConnection(client: self.client, localAddress: localAddress, localPort: localPort, remoteAddress: remoteAddress, remotePort: remotePort, connection: connection, logger: self.logger)
         self.connections.append(connection)
         return connection
     }
@@ -93,6 +93,7 @@ public class UdpProxy
 
 class UdpProxyConnection
 {
+    let client: AsyncConnection
     let localAddress: IPv4Address
     let localPort: UInt16
 
@@ -105,8 +106,9 @@ class UdpProxyConnection
     let queue = DispatchQueue(label: "UdpProxyConnection")
     let logger: Logger
 
-    public init(localAddress: IPv4Address, localPort: UInt16, remoteAddress: IPv4Address, remotePort: UInt16, connection: AsyncConnection, logger: Logger)
+    public init(client: AsyncConnection, localAddress: IPv4Address, localPort: UInt16, remoteAddress: IPv4Address, remotePort: UInt16, connection: AsyncConnection, logger: Logger)
     {
+        self.client = client
         self.localAddress = localAddress
         self.localPort = localPort
 
@@ -138,9 +140,9 @@ class UdpProxyConnection
         while true
         {
             self.logger.debug("UdpProxConnection.pumpRemote() - readMaxSize(3000)")
-            let data = try await self.connection.readMaxSize(3000)
+            let data = try await self.connection.readWithLengthPrefix(prefixSizeInBits: 32)
             self.logger.debug("UdpProxConnection.pumpRemote() - read \(data.count)")
-            self.processRemoteData(data)
+            try await self.processRemoteData(data)
         }
     }
 
@@ -158,29 +160,27 @@ class UdpProxyConnection
         self.lastUsed = Date() // now
     }
 
-    func processRemoteData(_ data: Data)
+    func processRemoteData(_ data: Data) async throws
     {
-//        guard let udp = InternetProtocols.UDP(sourcePort: self.remotePort, destinationPort: self.localPort, payload: data) else
-//        {
-//            return
-//        }
-//
-//        do
-//        {
-//            guard let ipv4 = try InternetProtocols.IPv4(sourceAddress: self.remoteAddress, destinationAddress: self.localAddress, payload: udp.data, protocolNumber: InternetProtocols.IPprotocolNumber.UDP) else
-//            {
-//                return
-//            }
-//
-//            let message = Message.IPDataV4(ipv4.data)
-//            self.conduit.flowerConnection.writeMessage(message: message)
-//
-//            self.lastUsed = Date() // now
-//        }
-//        catch
-//        {
-//            return
-//        }
+        guard let udp = InternetProtocols.UDP(sourcePort: self.remotePort, destinationPort: self.localPort, payload: data) else
+        {
+            return
+        }
+
+        do
+        {
+            guard let ipv4 = try InternetProtocols.IPv4(sourceAddress: self.remoteAddress, destinationAddress: self.localAddress, payload: udp.data, protocolNumber: InternetProtocols.IPprotocolNumber.UDP) else
+            {
+                return
+            }
+
+            try await self.client.writeWithLengthPrefix(ipv4.data, 32)
+            self.lastUsed = Date() // now
+        }
+        catch
+        {
+            return
+        }
     }
 }
 
