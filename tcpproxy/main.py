@@ -64,6 +64,10 @@ class TcpProxy:
 
                 data = self.upstream.recv(2048)
 
+                if len(data) == 0:
+                    self.running = False
+                    break
+
                 self.log.write("received %d bytes from upstream\n" % (len(data)))
                 self.log.flush()
 
