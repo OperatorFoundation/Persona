@@ -14,6 +14,9 @@ class UdpProxy:
 
         self.upstream = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         self.upstream.bind(('0.0.0.0', 0))
+        self.sockname = self.upstream.getsockname()
+        self.log.write("%s\n" % (self.sockname))
+        self.log.flush()
 
         self.downstream = os.fdopen(3, 'rb')
 
@@ -64,9 +67,10 @@ class UdpProxy:
 
         while self.running:
             try:
+                self.log.write("reading from %s:%d" % (host, port))
                 data, addr = self.upstream.recvfrom(2048)
                 (host, port) = addr
-                
+
                 self.log.write("received %d bytes from upstream %s:%d\n" % (len(data), host, port))
                 self.log.flush()
 
