@@ -18,7 +18,8 @@ class UdpProxy:
         self.log.write("sockname: %s:%d\n" % (self.host, self.port))
         self.log.flush()
 
-        self.downstream = os.fdopen(3, 'rb')
+        self.downstreamRead = os.fdopen(3, 'rb')
+        self.downstreamWrite = os.fdopen(3, 'wb')
 
         self.thread1 = threading.Thread(target=self.pumpUpstream)
         self.thread2 = threading.Thread(target=self.pumpDownstream)
@@ -35,9 +36,9 @@ class UdpProxy:
 
         while self.running:
             try:
-                lengthBytes = self.downstream.read(4)
+                lengthBytes = self.downstreamRead.read(4)
                 length = int.from_bytes(lengthBytes, "big")
-                data = self.downstream.read(length)
+                data = self.downstreamRead.read(length)
 
                 if length < 6:
                     self.running = False
@@ -86,18 +87,18 @@ class UdpProxy:
                 self.log.write("hostBytes %d\n" % (len(hostBytes)))
                 self.log.flush()
 
-                self.log.write("port: %d" % (port))
+                self.log.write("port: %d\n" % (port))
                 self.log.flush()
 
                 portBytes = port.to_bytes(4, "big")
 
-                self.log.write("portBytes %d" % (len(portBytes)))
+                self.log.write("portBytes %d\n" % (len(portBytes)))
                 self.log.flush()
 
                 bs = lengthBytes + hostBytes + portBytes + data
-                self.log.write("writing %d bytes downstream" % (len(bs)))
-                self.downstream.write(bs)
-                self.log.write("wrote %d bytes downstream" % (len(bs)))
+                self.log.write("writing %d bytes downstream\n" % (len(bs)))
+                self.downstreamWrite.write(bs)
+                self.log.write("wrote %d bytes downstream\n" % (len(bs)))
             except Exception as e:
                 self.log.write("exception in pumpUpstream\n")
                 self.log.write("%s\n" % (str(e)))
