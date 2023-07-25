@@ -156,17 +156,22 @@ class UdpProxyConnection
 
         let bytes = destinationBytes + payload
         
-        print("Writing \(bytes.count) bytes to the UDP Proxy Server:")
-        print(bytes.hex)
+        self.logger.debug("Writing \(bytes.count) bytes to the UDP Proxy Server:")
+        self.logger.debug("\(bytes.hex)")
         
         try await self.connection.writeWithLengthPrefix(bytes, 32)
         self.lastUsed = Date() // now
+
+        self.logger.debug("Wrote \(bytes.count) bytes to the UDP Proxy Server:")
     }
 
     func processRemoteData(_ data: Data) async throws
     {
+        self.logger.trace("UdpProxyConnection.processRemoteData(\(data.hex))")
+
         guard let udp = InternetProtocols.UDP(sourcePort: self.remotePort, destinationPort: self.localPort, payload: data) else
         {
+            self.logger.error("UdpProxyConnection.processRemoteData - failed to make a UDP packet")
             return
         }
 
@@ -174,11 +179,14 @@ class UdpProxyConnection
         {
             guard let ipv4 = try InternetProtocols.IPv4(sourceAddress: self.remoteAddress, destinationAddress: self.localAddress, payload: udp.data, protocolNumber: InternetProtocols.IPprotocolNumber.UDP) else
             {
+                self.logger.error("UdpProxyConnection.processRemoteData - failed to make a IPv4 packet")
                 return
             }
 
+            self.logger.error("UdpProxyConnection.processRemoteData - writing to client")
             try await self.client.writeWithLengthPrefix(ipv4.data, 32)
             self.lastUsed = Date() // now
+            self.logger.error("UdpProxyConnection.processRemoteData - wrote to client")
         }
         catch
         {
