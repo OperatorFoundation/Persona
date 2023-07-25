@@ -76,6 +76,7 @@ class TcpProxy:
                 bs = lengthBytes + data
                 self.log.write("writing %d bytes downstream\n" % (len(bs)))
                 self.downstreamWrite.write(bs)
+                self.downstreamWrite.flush()
                 self.log.write("wrote %d bytes downstream\n" % (len(bs)))
             except Exception as e:
                 self.log.write("exception in pumpUpstream\n")
