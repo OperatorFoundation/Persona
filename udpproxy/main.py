@@ -79,16 +79,16 @@ class UdpProxy:
                 length = len(data) + 6
                 lengthBytes = length.to_bytes(4, "big")
 
-                self.log.write("total length %d" % (length))
+                self.log.write("total length %d\n" % (length))
                 self.log.flush()
 
                 parts = host.split(".")
-                self.log.write("host to bytes %s %d" % (host, len(parts)))
+                self.log.write("host to bytes %s %d\n" % (host, len(parts)))
                 self.log.flush()
 
-                hostBytes = chr(parts[0]) + chr(parts[1]) + chr(parts[2]) + chr(parts[3])
+                hostBytes = chr(int(parts[0])) + chr(int(parts[1])) + chr(int(parts[2])) + chr(int(parts[3]))
 
-                self.log.write("hostBytes %d" % (len(hostBytes)))
+                self.log.write("hostBytes %d\n" % (len(hostBytes)))
                 self.log.flush()
 
                 portBytes = port.to_bytes("big")
