@@ -167,7 +167,7 @@ class UdpProxyConnection
 
     func processRemoteData(_ data: Data) async throws
     {
-        self.logger.trace("UdpProxyConnection.processRemoteData(\(data.hex))")
+        self.logger.trace("UdpProxyConnection.processRemoteData(\(data.count) - \(data.hex))")
 
         guard let udp = InternetProtocols.UDP(sourcePort: self.remotePort, destinationPort: self.localPort, payload: data) else
         {
@@ -183,10 +183,10 @@ class UdpProxyConnection
                 return
             }
 
-            self.logger.error("UdpProxyConnection.processRemoteData - writing to client")
+            self.logger.error("UdpProxyConnection.processRemoteData - writing to client \(ipv4.data.count)")
             try await self.client.writeWithLengthPrefix(ipv4.data, 32)
             self.lastUsed = Date() // now
-            self.logger.error("UdpProxyConnection.processRemoteData - wrote to client")
+            self.logger.error("UdpProxyConnection.processRemoteData - wrote to client \(ipv4.data.count)")
         }
         catch
         {
