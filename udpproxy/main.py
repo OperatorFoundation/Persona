@@ -82,12 +82,7 @@ class UdpProxy:
                 self.log.write("total length %d\n" % (length))
                 self.log.flush()
 
-                parts = host.split(".")
-                self.log.write("host to bytes %s %d\n" % (host, len(parts)))
-                self.log.flush()
-
-                hostBytes = bytes(chr(int(parts[0])) + chr(int(parts[1])) + chr(int(parts[2])) + chr(int(parts[3])))
-
+                hostBytes = socket.inet_aton(host)
                 self.log.write("hostBytes %d\n" % (len(hostBytes)))
                 self.log.flush()
 
@@ -99,9 +94,9 @@ class UdpProxy:
                 self.log.write("portBytes %d" % (len(portBytes)))
                 self.log.flush()
 
-                bytes = lengthBytes + hostBytes + portBytes + data
-                self.downstream.write(bytes)
-                self.log.write("wrote %d bytes downstream" % (len(bytes)))
+                bs = lengthBytes + hostBytes + portBytes + data
+                self.downstream.write(bs)
+                self.log.write("wrote %d bytes downstream" % (len(bs)))
             except Exception as e:
                 self.log.write("exception in pumpUpstream\n")
                 self.log.write("%s\n" % (str(e)))
