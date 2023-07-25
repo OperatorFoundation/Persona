@@ -86,7 +86,7 @@ class UdpProxy:
                 self.log.write("host to bytes %s %d\n" % (host, len(parts)))
                 self.log.flush()
 
-                hostBytes = chr(int(parts[0])) + chr(int(parts[1])) + chr(int(parts[2])) + chr(int(parts[3]))
+                hostBytes = bytes(chr(int(parts[0])) + chr(int(parts[1])) + chr(int(parts[2])) + chr(int(parts[3])))
 
                 self.log.write("hostBytes %d\n" % (len(hostBytes)))
                 self.log.flush()
