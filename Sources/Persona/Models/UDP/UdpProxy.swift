@@ -64,7 +64,7 @@ public class UdpProxy
         }
         else
         {
-            let networkConnection = try await AsyncTcpSocketConnection("127.0.0.1", 1233, self.logger)
+            let networkConnection = try await AsyncTcpSocketConnection("127.0.0.1", 1233, self.logger, verbose: true)
             let proxyConnection = self.addConnection(localAddress: sourceAddress, localPort: sourcePort, remoteAddress: destinationAddress, remotePort: destinationPort, connection: networkConnection)
             try await proxyConnection.processLocalPacket(destinationHost, destinationPort, udp)
         }
