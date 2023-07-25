@@ -67,7 +67,7 @@ class UdpProxy:
 
         while self.running:
             try:
-                self.log.write("reading from %s:%d" % (self.host, self.port))
+                self.log.write("reading from %s:%d\n" % (self.host, self.port))
                 self.log.flush()
 
                 data, addr = self.upstream.recvfrom(2048)
@@ -83,6 +83,7 @@ class UdpProxy:
                 portBytes = port.to_bytes("big")
                 bytes = lengthBytes + hostBytes + portBytes + data
                 self.downstream.write(bytes)
+                self.log.write("wrote %d bytes downstream" % (len(bytes)))
             except:
                 self.log.write("exception in pumpUpstream")
                 self.running = False
