@@ -9,6 +9,9 @@ You need the Swift compiler to be installed and in the PATH.
 Persona runs as a daemon under systemd, so systemd needs to already be installed.
 The install script is intended to be run on a fresh Ubuntu 22.04 installation with nothing else running on the system.
 
+* You must check out Persona as the root user into the /root diretory (the root user's home directory). *
+* ./install.sh and ./update.sh must be run as the root user from the /root/Persona directory. *
+
 ```
 git clone https://github.com/OperatorFoundation/Persona
 cd Persona
