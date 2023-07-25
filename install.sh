@@ -7,6 +7,8 @@ systemctl start persona.socket
 systemctl status persona.socket
 systemctl start udpproxy.socket
 systemctl status udpproxy.socket
+systemctl start tcpproxy.socket
+systemctl status tcpproxy.socket
 
 apt install xinetd
 cp etc/xinetd/* /etc/xinetd.d
