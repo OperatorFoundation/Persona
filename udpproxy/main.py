@@ -67,7 +67,9 @@ class UdpProxy:
 
         while self.running:
             try:
-                self.log.write("reading from %s:%d" % (host, port))
+                self.log.write("reading from %s:%d" % (self.host, self.port))
+                self.log.flush()
+
                 data, addr = self.upstream.recvfrom(2048)
                 (host, port) = addr
 
