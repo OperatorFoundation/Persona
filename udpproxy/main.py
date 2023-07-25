@@ -1,5 +1,5 @@
 #!/usr/bin/python3
-
+import binascii
 import os
 import socket
 import threading
@@ -51,7 +51,7 @@ class UdpProxy:
                 address = data[:6]
                 payload = data[6:]
                 hostBytes = address[:4]
-                portBytes = address[4:]
+                portBytes = address[4:6]
                 host = "%d.%d.%d.%d" % (hostBytes[0], hostBytes[1], hostBytes[2], hostBytes[3])
                 port = int.from_bytes(portBytes, "big")
 
@@ -59,6 +59,7 @@ class UdpProxy:
 
                 self.upstream.sendto(payload, (host, port))
                 self.log.write("wrote %d bytes to %s:%d\n" % (len(payload), host, port))
+                self.log.write("payload hex: %s" % (binascii.hexlify(payload)))
             except:
                 self.log.write("exception in pumpUpstream")
                 self.running = False
@@ -75,6 +76,7 @@ class UdpProxy:
                 (host, port) = addr
 
                 self.log.write("received %d bytes from upstream %s:%d\n" % (len(data), host, port))
+                self.log.write("received data %s" % (binascii.hexlify(data)))
                 self.log.flush()
 
                 length = len(data) + 6
@@ -90,7 +92,7 @@ class UdpProxy:
                 self.log.write("port: %d\n" % (port))
                 self.log.flush()
 
-                portBytes = port.to_bytes(4, "big")
+                portBytes = port.to_bytes(2, "big")
 
                 self.log.write("portBytes %d\n" % (len(portBytes)))
                 self.log.flush()
@@ -99,6 +101,7 @@ class UdpProxy:
                 self.log.write("writing %d bytes downstream\n" % (len(bs)))
                 self.downstreamWrite.write(bs)
                 self.log.write("wrote %d bytes downstream\n" % (len(bs)))
+                self.log.write("data written: %s" % (binascii.hexlify(bs)))
             except Exception as e:
                 self.log.write("exception in pumpUpstream\n")
                 self.log.write("%s\n" % (str(e)))

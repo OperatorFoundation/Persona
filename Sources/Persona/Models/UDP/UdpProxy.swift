@@ -153,7 +153,10 @@ class UdpProxyConnection
         }
 
         let bytes = destinationBytes + payload
-
+        
+        print("Writing \(bytes.count) bytes to the UDP Proxy Server:")
+        print(bytes.hex)
+        
         try await self.connection.writeWithLengthPrefix(bytes, 32)
         self.lastUsed = Date() // now
     }
