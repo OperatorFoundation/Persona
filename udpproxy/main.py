@@ -91,6 +91,9 @@ class UdpProxy:
                 self.log.write("hostBytes %d\n" % (len(hostBytes)))
                 self.log.flush()
 
+                self.log.write("port: %s" % (str(type(port))))
+                self.log.flush()
+
                 portBytes = port.to_bytes("big")
 
                 self.log.write("portBytes" % (len(portBytes)))
