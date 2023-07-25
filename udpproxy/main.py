@@ -65,9 +65,13 @@ class UdpProxy:
         while self.running:
             try:
                 data, addr = self.upstream.recvfrom(2048)
+                (host, port) = addr
+                
+                self.log.write("received %d bytes from upstream %s:%d\n" % (len(data), host, port))
+                self.log.flush()
+
                 length = len(data) + 6
                 lengthBytes = length.to_bytes(4, "big")
-                (host, port) = addr
                 parts = host.split(".")
                 hostBytes = chr(parts[0]) + chr(parts[1]) + chr(parts[2]) + chr(parts[3])
                 portBytes = port.to_bytes("big")
