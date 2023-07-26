@@ -108,14 +108,16 @@ public class TcpProxyConnection: Equatable
 
         Task
         {
-            while self.open {
+            while self.open
+            {
                 try await self.pumpUpstream()
             }
         }
 
         Task
         {
-            while self.open {
+            while self.open
+            {
                 try await self.pumpDownstream()
             }
         }
@@ -511,7 +513,7 @@ public class TcpProxyConnection: Equatable
 
             do
             {
-                try await self.connection.write(segment.data)
+                try await self.connection.writeWithLengthPrefix(segment.data, 32)
             }
             catch
             {
@@ -539,7 +541,7 @@ public class TcpProxyConnection: Equatable
         // If a read from the server connection fails, the the server connection is closed.
         do
         {
-            let data = try await self.connection.readMaxSize(Int(windowSize))
+            let data = try await self.connection.readWithLengthPrefix(prefixSizeInBits: 32)
             try await self.processDownstreamPacket(data)
         }
         catch
@@ -721,7 +723,7 @@ public class TcpProxyConnection: Equatable
                 }
             }
 
-            try await self.connection.write(ipv4.data)
+            try await self.connection.writeWithLengthPrefix(ipv4.data, 32)
         }
         catch
         {

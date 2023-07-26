@@ -159,7 +159,8 @@ public actor TcpProxy
             // connect() automatically send a syn-ack back for the syn internally
             do
             {
-                let networkConnection = try await AsyncTcpSocketConnection(destinationAddress.string, Int(destinationPort), self.logger)
+                let networkConnection = try await AsyncTcpSocketConnection("127.0.0.1", 1232, self.logger)
+                try await networkConnection.write(destinationAddress.data + destinationPort.maybeNetworkData!)
                 try await self.addConnection(proxy: self, localAddress: sourceAddress, localPort: sourcePort, remoteAddress: destinationAddress, remotePort: destinationPort, connection: networkConnection, irs: SequenceNumber(tcp.sequenceNumber), rcvWnd: tcp.windowSize)
             }
             catch
