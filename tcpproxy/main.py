@@ -32,8 +32,8 @@ class TcpProxy:
 
         address = self.downstreamRead.read(6)
         hostBytes = address[:4]
-        portBytes = address[4:]
-        host = "%d.%d.%d.%d" % (hostBytes[0], hostBytes[1], hostBytes[2], hostBytes[3])
+        portBytes = address[4:6]
+        host = socket.inet_aton(hostBytes)
         port = int.from_bytes(portBytes, "big")
 
         self.log.write("connecting to %s:%d\n" % (host, port))
@@ -88,6 +88,7 @@ class TcpProxy:
                 self.log.flush()
 
                 self.running = False
+                break
 
 if __name__ == '__main__':
     proxy = TcpProxy()
