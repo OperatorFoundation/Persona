@@ -191,6 +191,8 @@ class UdpProxyConnection
 
     func processRemoteData(_ data: Data) async throws
     {
+        self.udpLogger.trace("UDP Proxy Server Gave Us Data: (\(data.count) - \(data.hex))")
+
         if self.remotePort == 7
         {
             self.logger.trace("UdpProxyConnection.processRemoteData(\(data.count) - \(data.hex))")
