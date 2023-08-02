@@ -30,6 +30,8 @@ class UdpProxy:
         self.thread1.join()
         self.thread2.join()
 
+    # The format to talk to service is a 4 byte length, following by that many bytes.
+    # Included in those bytes are a 4 byte host, a 2 byte port, and the then variable length payload.
     def pumpUpstream(self):
         self.log.write("pumpUpstream started\n")
         self.log.flush()

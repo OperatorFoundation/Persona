@@ -9,30 +9,26 @@ import TransmissionAsync
 
 final class PersonaTests: XCTestCase
 {
-    
-    func testUDPProxy()
+    func testUDPProxy() async throws
     {
         print("Starting the UDP Proxy test!")
         let logger = Logger(label: "UDPProxyTestLogger")
 
-        AsyncAwaitThrowingEffectSynchronizer.sync
+        print("Attempting to write data...")
+        let asyncConnection = try await AsyncTcpSocketConnection("146.190.137.108", 1233, logger)
+        let dataString = "0000000a7f000001000774657374"
+        guard let data = Data(hex: dataString) else
         {
-            print("Attempting to write data...")
-            let asyncConnection = try await AsyncTcpSocketConnection("127.0.0.1", 1233, logger)
-            let dataString = "00000043450000430b7f4000401138e80a000001a45c47e6a08c0007002fcb35e1939ae1988fe197a2204361746275732069732055445020746f70732120e1939ae1988fe197a2"
-            guard let data = Data(hex: dataString) else
-            {
-                XCTFail()
-                return
-            }
-
-            try await asyncConnection.write(data)
-
-            print("Wrote \(data.count) bytes, attempting to read some data...")
-            let responseData = try await asyncConnection.readWithLengthPrefix(prefixSizeInBits: 32)
-
-            print("Received \(responseData.count) bytes of response data: \n\(responseData.hex)")
+            XCTFail()
+            return
         }
+
+        try await asyncConnection.write(data)
+
+        print("Wrote \(data.count) bytes, attempting to read some data...")
+        let responseData = try await asyncConnection.readWithLengthPrefix(prefixSizeInBits: 32)
+
+        print("Received \(responseData.count) bytes of response data: \n\(responseData.hex)")
     }
     
 //    func testTaskGroup() async
