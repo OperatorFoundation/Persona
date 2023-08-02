@@ -43,6 +43,21 @@ public class Persona
             let _ = File.delete(atPath: logFileURL.path)
         }
 
+        if File.exists(logFileURL2.path)
+        {
+            let _ = File.delete(atPath: logFileURL2.path)
+        }
+
+        if File.exists(logFileURL3.path)
+        {
+            let _ = File.delete(atPath: logFileURL3.path)
+        }
+
+        if File.exists(logFileURL4.path)
+        {
+            let _ = File.delete(atPath: logFileURL4.path)
+        }
+
         if let file = try? FileLogger("PersonaTCPLogger",
                                       logLevel: .debug,
                                       fileURL: logFileURL,
@@ -72,7 +87,7 @@ public class Persona
                                        fileURL: logFileURL4,
                                        filePermission: "600")  // Default permission is "640".
         {
-            udpLogger.add(file4)
+            clientWriteLog.add(file4)
         }
 
         tcpLogger.debug("PersonaTCPLogger Start")
