@@ -32,9 +32,9 @@ public class Persona
         self.logger = try FileLogging.logger(label: "Persona", localFile: mainLogURL)
         self.logger.info("Persona Start")
 
-        let logFileURL = File.homeDirectory().appendingPathComponent("PersonaTcpLog.log", isDirectory: false)
-        let logFileURL2 = File.homeDirectory().appendingPathComponent("PersonaUdpLog.log", isDirectory: false)
-        let logFileURL3 = File.homeDirectory().appendingPathComponent("PersonaPacketLog.log", isDirectory: false)
+        let logFileURL = File.homeDirectory().appendingPathComponent("Persona/PersonaTcpLog.log", isDirectory: false)
+        let logFileURL2 = File.homeDirectory().appendingPathComponent("Persona/PersonaUdpLog.log", isDirectory: false)
+        let logFileURL3 = File.homeDirectory().appendingPathComponent("Persona/PersonaPacketLog.log", isDirectory: false)
 
         if File.exists(logFileURL.path)
         {
