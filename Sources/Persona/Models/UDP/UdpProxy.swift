@@ -228,6 +228,7 @@ class UdpProxyConnection
             try await self.client.writeWithLengthPrefix(ipv4.data, 32)
             self.lastUsed = Date() // now
             self.logger.trace("UdpProxyConnection.processRemoteData - wrote to client \(ipv4.data.count)")
+            self.udpLogger.info("client <- persona - write \(ipv4.data.count) bytes")
             self.writeLogger.info("\(ipv4.data.count) - \(ipv4.data.hex)")
         }
         catch
