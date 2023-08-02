@@ -19,12 +19,14 @@ public class UdpProxy
     var connections: [UdpProxyConnection] = []
     let logger: Logger
     let udpLogger: Puppy
+    let writeLogger: Puppy
 
-    public init(client: AsyncConnection, logger: Logger, udpLogger: Puppy)
+    public init(client: AsyncConnection, logger: Logger, udpLogger: Puppy, writeLogger: Puppy)
     {
         self.client = client
         self.logger = logger
         self.udpLogger = udpLogger
+        self.writeLogger = writeLogger
     }
 
     public func processLocalPacket(_ packet: Packet) async throws
@@ -79,7 +81,7 @@ public class UdpProxy
 
     func addConnection(localAddress: IPv4Address, localPort: UInt16, remoteAddress: IPv4Address, remotePort: UInt16, connection: AsyncConnection) -> UdpProxyConnection
     {
-        let connection = UdpProxyConnection(client: self.client, localAddress: localAddress, localPort: localPort, remoteAddress: remoteAddress, remotePort: remotePort, connection: connection, logger: self.logger, udpLogger: self.udpLogger)
+        let connection = UdpProxyConnection(client: self.client, localAddress: localAddress, localPort: localPort, remoteAddress: remoteAddress, remotePort: remotePort, connection: connection, logger: self.logger, udpLogger: self.udpLogger, writeLogger: self.writeLogger)
         self.connections.append(connection)
         return connection
     }
@@ -113,8 +115,9 @@ class UdpProxyConnection
     let queue = DispatchQueue(label: "UdpProxyConnection")
     let logger: Logger
     let udpLogger: Puppy
+    let writeLogger: Puppy
 
-    public init(client: AsyncConnection, localAddress: IPv4Address, localPort: UInt16, remoteAddress: IPv4Address, remotePort: UInt16, connection: AsyncConnection, logger: Logger, udpLogger: Puppy)
+    public init(client: AsyncConnection, localAddress: IPv4Address, localPort: UInt16, remoteAddress: IPv4Address, remotePort: UInt16, connection: AsyncConnection, logger: Logger, udpLogger: Puppy, writeLogger: Puppy)
     {
         self.client = client
         self.localAddress = localAddress
@@ -127,6 +130,7 @@ class UdpProxyConnection
 
         self.logger = logger
         self.udpLogger = udpLogger
+        self.writeLogger = writeLogger
 
         lastUsed = Date() // now
 
@@ -178,6 +182,7 @@ class UdpProxyConnection
         self.lastUsed = Date() // now
 
         self.logger.debug("Wrote \(bytes.count) bytes to the UDP Proxy Server:")
+        self.writeLogger.info("\(bytes.count) - \(bytes.hex)")
 
         if destinationPort == 7
         {

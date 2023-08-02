@@ -22,6 +22,7 @@ public class Persona
     var tcpLogger = Puppy()
     var udpLogger = Puppy()
     var packetLogger = Puppy()
+    var clientWriteLog = Puppy()
 
     var udpProxy: UdpProxy! = nil
     var tcpProxy: TcpProxy! = nil
@@ -35,6 +36,7 @@ public class Persona
         let logFileURL = File.homeDirectory().appendingPathComponent("Persona/PersonaTcpLog.log", isDirectory: false)
         let logFileURL2 = File.homeDirectory().appendingPathComponent("Persona/PersonaUdpLog.log", isDirectory: false)
         let logFileURL3 = File.homeDirectory().appendingPathComponent("Persona/PersonaPacketLog.log", isDirectory: false)
+        let logFileURL4 = File.homeDirectory().appendingPathComponent("Persona/PersonaClientWriteLog.log", isDirectory: false)
 
         if File.exists(logFileURL.path)
         {
@@ -57,21 +59,30 @@ public class Persona
             udpLogger.add(file2)
         }
 
-        if let file2 = try? FileLogger("PersonaPacketLogger",
+        if let file3 = try? FileLogger("PersonaPacketLogger",
                                        logLevel: .debug,
                                        fileURL: logFileURL3,
                                        filePermission: "600")  // Default permission is "640".
         {
-            udpLogger.add(file2)
+            udpLogger.add(file3)
+        }
+
+        if let file4 = try? FileLogger("PersonaClientWriteLogger",
+                                       logLevel: .debug,
+                                       fileURL: logFileURL4,
+                                       filePermission: "600")  // Default permission is "640".
+        {
+            udpLogger.add(file4)
         }
 
         tcpLogger.debug("PersonaTCPLogger Start")
         udpLogger.debug("PersonaUDPLogger Start")
         packetLogger.debug("PersonaPacketLogger Start")
+        clientWriteLog.info("PersonaClientWriteLogger Start")
 
         self.connection = AsyncSystemdConnection(logger)
 
-        self.udpProxy = UdpProxy(client: self.connection, logger: logger, udpLogger: udpLogger)
+        self.udpProxy = UdpProxy(client: self.connection, logger: logger, udpLogger: udpLogger, writeLogger: clientWriteLog)
         self.tcpProxy = TcpProxy(client: self.connection, quietTime: false, logger: logger, tcpLogger: tcpLogger)
     }
 
