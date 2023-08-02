@@ -182,7 +182,6 @@ class UdpProxyConnection
         self.lastUsed = Date() // now
 
         self.logger.debug("Wrote \(bytes.count) bytes to the UDP Proxy Server:")
-        self.writeLogger.info("\(bytes.count) - \(bytes.hex)")
 
         if destinationPort == 7
         {
@@ -217,10 +216,11 @@ class UdpProxyConnection
                 self.logger.trace("UdpProxyConnection.processRemoteData - ipv4 packet: \(ipv4)")
             }
 
-            self.logger.error("UdpProxyConnection.processRemoteData - writing to client \(ipv4.data.count)")
+            self.logger.trace("UdpProxyConnection.processRemoteData - writing to client \(ipv4.data.count)")
             try await self.client.writeWithLengthPrefix(ipv4.data, 32)
             self.lastUsed = Date() // now
-            self.logger.error("UdpProxyConnection.processRemoteData - wrote to client \(ipv4.data.count)")
+            self.logger.trace("UdpProxyConnection.processRemoteData - wrote to client \(ipv4.data.count)")
+            self.writeLogger.info("\(ipv4.data.count) - \(ipv4.data.hex)")
         }
         catch
         {
