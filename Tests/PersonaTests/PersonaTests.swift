@@ -20,6 +20,9 @@ final class PersonaTests: XCTestCase
         }
         
         try await asyncConnection.write(data)
+        
+        print("Wrote \(data.count) bytes, attempting to read some data...")
+        
         let responseData = try await asyncConnection.readWithLengthPrefix(prefixSizeInBits: 32)
         
         print("Received \(responseData.count) bytes of response data: \n\(responseData.hex)")
