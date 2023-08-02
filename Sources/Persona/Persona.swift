@@ -21,6 +21,7 @@ public class Persona
     let logger: Logger
     var tcpLogger = Puppy()
     var udpLogger = Puppy()
+    var packetLogger = Puppy()
 
     var udpProxy: UdpProxy! = nil
     var tcpProxy: TcpProxy! = nil
@@ -33,6 +34,7 @@ public class Persona
 
         let logFileURL = File.homeDirectory().appendingPathComponent("PersonaTcpLog.log", isDirectory: false)
         let logFileURL2 = File.homeDirectory().appendingPathComponent("PersonaUdpLog.log", isDirectory: false)
+        let logFileURL3 = File.homeDirectory().appendingPathComponent("PersonaPacketLog.log", isDirectory: false)
 
         if File.exists(logFileURL.path)
         {
@@ -55,9 +57,17 @@ public class Persona
             udpLogger.add(file2)
         }
 
+        if let file2 = try? FileLogger("PersonaPacketLogger",
+                                       logLevel: .debug,
+                                       fileURL: logFileURL3,
+                                       filePermission: "600")  // Default permission is "640".
+        {
+            udpLogger.add(file2)
+        }
 
         tcpLogger.debug("PersonaTCPLogger Start")
         udpLogger.debug("PersonaUDPLogger Start")
+        packetLogger.debug("PersonaPacketLogger Start")
 
         self.connection = AsyncSystemdConnection(logger)
 
@@ -87,24 +97,55 @@ public class Persona
     {
         let packet = Packet(ipv4Bytes: data, timestamp: Date(), debugPrints: true)
 
-        if packet.tcp != nil
+        if let ipv4 = packet.ipv4, let tcp = packet.tcp
         {
-            self.logger.debug("TCP packet \(packet.tcp!.destinationPort)")
+            self.logger.debug("TCP packet \(tcp.destinationPort)")
+
+            if let payload = tcp.payload
+            {
+                self.packetLogger.info("TCP: \(ipv4.sourceAddress):\(tcp.sourcePort) -> \(ipv4.destinationAddress):\(tcp.destinationPort) - \(payload.count) byte payload")
+            }
+            else
+            {
+                self.packetLogger.info("TCP: \(ipv4.sourceAddress):\(tcp.sourcePort) -> \(ipv4.destinationAddress):\(tcp.destinationPort) - no payload")
+            }
+
             try await self.tcpProxy.processUpstreamPacket(packet)
         }
-        else if let udp = packet.udp
+        else if let ipv4 = packet.ipv4, let udp = packet.udp
         {
             self.logger.debug("UDP packet")
 
-            guard udp.payload != nil else
+            if let payload = udp.payload
             {
+                self.logger.debug("UDP packet WITH PAYLOAD")
+                self.packetLogger.info("UDP: \(ipv4.sourceAddress):\(udp.sourcePort) -> \(ipv4.destinationAddress):\(udp.destinationPort) - \(payload.count) byte payload")
+
+                try await self.udpProxy.processLocalPacket(packet)
+            }
+            else
+            {
+                self.packetLogger.info("UDP: \(ipv4.sourceAddress):\(udp.sourcePort) -> \(ipv4.destinationAddress):\(udp.destinationPort) - no payload")
+
                 throw PersonaError.emptyPayload
             }
-
-            self.logger.debug("UDP packet WITH PAYLOAD")
-
-            try await self.udpProxy.processLocalPacket(packet)
         }
+        else if let ipv4 = packet.ipv4
+        {
+            if let payload = ipv4.payload
+            {
+                self.packetLogger.info("\(ipv4.sourceAddress) -> \(ipv4.destinationAddress) - \(payload.count) byte payload")
+            }
+            else
+            {
+                self.packetLogger.info("\(ipv4.sourceAddress) -> \(ipv4.destinationAddress) - no payload")
+            }
+        }
+        else
+        {
+            self.packetLogger.info("Non-IPv4 packet - \(data.hex)")
+        }
+
     }
 }
 
