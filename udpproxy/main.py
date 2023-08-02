@@ -55,10 +55,10 @@ class UdpProxy:
                 host = "%d.%d.%d.%d" % (hostBytes[0], hostBytes[1], hostBytes[2], hostBytes[3])
                 port = int.from_bytes(portBytes, "big")
 
-                self.log.write("%s:%d - %d bytes\n" % (host, port, len(payload)))
+                self.log.write("persona -> udpproxy - %s:%d - %d bytes\n" % (host, port, len(payload)))
 
                 self.upstream.sendto(payload, (host, port))
-                self.log.write("wrote %d bytes to %s:%d\n" % (len(payload), host, port))
+                self.log.write("udpproxy -> echoserver wrote %d bytes to %s:%d\n" % (len(payload), host, port))
                 self.log.write("payload hex: %s" % (binascii.hexlify(payload)))
             except:
                 self.log.write("exception in pumpUpstream")
@@ -76,7 +76,7 @@ class UdpProxy:
                 (host, port) = addr
 
                 self.log.write("received %d bytes from upstream %s:%d\n" % (len(data), host, port))
-                self.log.write("received data %s" % (binascii.hexlify(data)))
+                self.log.write("udpproxy <- echoserver - received data %s" % (binascii.hexlify(data)))
                 self.log.flush()
 
                 length = len(data) + 6
@@ -101,7 +101,7 @@ class UdpProxy:
                 self.log.write("writing %d bytes downstream\n" % (len(bs)))
                 self.downstreamWrite.write(bs)
                 self.downstreamWrite.flush()
-                self.log.write("wrote %d bytes downstream\n" % (len(bs)))
+                self.log.write("persoan <- udpproxy - wrote %d bytes downstream\n" % (len(bs)))
                 self.log.write("data written: %s" % (binascii.hexlify(bs)))
             except Exception as e:
                 self.log.write("exception in pumpUpstream\n")
