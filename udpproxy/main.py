@@ -38,7 +38,8 @@ class UdpProxy:
             try:
                 lengthBytes = self.downstreamRead.read(4)
                 length = int.from_bytes(lengthBytes, "big")
-                self.log.write("length prefix is %d" % (length))
+                self.log.write("length prefix bytes %s\n" % (binascii.hexlify(lengthBytes)))
+                self.log.write("length prefix is %d\n" % (length))
                 data = self.downstreamRead.read(length)
 
                 if length < 6:
