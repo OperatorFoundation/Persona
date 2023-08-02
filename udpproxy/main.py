@@ -101,7 +101,7 @@ class UdpProxy:
                 self.log.write("writing %d bytes downstream\n" % (len(bs)))
                 self.downstreamWrite.write(bs)
                 self.downstreamWrite.flush()
-                self.log.write("persoan <- udpproxy - wrote %d bytes downstream\n" % (len(bs)))
+                self.log.write("persona <- udpproxy - wrote %d bytes downstream\n" % (len(bs)))
                 self.log.write("data written: %s" % (binascii.hexlify(bs)))
             except Exception as e:
                 self.log.write("exception in pumpUpstream\n")

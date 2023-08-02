@@ -153,8 +153,10 @@ class UdpProxyConnection
         while true
         {
             self.logger.debug("UdpProxyConnection.pumpRemote() - readWithLengthPrefix(32)")
+            self.udpLogger.info("persona <- udpproxy - trying to read")
             let data = try await self.connection.readWithLengthPrefix(prefixSizeInBits: 32)
             self.logger.debug("UdpProxyConnection.pumpRemote() - read \(data.count)")
+            self.udpLogger.info("persona <- udpproxy - read \(data.count) bytes")
             try await self.processRemoteData(data)
         }
     }
