@@ -194,6 +194,7 @@ class UdpProxyConnection
         if self.remotePort == 7
         {
             self.logger.trace("UdpProxyConnection.processRemoteData(\(data.count) - \(data.hex))")
+            self.udpLogger.trace("UdpProxyConnection.processRemoteData(\(data.count) - \(data.hex))")
         }
 
         guard let udp = InternetProtocols.UDP(sourcePort: self.remotePort, destinationPort: self.localPort, payload: data) else
@@ -214,6 +215,9 @@ class UdpProxyConnection
             {
                 self.logger.trace("UdpProxyConnection.processRemoteData - udp packet: \(udp)")
                 self.logger.trace("UdpProxyConnection.processRemoteData - ipv4 packet: \(ipv4)")
+
+                self.udpLogger.trace("UdpProxyConnection.processRemoteData - udp packet: \(udp)")
+                self.udpLogger.trace("UdpProxyConnection.processRemoteData - ipv4 packet: \(ipv4)")
             }
 
             self.logger.trace("UdpProxyConnection.processRemoteData - writing to client \(ipv4.data.count)")
