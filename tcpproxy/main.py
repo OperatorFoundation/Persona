@@ -43,10 +43,21 @@ class TcpProxy:
         self.log.write("connecting to %s:%d\n" % (host, port))
         self.log.flush()
 
-        self.upstream.connect((host, port))
+        try:
+            self.upstream.connect((host, port))
+        except Exception as e:
+            self.log.write("Could not connect to %s:%d - %s" % (host, port, str(e)))
+            self.log.flush()
+
+            self.downstreamWrite.write(b'\xF0') # signal failure to connect
+            self.downstreamWrite.flush()
+            sys.exit(0)
 
         self.log.write("connected\n")
         self.log.flush()
+
+        self.downstreamWrite.write(b'\xF1') # signal successful connection
+        self.downstreamWrite.flush()
 
         self.downstreamThread.start()
 
@@ -75,7 +86,7 @@ class TcpProxy:
                 self.log.write("writing %d bytes to %s:%d\n" % (len(payload), host, port))
                 self.log.flush()
 
-                self.upstream.send(payload)
+                self.upstream.sendall(payload)
 
                 self.log.write("wrote %d bytes to %s:%d\n" % (len(payload), host, port))
                 self.log.flush()

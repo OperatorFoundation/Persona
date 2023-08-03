@@ -161,6 +161,19 @@ public actor TcpProxy
             {
                 let networkConnection = try await AsyncTcpSocketConnection("127.0.0.1", 1232, self.logger)
                 try await networkConnection.write(destinationAddress.data + destinationPort.maybeNetworkData!)
+
+                let connectionStatusData = try await networkConnection.readSize(1)
+                let connectionStatusByte = connectionStatusData[0]
+                guard let connectionStatus = ConnectionStatus(rawValue: connectionStatusByte) else
+                {
+                    throw TcpProxyError.unknownConnectionStatus(connectionStatusByte)
+                }
+
+                guard connectionStatus == .success else
+                {
+                    throw TcpProxyError.upstreamConnectionFailed
+                }
+
                 try await self.addConnection(proxy: self, localAddress: sourceAddress, localPort: sourcePort, remoteAddress: destinationAddress, remotePort: destinationPort, connection: networkConnection, irs: SequenceNumber(tcp.sequenceNumber), rcvWnd: tcp.windowSize)
             }
             catch
@@ -299,4 +312,21 @@ public actor TcpProxy
 
         try await self.client.write(ipv4.data)
     }
+}
+
+public enum ConnectionStatus: UInt8
+{
+    case success = 0xF1
+    case failure = 0xF0
+}
+
+public enum TcpProxyError: Error
+{
+    case upstreamConnectionFailed
+    case unknownConnectionStatus(UInt8)
+    case addressMismatch(String, String)
+    case invalidAddress(Data)
+    case notIPv4Packet(Packet)
+    case notTcpPacket(Packet)
+    case badIpv4Packet
 }
