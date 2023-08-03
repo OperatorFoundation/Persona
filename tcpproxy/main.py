@@ -19,8 +19,9 @@ class TcpProxy:
 
         self.thread1 = threading.Thread(target=self.pumpUpstream)
         self.thread2 = threading.Thread(target=self.pumpDownstream)
+
         self.thread1.start()
-        self.thread2.start()
+
 
     def wait(self):
         self.thread1.join()
@@ -43,6 +44,8 @@ class TcpProxy:
 
         self.log.write("connected\n")
         self.log.flush()
+
+        self.thread2.start()
 
         while self.running:
             try:
@@ -100,7 +103,7 @@ class TcpProxy:
             except Exception as e:
                 self.log.write("exception in pumpUpstream\n")
                 self.log.flush()
-                
+
                 self.log.write("%s\n" % (str(e)))
                 self.log.flush()
 
