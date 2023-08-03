@@ -37,8 +37,12 @@ class TcpProxy:
         port = int.from_bytes(portBytes, "big")
 
         self.log.write("connecting to %s:%d\n" % (host, port))
+        self.log.flush()
+
         self.upstream.connect((host, port))
+
         self.log.write("connected\n")
+        self.log.flush()
 
         while self.running:
             try:
@@ -47,11 +51,16 @@ class TcpProxy:
                 payload = self.downstreamRead.read(length)
 
                 self.log.write("%d bytes\n" % (len(payload)))
+                self.log.flush()
 
                 self.upstream.send(payload)
+
                 self.log.write("wrote %d bytes to %s:%d\n" % (len(payload), host, port))
+                self.log.flush()
             except:
                 self.log.write("exception in pumpUpstream")
+                self.log.flush()
+
                 self.running = False
     def pumpDownstream(self):
         self.log.write("pumpDownstream started\n")
@@ -78,12 +87,20 @@ class TcpProxy:
                 self.log.flush()
 
                 bs = lengthBytes + data
+
                 self.log.write("writing %d bytes downstream\n" % (len(bs)))
+                self.log.flush()
+
                 self.downstreamWrite.write(bs)
                 self.downstreamWrite.flush()
+
                 self.log.write("wrote %d bytes downstream\n" % (len(bs)))
+                self.log.flush()
+
             except Exception as e:
                 self.log.write("exception in pumpUpstream\n")
+                self.log.flush()
+                
                 self.log.write("%s\n" % (str(e)))
                 self.log.flush()
 
