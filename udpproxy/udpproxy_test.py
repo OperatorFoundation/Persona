@@ -4,7 +4,8 @@ import unittest
 
 
 class MyTestCase(unittest.TestCase):
-    def test_udpproxy(self):
+    @staticmethod
+    def test_udpproxy():
         conn = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         conn.connect(("127.0.0.1", 1233))
         conn.sendall(b"\x00\x00\x00\x0a") # length prefix of 10

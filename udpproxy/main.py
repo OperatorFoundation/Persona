@@ -41,7 +41,7 @@ class UdpProxy:
                 lengthBytes = self.downstreamRead.read(4)
                 length = int.from_bytes(lengthBytes, "big")
                 self.log.write("length prefix bytes %s\n" % (binascii.hexlify(lengthBytes)))
-                self.log.write("length prefix is %d\n" % (length))
+                self.log.write("length prefix is %d\n" % length)
                 data = self.downstreamRead.read(length)
 
                 if length < 6:
@@ -64,8 +64,8 @@ class UdpProxy:
                 self.upstream.sendto(payload, (host, port))
                 self.log.write("udpproxy -> echoserver wrote %d bytes to %s:%d\n" % (len(payload), host, port))
                 self.log.write("payload hex: %s" % (binascii.hexlify(payload)))
-            except:
-                self.log.write("exception in pumpUpstream")
+            except Exception as e:
+                self.log.write("exception in pumpUpstream %s" % str(e))
                 self.running = False
     def pumpDownstream(self):
         self.log.write("pumpDownstream started\n")
@@ -86,14 +86,14 @@ class UdpProxy:
                 length = len(data) + 6
                 lengthBytes = length.to_bytes(4, "big")
 
-                self.log.write("total length %d\n" % (length))
+                self.log.write("total length %d\n" % length)
                 self.log.flush()
 
                 hostBytes = socket.inet_aton(host)
                 self.log.write("hostBytes %d\n" % (len(hostBytes)))
                 self.log.flush()
 
-                self.log.write("port: %d\n" % (port))
+                self.log.write("port: %d\n" % port)
                 self.log.flush()
 
                 portBytes = port.to_bytes(2, "big")

@@ -15,7 +15,7 @@ final class PersonaTests: XCTestCase
         let logger = Logger(label: "UDPProxyTestLogger")
 
         print("Attempting to write data...")
-        let asyncConnection = try await AsyncTcpSocketConnection("146.190.137.108", 1233, logger)
+        let asyncConnection = try await AsyncTcpSocketConnection("146.190.137.108", 1233, logger, verbose: true)
         let dataString = "0000000a7f000001000774657374"
         guard let data = Data(hex: dataString) else
         {
@@ -27,6 +27,7 @@ final class PersonaTests: XCTestCase
 
         print("Wrote \(data.count) bytes, attempting to read some data...")
         let responseData = try await asyncConnection.readWithLengthPrefix(prefixSizeInBits: 32)
+//        let responseData = try await asyncConnection.readSize(14)
 
         print("Received \(responseData.count) bytes of response data: \n\(responseData.hex)")
     }
