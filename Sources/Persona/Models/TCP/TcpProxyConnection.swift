@@ -400,6 +400,9 @@ public class TcpProxyConnection: Equatable
                             if self.downstreamStraw.isEmpty
                             {
                                 try await self.closeUpstream()
+
+                                self.logger.info("closing downstream because we received a FIN")
+
                                 try await self.closeDownstream()
                             }
                             else
@@ -666,6 +669,8 @@ public class TcpProxyConnection: Equatable
 
     func closeDownstream() async throws
     {
+        self.logger.info("closing downstream")
+
         self.state = .finWait1
         self.tcpLogger?.debug("startClose() called")
         try await self.sendFinAck(sequenceNumber: self.downstreamStraw.sequenceNumber, acknowledgementNumber: self.upstreamStraw.acknowledgementNumber)
