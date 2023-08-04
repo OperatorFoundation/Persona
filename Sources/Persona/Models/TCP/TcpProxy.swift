@@ -310,7 +310,7 @@ public actor TcpProxy
             throw TcpProxyError.badIpv4Packet
         }
 
-        try await self.client.write(ipv4.data)
+        try await self.client.writeWithLengthPrefix(ipv4.data, 32)
     }
 }
 
