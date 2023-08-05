@@ -14,17 +14,12 @@ import Net
 import Puppy
 import TransmissionAsync
 
+// Persona's TCP proxying control logic offloads TCP packets to the tcpproxy subsystem.
+// This control logic filters out packets that we don't know how to handle and prepares them into a form suitable for ingestion by the tcpproxy subsystem.
+// It also receives output from the tcpproxy subsystem and prepares it into a form suitable for sending back to the client.
 public actor TcpProxy
 {
     static let maximumSegmentLifetime = TimeInterval(integerLiteral: 2 * 60) // 2 minutes
-    static var quietTimeLock: DispatchSemaphore = DispatchSemaphore(value: 0)
-    static var quietTime: Timer? = Timer(timeInterval: TcpProxy.maximumSegmentLifetime, repeats: false)
-    {
-        timer in
-
-        TcpProxy.quietTime = nil
-        TcpProxy.quietTimeLock.signal()
-    }
 
     static public func sequenceLength(_ tcp: InternetProtocols.TCP) -> UInt32
     {
@@ -49,22 +44,19 @@ public actor TcpProxy
     }
 
     let logger: Logger
-    let tcpLogger: Puppy?
+    let tcpLogger: Puppy
+    let writeLogger: Puppy
 
     let client: AsyncConnection
 
     var connections: [TcpProxyConnection] = []
 
-    public init(client: AsyncConnection, quietTime: Bool = true, logger: Logger, tcpLogger: Puppy?)
+    public init(client: AsyncConnection, logger: Logger, tcpLogger: Puppy, writeLogger: Puppy)
     {
         self.client = client
         self.logger = logger
         self.tcpLogger = tcpLogger
-
-        if quietTime
-        {
-            TcpProxy.quietTimeLock.wait()
-        }
+        self.writeLogger = writeLogger
     }
 
     public func processUpstreamPacket(_ packet: Packet) async throws
@@ -151,9 +143,9 @@ public actor TcpProxy
         {
             if tcp.destinationPort == 2234
             {
-                tcpLogger?.debug("\n************************************************************")
-                tcpLogger?.debug("* ⮕ SYN SEQ:\(SequenceNumber(tcp.sequenceNumber)) ❣️")
-                tcpLogger?.debug("\n************************************************************")
+                tcpLogger.debug("\n************************************************************")
+                tcpLogger.debug("* ⮕ SYN SEQ:\(SequenceNumber(tcp.sequenceNumber)) ❣️")
+                tcpLogger.debug("\n************************************************************")
             }
 
             // connect() automatically send a syn-ack back for the syn internally
