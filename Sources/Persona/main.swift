@@ -11,5 +11,5 @@ import Foundation
 import FoundationNetworking
 #endif
 
-let persona = try Persona()
+let persona = try await Persona()
 try await persona.run()
