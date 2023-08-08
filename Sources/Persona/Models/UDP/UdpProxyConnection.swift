@@ -160,19 +160,12 @@ public class UdpProxyConnection
             throw UdpProxyError.badUdpProxyResponse
         }
         
-        self.logger.trace("UDP Proxy Server Gave Us Data: Tha data is more than 6 bytes.")
-
         // udpproxy gives us 4-byte length prefix + (4-byte address, 2-byte port, and payload)
         // The 4-byte prefix was already stripped on the read.
         // This leaves us with 4-byte address, 2-byte port, and payload.
         let sourceAddressBytes = Data(data[0..<4])
-        self.logger.trace("UDP Proxy Server Gave Us Data: Source address bytes - \(sourceAddressBytes.hex)")
-        
         let sourcePortBytes = Data(data[4..<6])
-        self.logger.trace("UDP Proxy Server Gave Us Data: Source port bytes - \(sourcePortBytes.hex).")
-        
         let payload = Data(data[6...])
-        self.logger.trace("UDP Proxy Server Gave Us Data: Payload bytes - \(payload.hex).")
 
         guard let sourceAddress = IPv4Address(data: sourceAddressBytes) else
         {
