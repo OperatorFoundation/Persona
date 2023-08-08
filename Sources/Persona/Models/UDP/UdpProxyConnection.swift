@@ -168,10 +168,10 @@ public class UdpProxyConnection
         let sourceAddressBytes = Data(data[0..<4])
         self.logger.trace("UDP Proxy Server Gave Us Data: Source address bytes - \(sourceAddressBytes.hex)")
         
-        let sourcePortBytes = data[4..<6]
+        let sourcePortBytes = Data(data[4..<6])
         self.logger.trace("UDP Proxy Server Gave Us Data: Source port bytes - \(sourcePortBytes.hex).")
         
-        let payload = data[6...]
+        let payload = Data(data[6...])
         self.logger.trace("UDP Proxy Server Gave Us Data: Payload bytes - \(payload.hex).")
 
         guard let sourceAddress = IPv4Address(data: sourceAddressBytes) else
