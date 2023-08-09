@@ -30,27 +30,45 @@ class TcpProxy:
         self.log.flush()
 
         self.log.write("reading upstream host and port\n")
+        self.log.flush()
 
         address = self.downstreamRead.read(6)
 
         self.log.write("read upstream host and port: %d - %s\n" % (len(address), binascii.hexlify(address)))
-
-        hostBytes = address[0:4]
-        portBytes = address[4:6]
-        host = socket.inet_aton(hostBytes)
-        port = int.from_bytes(portBytes, "big")
-
-        self.log.write("connecting to %s:%d\n" % (host, port))
         self.log.flush()
 
         try:
+            hostBytes = address[0:4]
+
+            self.log.write("hostBytes: %d - %s\n" % (len(hostBytes), binascii.hexlify(hostBytes)))
+            self.log.flush()
+
+            portBytes = address[4:6]
+
+            self.log.write("portBytes: %d - %s\n" % (len(portBytes), binascii.hexlify(portBytes)))
+            self.log.flush()
+
+            host = socket.inet_aton(hostBytes)
+
+            self.log.write("host: %s\n" % str(host))
+            self.log.flush()
+
+            port = int.from_bytes(portBytes, "big")
+
+            self.log.write("port: %d\n" % port)
+            self.log.flush()
+
+            self.log.write("connecting to %s:%d\n" % (host, port))
+            self.log.flush()
+
             self.upstream.connect((host, port))
         except Exception as e:
-            self.log.write("Could not connect to %s:%d - %s" % (host, port, str(e)))
+            self.log.write("Could not connect: %s" % str(e))
             self.log.flush()
 
             self.downstreamWrite.write(b'\xF0') # signal failure to connect
             self.downstreamWrite.flush()
+
             sys.exit(0)
 
         self.log.write("connected\n")
