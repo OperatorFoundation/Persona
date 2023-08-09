@@ -106,7 +106,7 @@ public class Persona
         self.udpProxy = try await UdpProxy(client: self.connection, logger: logger, udpLogger: udpLogger, writeLogger: clientWriteLog)
 
         // Run Persona's TCP proxying control logic
-        self.tcpProxy = TcpProxy(client: self.connection, quietTime: false, logger: logger, tcpLogger: tcpLogger)
+        self.tcpProxy = TcpProxy(client: self.connection, logger: self.logger, tcpLogger: self.tcpLogger, writeLogger: self.clientWriteLog)
     }
 
     // Start the Persona processing loop. Please note that each client gets its own Persona instance.
@@ -156,8 +156,8 @@ public class Persona
                 self.packetLogger.info("TCP: \(ipv4.sourceAddress.ipv4AddressString ?? "not an ipv4 address"):\(tcp.sourcePort) -> \(ipv4.destinationAddress.ipv4AddressString ?? "not an ipv4 address"):\(tcp.destinationPort) - no payload")
             }
 
-            // Process all TCP packets
-            try await self.tcpProxy.processUpstreamPacket(packet)
+            // Process TCP packets
+            try await self.tcpProxy.processDownstreamPacket(ipv4: ipv4, tcp: tcp, payload: tcp.payload)
         }
         else if let ipv4 = packet.ipv4, let udp = packet.udp
         {
