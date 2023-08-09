@@ -159,13 +159,13 @@ public class UdpProxyConnection
         {
             throw UdpProxyError.badUdpProxyResponse
         }
-
+        
         // udpproxy gives us 4-byte length prefix + (4-byte address, 2-byte port, and payload)
         // The 4-byte prefix was already stripped on the read.
         // This leaves us with 4-byte address, 2-byte port, and payload.
-        let sourceAddressBytes = data[0..<4]
-        let sourcePortBytes = data[4..<6]
-        let payload = data[6...]
+        let sourceAddressBytes = Data(data[0..<4])
+        let sourcePortBytes = Data(data[4..<6])
+        let payload = Data(data[6...])
 
         guard let sourceAddress = IPv4Address(data: sourceAddressBytes) else
         {
