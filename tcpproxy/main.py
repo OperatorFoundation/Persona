@@ -48,7 +48,7 @@ class TcpProxy:
             self.log.write("portBytes: %d - %s\n" % (len(portBytes), binascii.hexlify(portBytes)))
             self.log.flush()
 
-            host = socket.inet_aton(hostBytes)
+            host = "%d.%d.%d.%d" % (hostBytes[0], hostBytes[1], hostBytes[2], hostBytes[3])
 
             self.log.write("host: %s\n" % str(host))
             self.log.flush()
