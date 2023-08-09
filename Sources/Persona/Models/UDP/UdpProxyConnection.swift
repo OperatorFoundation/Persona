@@ -224,8 +224,14 @@ public class UdpProxyConnection
     {
         let now = Date()
         let elapsed = now.timeIntervalSince(self.lastUsed)
+
+        self.logger.trace("UdpProxyConnection.checkForCleanup \(now) - \(self.lastUsed) = \(elapsed)/\(UdpProxy.udpTimeout)...")
+
         if elapsed > UdpProxy.udpTimeout
         {
+            self.logger.trace("UdpProxyConnection.checkForCleanup closing connection for \(self.identity.localAddress.string):\(self.identity.localPort)")
+            self.udpLogger.trace("UdpProxyConnection.checkForCleanup closing connection for \(self.identity.localAddress.string):\(self.identity.localPort)")
+
             timer.invalidate()
 
             UdpProxyConnection.removeConnection(identity: self.identity)
