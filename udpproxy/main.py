@@ -56,6 +56,7 @@ class UdpProxy:
                 payload = data[6:]
                 hostBytes = address[:4]
                 portBytes = address[4:6]
+
                 host = "%d.%d.%d.%d" % (hostBytes[0], hostBytes[1], hostBytes[2], hostBytes[3])
                 port = int.from_bytes(portBytes, "big")
 
