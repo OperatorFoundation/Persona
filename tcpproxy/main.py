@@ -5,6 +5,73 @@ import socket
 import sys
 import threading
 
+class StrawException(Exception):
+    pass
+
+class Straw:
+    def __init__(self):
+        self.buffer = b''
+        self.count = len(self.buffer)
+
+    def write(self, data):
+        self.buffer = self.buffer + data
+        self.count = len(self.buffer)
+
+    def readSize(self, size):
+        if len(self.buffer) < size:
+            raise StrawException()
+
+        result = self.buffer[:size]
+        self.buffer = self.buffer[size:]
+        self.count = len(self.buffer)
+
+        return result
+
+    def read(self):
+        result = self.buffer
+        self.buffer = b''
+        self.count = len(self.buffer)
+
+        return result
+
+class SystemdConnection:
+    def __init__(self, network):
+        self.network = network
+        self.straw = Straw()
+
+    def readSize(self, size):
+        while self.straw.count < size:
+            remaining = size - self.straw.count
+            next = network.read(remaining)
+            self.straw.write(next)
+
+        return self.straw.readSize(size)
+
+    def readMaxSize(self, maxSize):
+        result = self.network.read(maxSize)
+        while result == 0:
+            result = self.network.read(maxSize)
+        return result
+
+class SocketConnection:
+    def __init__(self, network):
+        self.network = network
+        self.straw = Straw()
+
+    def readSize(self, size):
+        while self.straw.count < size:
+            remaining = size - self.straw.count
+            next = network.recv(remaining)
+            self.straw.write(next)
+
+        return self.straw.readSize(size)
+
+    def readMaxSize(self, maxSize):
+        result = self.network.recv(maxSize)
+        while result == 0:
+            result = self.network.recv(maxSize)
+        return result
+
 class TcpProxy:
     def __init__(self):
         self.running = True
@@ -14,9 +81,13 @@ class TcpProxy:
         self.log.flush()
 
         self.upstream = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        self.upstreamConnection = SocketConnection(self.upstream)
 
         self.downstreamRead = os.fdopen(3, 'rb')
+        self.downstreamReadConnection = SystemdConnection(self.downstreamRead)
         self.downstreamWrite = os.fdopen(3, 'wb')
+
+        self.readBuffer = b''
 
         self.downstreamThread = threading.Thread(target=self.pumpDownstream)
 
@@ -32,7 +103,7 @@ class TcpProxy:
         self.log.write("reading upstream host and port\n")
         self.log.flush()
 
-        address = self.downstreamRead.read(6)
+        address = self.downstreamReadConnection.read(6)
 
         self.log.write("read upstream host and port: %d - %s\n" % (len(address), binascii.hexlify(address)))
         self.log.flush()
@@ -84,7 +155,7 @@ class TcpProxy:
                 self.log.write("reading upstream payload length\n")
                 self.log.flush()
 
-                lengthBytes = self.downstreamRead.read(4)
+                lengthBytes = self.downstreamReadConnection.readSize(4)
 
                 self.log.write("read upstream payload bytes: %d - %s\n" % (len(lengthBytes), binascii.hexlify(lengthBytes)))
                 self.log.flush()
@@ -96,7 +167,8 @@ class TcpProxy:
 
                 self.log.write("reading %d bytes\n" % length)
 
-                payload = self.downstreamRead.read(length)
+                payload = b''
+                readBytes = self.downstreamReadConnection.readSize(length)
 
                 self.log.write("read %d bytes\n" % (len(payload)))
                 self.log.flush()
@@ -124,7 +196,7 @@ class TcpProxy:
                 self.log.write("reading from upstream\n")
                 self.log.flush()
 
-                data = self.upstream.recv(2048)
+                data = self.upstreamConnection.readMaxSize(2048)
 
                 if not data or len(data) == 0:
                     self.log.write("bad upstream read, closing\n")
