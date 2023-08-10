@@ -75,10 +75,10 @@ public class TcpProxyConnection
     // init() automatically send a syn-ack back for the syn (we only open a connect on receiving a syn)
     public init(identity: TcpIdentity, downstream: AsyncConnection, ipv4: IPv4, tcp: TCP, payload: Data?, logger: Logger, tcpLogger: Puppy, writeLogger: Puppy) async throws
     {
-        logger.debug("TcpProxyConnection.init: \(identity.localAddress):\(identity.localPort) -> \(identity.remoteAddress):\(identity.remotePort)")
+        logger.debug("TcpProxyConnection.init: \(identity.localAddress.data.ipv4AddressString ?? "?.?.?.?"):\(identity.localPort) -> \(identity.remoteAddress.data.ipv4AddressString ?? "?.?.?.?"):\(identity.remotePort)")
         if identity.remotePort == 7
         {
-            tcpLogger.debug("TcpProxyConnection.init: \(identity.localAddress):\(identity.localPort) -> \(identity.remoteAddress):\(identity.remotePort)")
+            tcpLogger.debug("TcpProxyConnection.init: \(identity.localAddress.data.ipv4AddressString ?? "?.?.?.?."):\(identity.localPort) -> \(identity.remoteAddress.data.ipv4AddressString ?? "?.?.?.?."):\(identity.remotePort)")
         }
 
         self.identity = identity
@@ -770,13 +770,13 @@ public class TcpProxyConnection
 
     func sendPacket(_ ipv4: IPv4) async throws
     {
-        self.logger.info("TcpProxyConnection.sendPacket - \(ipv4.data.count) bytes")
+        self.logger.info("TcpProxyConnection.sendPacket - \(ipv4.data.count) bytes - \(ipv4.data.hex)")
         if self.identity.remotePort == 7
         {
-            self.tcpLogger.info("TcpProxyConnection.sendPacket - \(ipv4.data.count) bytes")
+            self.tcpLogger.info("TcpProxyConnection.sendPacket - \(ipv4.data.count) bytes - \(ipv4.data.hex)")
         }
 
-        self.writeLogger.info("TcpProxyConnection.sendPacket - write \(ipv4.data.count) bytes to client")
+        self.writeLogger.info("TcpProxyConnection.sendPacket - write \(ipv4.data.count) bytes to client - \(ipv4.data.hex)")
 
         try await self.downstream.writeWithLengthPrefix(ipv4.data, 32)
 

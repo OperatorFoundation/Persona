@@ -13,16 +13,16 @@ public class TcpListen: TcpStateHandler
 {
     override public func processDownstreamPacket(ipv4: IPv4, tcp: TCP, payload: Data?) throws -> TcpStateTransition
     {
-        self.logger.debug("TcpListen.processDownstreamPacket: \(identity.localAddress):\(identity.localPort) -> \(identity.remoteAddress):\(identity.remotePort)")
-        if identity.remotePort == 7
+        self.logger.debug("TcpListen.processDownstreamPacket: \(identity.localAddress.data.ipv4AddressString ?? "?.?.?.?"):\(identity.localPort) -> \(identity.remoteAddress.data.ipv4AddressString ?? "?.?.?.?"):\(identity.remotePort)")
+        if identity.remotePort == 7 || identity.remotePort == 853
         {
-            self.tcpLogger.debug("TcpListen.procesDownstreamPacket: \(identity.localAddress):\(identity.localPort) -> \(identity.remoteAddress):\(identity.remotePort)")
+            self.tcpLogger.debug("TcpListen.procesDownstreamPacket: \(identity.localAddress.data.ipv4AddressString ?? "?.?.?.?"):\(identity.localPort) -> \(identity.remoteAddress.data.ipv4AddressString ?? "?.?.?.?"):\(identity.remotePort)")
         }
 
         guard !tcp.rst else
         {
             self.logger.debug("TcpListen.processDownstreamPacket: packet rejected because of RST")
-            if identity.remotePort == 7
+            if identity.remotePort == 7 || identity.remotePort == 853
             {
                 self.tcpLogger.debug("TcpListen.processDownstreamPacket: packet rejected because of RST")
             }
@@ -33,7 +33,7 @@ public class TcpListen: TcpStateHandler
         guard !tcp.fin else
         {
             self.logger.debug("TcpListen.processDownstreamPacket: packet rejected because of FIN")
-            if identity.remotePort == 7
+            if identity.remotePort == 7 || identity.remotePort == 853
             {
                 self.tcpLogger.debug("TcpListen.processDownstreamPacket: packet rejected because of FIN")
             }
@@ -45,9 +45,11 @@ public class TcpListen: TcpStateHandler
         guard !tcp.ack else
         {
             self.logger.debug("TcpListen.processDownstreamPacket: packet rejected because of ACK")
-            if identity.remotePort == 7
+            self.logger.debug("Rejected packet:\n\(tcp.description)\n")
+            if identity.remotePort == 7 || identity.remotePort == 853
             {
                 self.tcpLogger.debug("TcpListen.processDownstreamPacket: packet rejected because of ACK")
+                self.tcpLogger.debug("Rejected packet:\n\(tcp.description)\n")
             }
 
             return try self.panicOnDownstream(ipv4: ipv4, tcp: tcp, payload: payload)
@@ -57,7 +59,7 @@ public class TcpListen: TcpStateHandler
         guard tcp.syn else
         {
             self.logger.debug("TcpListen.processDownstreamPacket: packet rejected because of lack of SYN")
-            if identity.remotePort == 7
+            if identity.remotePort == 7 || identity.remotePort == 853
             {
                 self.tcpLogger.debug("TcpListen.processDownstreamPacket: packet rejected because of lack of SYN")
             }
@@ -69,7 +71,7 @@ public class TcpListen: TcpStateHandler
         self.upstreamStraw = TCPUpstreamStraw(segmentStart: SequenceNumber(tcp.sequenceNumber))
 
         self.logger.debug("TcpListen.processDownstreamPacket: Packeted accepted! Sending SYN-ACK and switching to SYN-RECEIVED state")
-        if identity.remotePort == 7
+        if identity.remotePort == 7 || identity.remotePort == 853
         {
             self.tcpLogger.debug("TcpListen.processDownstreamPacket: Packeted accepted! Sending SYN-ACK and switching to SYN-RECEIVED state")
         }
