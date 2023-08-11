@@ -157,13 +157,12 @@ class TcpProxy:
 
         while self.running:
             try:
-                self.log.write("reading upstream payload length\n")
+                self.log.write("reading downstream payload length\n")
                 self.log.flush()
 
                 lengthBytes = self.downstreamReadConnection.readSize(4)
 
-                self.log.write(
-                    "read upstream payload bytes: %d - %s\n" % (len(lengthBytes), binascii.hexlify(lengthBytes)))
+                self.log.write("read downstream payload bytes: %d - %s\n" % (len(lengthBytes), binascii.hexlify(lengthBytes)))
                 self.log.flush()
 
                 length = int.from_bytes(lengthBytes, "big")
@@ -173,8 +172,7 @@ class TcpProxy:
 
                 self.log.write("reading %d bytes\n" % length)
 
-                payload = b''
-                readBytes = self.downstreamReadConnection.readSize(length)
+                payload = self.downstreamReadConnection.readSize(length)
 
                 self.log.write("read %d bytes\n" % (len(payload)))
                 self.log.flush()
