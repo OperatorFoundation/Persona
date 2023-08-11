@@ -101,16 +101,16 @@ class TcpProxy:
         self.upstream.close()
         sys.exit(0)
 
-    def pumpUpstream(self):
-        self.log.write("pumpUpstream started\n")
+    def pumpDownstream(self):
+        self.log.write("pumpDownstream started\n")
         self.log.flush()
 
-        self.log.write("reading upstream host and port\n")
+        self.log.write("reading downstream host and port\n")
         self.log.flush()
 
         address = self.downstreamReadConnection.readSize(6)
 
-        self.log.write("read upstream host and port: %d - %s\n" % (len(address), binascii.hexlify(address)))
+        self.log.write("read downstream host and port: %d - %s\n" % (len(address), binascii.hexlify(address)))
         self.log.flush()
 
         try:
@@ -185,14 +185,14 @@ class TcpProxy:
                 self.log.write("wrote %d bytes to %s:%d\n" % (len(payload), host, port))
                 self.log.flush()
             except Exception as e:
-                self.log.write("exception in pumpUpstream: %s" % (str(e)))
+                self.log.write("exception in pumpDownstream: %s" % (str(e)))
                 self.log.flush()
 
                 self.running = False
                 return
 
-    def pumpDownstream(self):
-        self.log.write("pumpDownstream started\n")
+    def pumpUpstream(self):
+        self.log.write("pumpUpstream started\n")
         self.log.flush()
 
         while self.running:
