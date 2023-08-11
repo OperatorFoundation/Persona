@@ -5,8 +5,10 @@ import socket
 import sys
 import threading
 
+
 class StrawException(Exception):
     pass
+
 
 class Straw:
     def __init__(self):
@@ -34,6 +36,7 @@ class Straw:
 
         return result
 
+
 class SystemdConnection:
     def __init__(self, network):
         self.network = network
@@ -42,8 +45,8 @@ class SystemdConnection:
     def readSize(self, size):
         while self.straw.count < size:
             remaining = size - self.straw.count
-            next = network.read(remaining)
-            self.straw.write(next)
+            next_bytes = self.network.read(remaining)
+            self.straw.write(next_bytes)
 
         return self.straw.readSize(size)
 
@@ -53,6 +56,7 @@ class SystemdConnection:
             result = self.network.read(maxSize)
         return result
 
+
 class SocketConnection:
     def __init__(self, network):
         self.network = network
@@ -61,8 +65,8 @@ class SocketConnection:
     def readSize(self, size):
         while self.straw.count < size:
             remaining = size - self.straw.count
-            next = network.recv(remaining)
-            self.straw.write(next)
+            next_bytes = self.network.recv(remaining)
+            self.straw.write(next_bytes)
 
         return self.straw.readSize(size)
 
@@ -71,6 +75,7 @@ class SocketConnection:
         while result == 0:
             result = self.network.recv(maxSize)
         return result
+
 
 class TcpProxy:
     def __init__(self):
@@ -103,7 +108,7 @@ class TcpProxy:
         self.log.write("reading upstream host and port\n")
         self.log.flush()
 
-        address = self.downstreamReadConnection.read(6)
+        address = self.downstreamReadConnection.readSize(6)
 
         self.log.write("read upstream host and port: %d - %s\n" % (len(address), binascii.hexlify(address)))
         self.log.flush()
@@ -137,7 +142,7 @@ class TcpProxy:
             self.log.write("Could not connect: %s" % str(e))
             self.log.flush()
 
-            self.downstreamWrite.write(b'\xF0') # signal failure to connect
+            self.downstreamWrite.write(b'\xF0')  # signal failure to connect
             self.downstreamWrite.flush()
 
             sys.exit(0)
@@ -145,7 +150,7 @@ class TcpProxy:
         self.log.write("connected\n")
         self.log.flush()
 
-        self.downstreamWrite.write(b'\xF1') # signal successful connection
+        self.downstreamWrite.write(b'\xF1')  # signal successful connection
         self.downstreamWrite.flush()
 
         self.downstreamThread.start()
@@ -157,7 +162,8 @@ class TcpProxy:
 
                 lengthBytes = self.downstreamReadConnection.readSize(4)
 
-                self.log.write("read upstream payload bytes: %d - %s\n" % (len(lengthBytes), binascii.hexlify(lengthBytes)))
+                self.log.write(
+                    "read upstream payload bytes: %d - %s\n" % (len(lengthBytes), binascii.hexlify(lengthBytes)))
                 self.log.flush()
 
                 length = int.from_bytes(lengthBytes, "big")
@@ -231,6 +237,7 @@ class TcpProxy:
 
                 self.running = False
                 return
+
 
 if __name__ == '__main__':
     proxy = TcpProxy()

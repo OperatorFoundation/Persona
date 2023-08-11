@@ -147,13 +147,13 @@ public class Persona
 
             if let payload = tcp.payload
             {
-                self.logger.info("TCP: \(ipv4.sourceAddress.ipv4AddressString ?? "not an ipv4 address"):\(tcp.sourcePort) -> \(ipv4.destinationAddress.ipv4AddressString ?? "not an ipv4 address"):\(tcp.destinationPort) - \(payload.count) byte payload")
-                self.packetLogger.info("TCP: \(ipv4.sourceAddress.ipv4AddressString ?? "not an ipv4 address"):\(tcp.sourcePort) -> \(ipv4.destinationAddress.ipv4AddressString ?? "not an ipv4 address"):\(tcp.destinationPort) - \(payload.count) byte payload")
+                self.logger.info("🪀 TCP: \(ipv4.sourceAddress.ipv4AddressString ?? "not an ipv4 address"):\(tcp.sourcePort) -> \(ipv4.destinationAddress.ipv4AddressString ?? "not an ipv4 address"):\(tcp.destinationPort) - \(payload.count) byte payload")
+                self.packetLogger.info("🪀 TCP: \(ipv4.sourceAddress.ipv4AddressString ?? "not an ipv4 address"):\(tcp.sourcePort) -> \(ipv4.destinationAddress.ipv4AddressString ?? "not an ipv4 address"):\(tcp.destinationPort) - \(payload.count) byte payload")
             }
             else
             {
-                self.logger.info("TCP: \(ipv4.sourceAddress.ipv4AddressString ?? "not an ipv4 address"):\(tcp.sourcePort) -> \(ipv4.destinationAddress.ipv4AddressString ?? "not an ipv4 address"):\(tcp.destinationPort) - no payload")
-                self.packetLogger.info("TCP: \(ipv4.sourceAddress.ipv4AddressString ?? "not an ipv4 address"):\(tcp.sourcePort) -> \(ipv4.destinationAddress.ipv4AddressString ?? "not an ipv4 address"):\(tcp.destinationPort) - no payload")
+                self.logger.info("🪀 TCP: \(ipv4.sourceAddress.ipv4AddressString ?? "not an ipv4 address"):\(tcp.sourcePort) -> \(ipv4.destinationAddress.ipv4AddressString ?? "not an ipv4 address"):\(tcp.destinationPort) - no payload")
+                self.packetLogger.info("🪀 TCP: \(ipv4.sourceAddress.ipv4AddressString ?? "not an ipv4 address"):\(tcp.sourcePort) -> \(ipv4.destinationAddress.ipv4AddressString ?? "not an ipv4 address"):\(tcp.destinationPort) - no payload")
             }
 
             // Process TCP packets
@@ -165,16 +165,16 @@ public class Persona
 
             if let payload = udp.payload
             {
-                self.logger.info("UDP: \(ipv4.sourceAddress.ipv4AddressString ?? "not an ipv4 address"):\(udp.sourcePort) -> \(ipv4.destinationAddress.ipv4AddressString ?? "not an ipv4 address"):\(udp.destinationPort) - \(payload.count) byte payload")
-                self.packetLogger.info("UDP: \(ipv4.sourceAddress.ipv4AddressString ?? "not an ipv4 address"):\(udp.sourcePort) -> \(ipv4.destinationAddress.ipv4AddressString ?? "not an ipv4 address"):\(udp.destinationPort) - \(payload.count) byte payload")
+                self.logger.info("🏓 UDP: \(ipv4.sourceAddress.ipv4AddressString ?? "not an ipv4 address"):\(udp.sourcePort) -> \(ipv4.destinationAddress.ipv4AddressString ?? "not an ipv4 address"):\(udp.destinationPort) - \(payload.count) byte payload")
+                self.packetLogger.info("🏓 UDP: \(ipv4.sourceAddress.ipv4AddressString ?? "not an ipv4 address"):\(udp.sourcePort) -> \(ipv4.destinationAddress.ipv4AddressString ?? "not an ipv4 address"):\(udp.destinationPort) - \(payload.count) byte payload")
 
                 // Process only UDP packets with payloads
                 try await self.udpProxy.processDownstreamPacket(ipv4: ipv4, udp: udp, payload: payload)
             }
             else
             {
-                self.logger.info("UDP: \(ipv4.sourceAddress.ipv4AddressString ?? "not an ipv4 address"):\(udp.sourcePort) -> \(ipv4.destinationAddress.ipv4AddressString ?? "not an ipv4 address"):\(udp.destinationPort) - no payload")
-                self.packetLogger.info("UDP: \(ipv4.sourceAddress.ipv4AddressString ?? "not an ipv4 address"):\(udp.sourcePort) -> \(ipv4.destinationAddress.ipv4AddressString ?? "not an ipv4 address"):\(udp.destinationPort) - no payload")
+                self.logger.info("🏓 UDP: \(ipv4.sourceAddress.ipv4AddressString ?? "not an ipv4 address"):\(udp.sourcePort) -> \(ipv4.destinationAddress.ipv4AddressString ?? "not an ipv4 address"):\(udp.destinationPort) - no payload")
+                self.packetLogger.info("🏓 UDP: \(ipv4.sourceAddress.ipv4AddressString ?? "not an ipv4 address"):\(udp.sourcePort) -> \(ipv4.destinationAddress.ipv4AddressString ?? "not an ipv4 address"):\(udp.destinationPort) - no payload")
 
                 // Reject UDP packets without payloads
                 throw PersonaError.emptyPayload
