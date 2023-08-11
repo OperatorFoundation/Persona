@@ -72,7 +72,7 @@ class SocketConnection:
 
     def readMaxSize(self, maxSize):
         result = self.network.recv(maxSize)
-        while result == 0:
+        while len(result) == 0:
             result = self.network.recv(maxSize)
         return result
 
