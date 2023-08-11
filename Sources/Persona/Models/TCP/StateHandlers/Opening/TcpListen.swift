@@ -27,6 +27,7 @@ public class TcpListen: TcpStateHandler
                 self.tcpLogger.debug("TcpListen.processDownstreamPacket: packet rejected because of RST")
             }
 
+            // No need to send a RST for a RST, just fail on this packet and move to the next one.
             throw TcpListenError.rstReceived
         }
 
@@ -52,6 +53,7 @@ public class TcpListen: TcpStateHandler
                 self.tcpLogger.debug("Rejected packet:\n\(tcp.description)\n")
             }
 
+            // Send a RST and close.
             return try self.panicOnDownstream(ipv4: ipv4, tcp: tcp, payload: payload)
         }
 
@@ -68,6 +70,7 @@ public class TcpListen: TcpStateHandler
             return try self.panicOnDownstream(ipv4: ipv4, tcp: tcp, payload: payload)
         }
 
+        // SYN gives us a sequence number, so reset the straw sequence number (previously 0)
         self.upstreamStraw = TCPUpstreamStraw(segmentStart: SequenceNumber(tcp.sequenceNumber))
 
         self.logger.debug("TcpListen.processDownstreamPacket: Packeted accepted! Sending SYN-ACK and switching to SYN-RECEIVED state")

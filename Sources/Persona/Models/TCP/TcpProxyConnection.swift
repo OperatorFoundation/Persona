@@ -25,19 +25,42 @@ public class TcpProxyConnection
         if let connection = Self.connections[identity]
         {
             logger.debug("TcpProxyConnection.getConnection: existing - \(ipv4.sourceAddress.ipv4AddressString ?? "not an IPv4 address"):\(tcp.sourcePort) -> \(ipv4.destinationAddress.ipv4AddressString ?? "not an IPv4 address"):\(tcp.destinationPort)")
-            if tcp.destinationPort == 7
+            if tcp.destinationPort == 7 || tcp.destinationPort == 853
             {
-                tcpLogger.debug("TcpProxyConnection.processDownstreamPacket: existing- \(ipv4.sourceAddress.ipv4AddressString ?? "not an IPv4 address"):\(tcp.sourcePort) -> \(ipv4.destinationAddress.ipv4AddressString ?? "not an IPv4 address"):\(tcp.destinationPort)")
+                tcpLogger.debug("TcpProxyConnection.processDownstreamPacket: existing - \(ipv4.sourceAddress.ipv4AddressString ?? "not an IPv4 address"):\(tcp.sourcePort) -> \(ipv4.destinationAddress.ipv4AddressString ?? "not an IPv4 address"):\(tcp.destinationPort)")
             }
 
             return connection
         }
         else
         {
-            logger.debug("TcpProxyConnection.getConnection: new - \(ipv4.sourceAddress.ipv4AddressString ?? "not an IPv4 address"):\(tcp.sourcePort) -> \(ipv4.destinationAddress.ipv4AddressString ?? "not an IPv4 address"):\(tcp.destinationPort)")
-            if tcp.destinationPort == 7
+            logger.debug("TcpProxyConnection.getConnection: new attempt, need SYN - \(ipv4.sourceAddress.ipv4AddressString ?? "not an IPv4 address"):\(tcp.sourcePort) -> \(ipv4.destinationAddress.ipv4AddressString ?? "not an IPv4 address"):\(tcp.destinationPort)")
+            if tcp.destinationPort == 7 || tcp.destinationPort == 853
             {
-                tcpLogger.debug("TcpProxyConnection.processDownstreamPacket: new- \(ipv4.sourceAddress.ipv4AddressString ?? "not an IPv4 address"):\(tcp.sourcePort) -> \(ipv4.destinationAddress.ipv4AddressString ?? "not an IPv4 address"):\(tcp.destinationPort)")
+                tcpLogger.debug("TcpProxyConnection.processDownstreamPacket: new attempt, need SYN - \(ipv4.sourceAddress.ipv4AddressString ?? "not an IPv4 address"):\(tcp.sourcePort) -> \(ipv4.destinationAddress.ipv4AddressString ?? "not an IPv4 address"):\(tcp.destinationPort)")
+            }
+
+            guard tcp.syn, !tcp.ack, !tcp.rst, !tcp.fin else
+            {
+                logger.debug("rejected packet - SYN:\(tcp.syn) ACK:\(tcp.ack) RST:\(tcp.rst) FIN:\(tcp.fin)")
+                if tcp.destinationPort == 7 || tcp.destinationPort == 853
+                {
+                    tcpLogger.debug("rejected packet - SYN:\(tcp.syn) ACK:\(tcp.ack) RST:\(tcp.rst) FIN:\(tcp.fin)")
+                }
+
+                logger.debug("new TcpProxyConnection cancelled due to lack of SYN")
+                if tcp.destinationPort == 7 || tcp.destinationPort == 853
+                {
+                    tcpLogger.debug("new TcpProxyConnection cancelled due to lack of SYN")
+                }
+
+                throw TcpProxyConnectionError.badFirstPacket
+            }
+
+            logger.debug("TcpProxyConnection.getConnection: new with SYN - \(ipv4.sourceAddress.ipv4AddressString ?? "not an IPv4 address"):\(tcp.sourcePort) -> \(ipv4.destinationAddress.ipv4AddressString ?? "not an IPv4 address"):\(tcp.destinationPort)")
+            if tcp.destinationPort == 7 || tcp.destinationPort == 853
+            {
+                tcpLogger.debug("TcpProxyConnection.processDownstreamPacket: new with SYN - \(ipv4.sourceAddress.ipv4AddressString ?? "not an IPv4 address"):\(tcp.sourcePort) -> \(ipv4.destinationAddress.ipv4AddressString ?? "not an IPv4 address"):\(tcp.destinationPort)")
             }
 
             let connection = try await TcpProxyConnection(identity: identity, downstream: downstream, ipv4: ipv4, tcp: tcp, payload: payload, logger: logger, tcpLogger: tcpLogger, writeLogger: writeLogger)
@@ -51,7 +74,7 @@ public class TcpProxyConnection
         if let connection = self.connections[identity]
         {
             connection.logger.debug("TcpProxyConnection.removeConnection: \(identity.localAddress):\(identity.localPort) -> \(identity.remoteAddress):\(identity.remotePort)")
-            if identity.remotePort == 7
+            if identity.remotePort == 7 || identity.remotePort == 853
             {
                 connection.tcpLogger.debug("TcpProxyConnection.removeConnection: \(identity.localAddress):\(identity.localPort) -> \(identity.remoteAddress):\(identity.remotePort)")
             }
@@ -76,7 +99,7 @@ public class TcpProxyConnection
     public init(identity: TcpIdentity, downstream: AsyncConnection, ipv4: IPv4, tcp: TCP, payload: Data?, logger: Logger, tcpLogger: Puppy, writeLogger: Puppy) async throws
     {
         logger.debug("TcpProxyConnection.init: \(identity.localAddress.data.ipv4AddressString ?? "?.?.?.?"):\(identity.localPort) -> \(identity.remoteAddress.data.ipv4AddressString ?? "?.?.?.?"):\(identity.remotePort)")
-        if identity.remotePort == 7
+        if identity.remotePort == 7 || identity.remotePort == 853
         {
             tcpLogger.debug("TcpProxyConnection.init: \(identity.localAddress.data.ipv4AddressString ?? "?.?.?.?."):\(identity.localPort) -> \(identity.remoteAddress.data.ipv4AddressString ?? "?.?.?.?."):\(identity.remotePort)")
         }
@@ -103,7 +126,7 @@ public class TcpProxyConnection
         self.logger.trace("TcpProxyConnection.init - connected to tcpproxy subsystem")
 
         self.logger.debug("TcpProxyConnection.init - Writing \(bytes.count) bytes to the TCP Proxy Server: \(bytes.hex)")
-        if tcp.destinationPort == 7
+        if tcp.destinationPort == 7 || tcp.destinationPort == 853
         {
             self.tcpLogger.debug("TcpProxyConnection.init - Writing \(bytes.count) bytes to the TCP Proxy Server: \(bytes.hex)")
         }
@@ -112,13 +135,13 @@ public class TcpProxyConnection
         try await upstream.write(bytes)
 
         self.logger.debug("TcpProxyConnection.init - Write to tcpproxy successful")
-        if tcp.destinationPort == 7
+        if tcp.destinationPort == 7 || tcp.destinationPort == 853
         {
             self.tcpLogger.debug("TcpProxyConnection.init - Write to tcpproxy successful")
         }
 
         self.logger.debug("TcpProxyConnection.init - Reading 1 status byte from tcpproxy")
-        if tcp.destinationPort == 7
+        if tcp.destinationPort == 7 || tcp.destinationPort == 853
         {
             self.tcpLogger.debug("TcpProxyConnection.init - Reading 1 status byte from tcpproxy")
         }
@@ -131,7 +154,7 @@ public class TcpProxyConnection
         }
 
         self.logger.debug("TcpProxyConnection.init - Read 1 status byte from tcpproxy successfully")
-        if tcp.destinationPort == 7
+        if tcp.destinationPort == 7 || tcp.destinationPort == 853
         {
             self.tcpLogger.debug("TcpProxyConnection.init - Read 1 status byte from tcpproxy successfully")
         }
@@ -139,7 +162,7 @@ public class TcpProxyConnection
         guard connectionStatus == .success else
         {
             self.logger.debug("TcpProxyConnection.init - tcpproxy status was failure")
-            if tcp.destinationPort == 7
+            if tcp.destinationPort == 7 || tcp.destinationPort == 853
             {
                 self.tcpLogger.debug("TcpProxyConnection.init - tcpstatus was failure")
             }
@@ -148,7 +171,7 @@ public class TcpProxyConnection
         }
 
         self.logger.debug("TcpProxyConnection.init - tcpproxy status was success")
-        if tcp.destinationPort == 7
+        if tcp.destinationPort == 7 || tcp.destinationPort == 853
         {
             self.tcpLogger.debug("TcpProxyConnection.init - tcpstatus was success")
         }
@@ -156,7 +179,7 @@ public class TcpProxyConnection
         self.state = TcpListen(identity: identity, logger: logger, tcpLogger: tcpLogger, writeLogger: writeLogger)
 
         self.logger.debug("TcpProxyConnection.init - processing first packet")
-        if tcp.destinationPort == 7
+        if tcp.destinationPort == 7 || tcp.destinationPort == 853
         {
             self.tcpLogger.debug("TcpProxyConnection.init - processing first packet")
         }
@@ -172,13 +195,19 @@ public class TcpProxyConnection
         self.state = transition.newState
 
         self.logger.debug("TcpProxyConnection.init - state transition: \(oldState) to \(transition.newState), with \(transition.packetsToSend.count) packets to send")
-        if tcp.destinationPort == 7
+        if tcp.destinationPort == 7 || tcp.destinationPort == 853
         {
             self.tcpLogger.debug("TcpProxyConnection.init - state transition: \(oldState) to \(transition.newState), with \(transition.packetsToSend.count) packets to send")
         }
 
         guard self.state.open else
         {
+            self.logger.debug("TcpProxyConnection.init - connection was closed immediately!")
+            if tcp.destinationPort == 7 || tcp.destinationPort == 853
+            {
+                self.tcpLogger.debug("TcpProxyConnection.init - connection was closed immediately!")
+            }
+
             throw TcpProxyConnectionError.tcpClosed
         }
 
@@ -219,6 +248,15 @@ public class TcpProxyConnection
 
         guard self.state.open else
         {
+            self.logger.debug("TcpProxyConnection.processDownstreamPacket - connection was closed")
+            if tcp.destinationPort == 7 || tcp.destinationPort == 853
+            {
+                self.tcpLogger.debug("TcpProxyConnection.processDownstreamPacket - connection was closed")
+            }
+
+            try! await self.upstream.close()
+            Self.removeConnection(identity: self.identity)
+
             throw TcpProxyConnectionError.tcpClosed
         }
     }

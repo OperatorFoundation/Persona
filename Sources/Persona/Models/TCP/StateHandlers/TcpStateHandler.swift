@@ -128,22 +128,34 @@ public class TcpStateHandler
     // Send a RST and close.
     func panicOnDownstream(ipv4: IPv4, tcp: TCP, payload: Data?) throws -> TcpStateTransition
     {
+        self.logger.debug("TcpStateHandler.panicOnDownstream: \(ipv4.sourceAddress.ipv4AddressString ?? "not an IPv4 address"):\(tcp.sourcePort) -> \(ipv4.destinationAddress.ipv4AddressString ?? "not an IPv4 address"):\(tcp.destinationPort), closing, sending RST")
+        if tcp.destinationPort == 7 || tcp.destinationPort == 853
+        {
+            self.tcpLogger.debug("TcpStateHandler.panicOnDownstream: \(ipv4.sourceAddress.ipv4AddressString ?? "not an IPv4 address"):\(tcp.sourcePort) -> \(ipv4.destinationAddress.ipv4AddressString ?? "not an IPv4 address"):\(tcp.destinationPort), closing, sending RST")
+        }
+
         let rst = try self.makeRst(ipv4: ipv4, tcp: tcp)
         return TcpStateTransition(newState: TcpClosed(self), packetsToSend: [rst])
     }
 
     func panicOnDownstreamClose() -> TcpStateTransition
     {
+        self.logger.debug("TcpStateHandler.panicOnDownstreamClose, closing")
+
         return TcpStateTransition(newState: TcpClosed(self))
     }
 
     func panicOnUpstream(data: Data?) -> TcpStateTransition
     {
+        self.logger.debug("TcpStateHandler.panicOnUpstream, closing")
+
         return TcpStateTransition(newState: TcpClosed(self))
     }
 
     func panicOnUpstreamClose() -> TcpStateTransition
     {
+        self.logger.debug("TcpStateHandler.panicOnUpstreamClose, closing")
+
         return TcpStateTransition(newState: TcpClosed(self))
     }
 }

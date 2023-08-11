@@ -128,16 +128,21 @@ public class Persona
                 {
                     self.logger.info("Persona.run - calling handleMessage: \(message).")
                     // Process the packet that we received from the downstream client
+
                     try await self.handleMessage(message)
+
+                    self.logger.info("Persona.run - handleMessage was successful: \(message).")
                 }
                 catch
                 {
-                    
+                    self.logger.info("Persona.run - failed to handle message: \(message). Moving on to next message.")
                 }
             }
             catch
             {
                 self.logger.error("Persona.run: reading from client failed: \(error) | \(error.localizedDescription)")
+                self.logger.error("Persona.run: assuming client connection closed, exiting Persona.")
+
                 return
             }
             
