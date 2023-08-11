@@ -92,11 +92,11 @@ public class Persona
         }
 
         let now = Date()
-        self.logger.info("Persona Start \(now)") // General log for debugging with probably too much information to follow
-        self.packetLogger.debug("PersonaPacketLogger Start \(now)") // Logs of only events related to packets
-        self.tcpLogger.debug("PersonaTCPLogger Start \(now)") // Log of only events related to TCP packets that are part of the client TCP test
-        self.udpLogger.debug("PersonaUDPLogger Start \(now)") // Log of only events related to UDP packets that are part of the client UDP test
-        self.clientWriteLog.info("PersonaClientWriteLogger Start \(now)") // Log of only writes to the client
+        self.logger.info("🏀 Persona Start \(now) 🏀") // General log for debugging with probably too much information to follow
+        self.packetLogger.debug("🏀 PersonaPacketLogger Start \(now)🏀") // Logs of only events related to packets
+        self.tcpLogger.debug("🏀 PersonaTCPLogger Start \(now)🏀") // Log of only events related to TCP packets that are part of the client TCP test
+        self.udpLogger.debug("🏀 PersonaUDPLogger Start \(now)🏀") // Log of only events related to UDP packets that are part of the client UDP test
+        self.clientWriteLog.info("🏀 PersonaClientWriteLogger Start \(now)🏀") // Log of only writes to the client
 
         // Connect to systemd input and output streams
         // Persona only runs under systemd. You cannot run it directly on the command line.
