@@ -94,9 +94,9 @@ class TcpProxy:
 
         self.readBuffer = b''
 
-        self.downstreamThread = threading.Thread(target=self.pumpDownstream)
+        self.upstreamThread = threading.Thread(target=self.pumpUpstream)
 
-        self.pumpUpstream()
+        self.pumpDownstream()
 
         self.upstream.close()
         sys.exit(0)
@@ -153,7 +153,7 @@ class TcpProxy:
         self.downstreamWrite.write(b'\xF1')  # signal successful connection
         self.downstreamWrite.flush()
 
-        self.downstreamThread.start()
+        self.upstreamThread.start()
 
         while self.running:
             try:
