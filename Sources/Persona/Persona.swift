@@ -123,15 +123,24 @@ public class Persona
                 let message = try await self.connection.readWithLengthPrefix(prefixSizeInBits: 32)
 
                 self.logger.info("Persona.run - reading from client succeeded - read a message of size \(message.count)")
-
-                // Process the packet that we received from the downstream client
-                try await self.handleMessage(message)
+                
+                do
+                {
+                    self.logger.info("Persona.run - calling handleMessage: \(message).")
+                    // Process the packet that we received from the downstream client
+                    try await self.handleMessage(message)
+                }
+                catch
+                {
+                    
+                }
             }
             catch
             {
                 self.logger.error("Persona.run: reading from client failed: \(error) | \(error.localizedDescription)")
                 return
             }
+            
         }
     }
 
