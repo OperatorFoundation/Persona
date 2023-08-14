@@ -808,13 +808,13 @@ public class TcpProxyConnection
 
     func sendPacket(_ ipv4: IPv4) async throws
     {
-        self.logger.info("TcpProxyConnection.sendPacket - \(ipv4.data.count) bytes - \(ipv4.data.hex)")
+        self.logger.info("TcpProxyConnection.sendPacket - \(ipv4.data.count) bytes")
         if self.identity.remotePort == 7
         {
-            self.tcpLogger.info("TcpProxyConnection.sendPacket - \(ipv4.data.count) bytes - \(ipv4.data.hex)")
+            self.tcpLogger.info("TcpProxyConnection.sendPacket - \(ipv4.data.count) bytes")
         }
 
-        self.writeLogger.info("TcpProxyConnection.sendPacket - write \(ipv4.data.count) bytes to client - \(ipv4.data.hex)")
+        self.writeLogger.info("TcpProxyConnection.sendPacket - write \(ipv4.data.count) bytes to client")
 
         try await self.downstream.writeWithLengthPrefix(ipv4.data, 32)
 

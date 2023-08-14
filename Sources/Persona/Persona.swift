@@ -118,20 +118,20 @@ public class Persona
             {
                 // Persona expects the client to send raw IPv4 packets prefixed with a 4-byte length
                 // All responses will also be raw IPv4 packets prefixed with a 4-byte length
-                self.logger.info("Persona.run - reading from client...")
+//                self.logger.info("Persona.run - reading from client...")
 
                 let message = try await self.connection.readWithLengthPrefix(prefixSizeInBits: 32)
 
-                self.logger.info("Persona.run - reading from client succeeded - read a message of size \(message.count)")
+//                self.logger.info("Persona.run - reading from client succeeded - read a message of size \(message.count)")
                 
                 do
                 {
-                    self.logger.info("Persona.run - calling handleMessage: \(message).")
+//                    self.logger.info("Persona.run - calling handleMessage: \(message).")
                     // Process the packet that we received from the downstream client
 
                     try await self.handleMessage(message)
 
-                    self.logger.info("Persona.run - handleMessage was successful: \(message).")
+//                    self.logger.info("Persona.run - handleMessage was successful: \(message).")
                 }
                 catch
                 {
@@ -198,8 +198,8 @@ public class Persona
         {
             // The packet is IPv4, but neither TCP nor UDP.
 
-            self.logger.info("IPv4 packet, neither TCP nor UDP: \(ipv4.protocolNumber)")
-            self.packetLogger.info("IPv4 packet, neither TCP nor UDP: \(ipv4.protocolNumber)")
+//            self.logger.info("IPv4 packet, neither TCP nor UDP: \(ipv4.protocolNumber)")
+//            self.packetLogger.info("IPv4 packet, neither TCP nor UDP: \(ipv4.protocolNumber)")
 
             // IPv4 packets that are neither TCP nor UDP are not supported
         }
@@ -207,8 +207,8 @@ public class Persona
         {
             // The packet is not IPv4.
 
-            self.logger.info("Non-IPv4 packet - \(data.hex)")
-            self.packetLogger.info("Non-IPv4 packet - \(data.hex)")
+//            self.logger.info("Non-IPv4 packet - \(data.hex)")
+//            self.packetLogger.info("Non-IPv4 packet - \(data.hex)")
 
             // Non-IPv4 packets are not supported
         }
