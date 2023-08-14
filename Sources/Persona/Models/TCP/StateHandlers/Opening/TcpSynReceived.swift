@@ -28,20 +28,11 @@ public class TcpSynReceived: TcpStateHandler
         // In the SYN-RECEIVED state, we may received duplicate SYNs, but new SYNs are not allowed.
         if tcp.syn
         {
-            if SequenceNumber(tcp.sequenceNumber) == self.downstreamStraw.sequenceNumber
-            {
-                self.tcpLogger.info("duplicate SYN")
+            let newSequenceNumber = SequenceNumber(tcp.sequenceNumber)
+            self.tcpLogger.info("duplicate SYN \(newSequenceNumber) \(self.downstreamStraw.sequenceNumber)")
 
-                // We ignore duplicate SYNs.
-                return TcpStateTransition(newState: self)
-            }
-            else
-            {
-                self.tcpLogger.error("new SYN while in SYN-RECEIVED state")
-
-                // A new SYN while in the SYN-RECEIVED state is an error, send a RST and close.
-                return try self.panicOnDownstream(ipv4: ipv4, tcp: tcp, payload: payload)
-            }
+            // We ignore duplicate SYNs.
+            return TcpStateTransition(newState: self)
         }
 
         // We expect to receive an ACK.
