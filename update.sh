@@ -1,4 +1,10 @@
 git pull origin main
+
+swift package reset
+rm -rf .build >/dev/null
+rm -rf .swiftpm >/dev/null
+rm -rf Package.resolved >/dev/null
+
 swift package update
 swift build
 

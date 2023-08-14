@@ -46,7 +46,6 @@ public class TcpListen: TcpStateHandler
         guard !tcp.ack else
         {
             self.logger.debug("TcpListen.processDownstreamPacket: packet rejected because of ACK")
-            self.logger.debug("Rejected packet:\n\(tcp.description)\n")
             if identity.remotePort == 7 || identity.remotePort == 853
             {
                 self.tcpLogger.debug("TcpListen.processDownstreamPacket: packet rejected because of ACK")
