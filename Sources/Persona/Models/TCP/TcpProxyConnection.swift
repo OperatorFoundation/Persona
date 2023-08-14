@@ -73,10 +73,10 @@ public class TcpProxyConnection
     {
         if let connection = self.connections[identity]
         {
-            connection.logger.debug("TcpProxyConnection.removeConnection: \(identity.localAddress):\(identity.localPort) -> \(identity.remoteAddress):\(identity.remotePort)")
+            connection.logger.debug("TcpProxyConnection.removeConnection: \(identity.localAddress.data.ipv4AddressString ?? "?.?.?.?"):\(identity.localPort) -> \(identity.remoteAddress.data.ipv4AddressString ?? "?.?.?.?"):\(identity.remotePort)")
             if identity.remotePort == 7 || identity.remotePort == 853
             {
-                connection.tcpLogger.debug("TcpProxyConnection.removeConnection: \(identity.localAddress):\(identity.localPort) -> \(identity.remoteAddress):\(identity.remotePort)")
+                connection.tcpLogger.debug("TcpProxyConnection.removeConnection: \(identity.localAddress.data.ipv4AddressString ?? "?.?.?.?"):\(identity.localPort) -> \(identity.remoteAddress.data.ipv4AddressString ?? "?.?.?.?"):\(identity.remotePort)")
             }
         }
 
@@ -98,11 +98,11 @@ public class TcpProxyConnection
     // init() automatically send a syn-ack back for the syn (we only open a connect on receiving a syn)
     public init(identity: TcpIdentity, downstream: AsyncConnection, ipv4: IPv4, tcp: TCP, payload: Data?, logger: Logger, tcpLogger: Puppy, writeLogger: Puppy) async throws
     {
-        logger.debug("TcpProxyConnection.init: \(identity.localAddress.data.ipv4AddressString ?? "?.?.?.?"):\(identity.localPort) -> \(identity.remoteAddress.data.ipv4AddressString ?? "?.?.?.?"):\(identity.remotePort)")
-        if identity.remotePort == 7 || identity.remotePort == 853
-        {
-            tcpLogger.debug("TcpProxyConnection.init: \(identity.localAddress.data.ipv4AddressString ?? "?.?.?.?."):\(identity.localPort) -> \(identity.remoteAddress.data.ipv4AddressString ?? "?.?.?.?."):\(identity.remotePort)")
-        }
+//        logger.debug("TcpProxyConnection.init: \(identity.localAddress.data.ipv4AddressString ?? "?.?.?.?"):\(identity.localPort) -> \(identity.remoteAddress.data.ipv4AddressString ?? "?.?.?.?"):\(identity.remotePort)")
+//        if identity.remotePort == 7 || identity.remotePort == 853
+//        {
+//            tcpLogger.debug("TcpProxyConnection.init: \(identity.localAddress.data.ipv4AddressString ?? "?.?.?.?."):\(identity.localPort) -> \(identity.remoteAddress.data.ipv4AddressString ?? "?.?.?.?."):\(identity.remotePort)")
+//        }
 
         self.identity = identity
         self.downstream = downstream
@@ -119,32 +119,32 @@ public class TcpProxyConnection
         // tcpproxy subsystem expects 4-byte address and 2-byte port
         let bytes = hostBytes + portBytes
 
-        self.logger.trace("TcpProxyConnection.init - connecting to tcpproxy subsystem")
+//        self.logger.trace("TcpProxyConnection.init - connecting to tcpproxy subsystem")
 
         self.upstream = try await AsyncTcpSocketConnection("127.0.0.1", 1232, self.logger)
 
-        self.logger.trace("TcpProxyConnection.init - connected to tcpproxy subsystem")
+//        self.logger.trace("TcpProxyConnection.init - connected to tcpproxy subsystem")
 
-        self.logger.debug("TcpProxyConnection.init - Writing \(bytes.count) bytes to the TCP Proxy Server: \(bytes.hex)")
-        if tcp.destinationPort == 7 || tcp.destinationPort == 853
-        {
-            self.tcpLogger.debug("TcpProxyConnection.init - Writing \(bytes.count) bytes to the TCP Proxy Server: \(bytes.hex)")
-        }
+//        self.logger.debug("TcpProxyConnection.init - Writing \(bytes.count) bytes to the TCP Proxy Server: \(bytes.hex)")
+//        if tcp.destinationPort == 7 || tcp.destinationPort == 853
+//        {
+//            self.tcpLogger.debug("TcpProxyConnection.init - Writing \(bytes.count) bytes to the TCP Proxy Server: \(bytes.hex)")
+//        }
 
         // Here is where we actually write the TCP destination to the tcpproxy subsystem.
         try await upstream.write(bytes)
 
-        self.logger.debug("TcpProxyConnection.init - Write to tcpproxy successful")
-        if tcp.destinationPort == 7 || tcp.destinationPort == 853
-        {
-            self.tcpLogger.debug("TcpProxyConnection.init - Write to tcpproxy successful")
-        }
+//        self.logger.debug("TcpProxyConnection.init - Write to tcpproxy successful")
+//        if tcp.destinationPort == 7 || tcp.destinationPort == 853
+//        {
+//            self.tcpLogger.debug("TcpProxyConnection.init - Write to tcpproxy successful")
+//        }
 
-        self.logger.debug("TcpProxyConnection.init - Reading 1 status byte from tcpproxy")
-        if tcp.destinationPort == 7 || tcp.destinationPort == 853
-        {
-            self.tcpLogger.debug("TcpProxyConnection.init - Reading 1 status byte from tcpproxy")
-        }
+//        self.logger.debug("TcpProxyConnection.init - Reading 1 status byte from tcpproxy")
+//        if tcp.destinationPort == 7 || tcp.destinationPort == 853
+//        {
+//            self.tcpLogger.debug("TcpProxyConnection.init - Reading 1 status byte from tcpproxy")
+//        }
 
         let connectionStatusData = try await upstream.readSize(1)
         let connectionStatusByte = connectionStatusData[0]
@@ -153,36 +153,36 @@ public class TcpProxyConnection
             throw TcpProxyError.unknownConnectionStatus(connectionStatusByte)
         }
 
-        self.logger.debug("TcpProxyConnection.init - Read 1 status byte from tcpproxy successfully")
-        if tcp.destinationPort == 7 || tcp.destinationPort == 853
-        {
-            self.tcpLogger.debug("TcpProxyConnection.init - Read 1 status byte from tcpproxy successfully")
-        }
+//        self.logger.debug("TcpProxyConnection.init - Read 1 status byte from tcpproxy successfully")
+//        if tcp.destinationPort == 7 || tcp.destinationPort == 853
+//        {
+//            self.tcpLogger.debug("TcpProxyConnection.init - Read 1 status byte from tcpproxy successfully")
+//        }
 
         guard connectionStatus == .success else
         {
-            self.logger.debug("TcpProxyConnection.init - tcpproxy status was failure")
-            if tcp.destinationPort == 7 || tcp.destinationPort == 853
-            {
-                self.tcpLogger.debug("TcpProxyConnection.init - tcpstatus was failure")
-            }
+//            self.logger.debug("TcpProxyConnection.init - tcpproxy status was failure")
+//            if tcp.destinationPort == 7 || tcp.destinationPort == 853
+//            {
+//                self.tcpLogger.debug("TcpProxyConnection.init - tcpstatus was failure")
+//            }
 
             throw TcpProxyError.upstreamConnectionFailed
         }
 
-        self.logger.debug("TcpProxyConnection.init - tcpproxy status was success")
-        if tcp.destinationPort == 7 || tcp.destinationPort == 853
-        {
-            self.tcpLogger.debug("TcpProxyConnection.init - tcpstatus was success")
-        }
+//        self.logger.debug("TcpProxyConnection.init - tcpproxy status was success")
+//        if tcp.destinationPort == 7 || tcp.destinationPort == 853
+//        {
+//            self.tcpLogger.debug("TcpProxyConnection.init - tcpstatus was success")
+//        }
 
         self.state = TcpListen(identity: identity, logger: logger, tcpLogger: tcpLogger, writeLogger: writeLogger)
 
-        self.logger.debug("TcpProxyConnection.init - processing first packet")
-        if tcp.destinationPort == 7 || tcp.destinationPort == 853
-        {
-            self.tcpLogger.debug("TcpProxyConnection.init - processing first packet")
-        }
+//        self.logger.debug("TcpProxyConnection.init - processing first packet")
+//        if tcp.destinationPort == 7 || tcp.destinationPort == 853
+//        {
+//            self.tcpLogger.debug("TcpProxyConnection.init - processing first packet")
+//        }
 
         let oldState = self.state
 
@@ -194,19 +194,19 @@ public class TcpProxyConnection
 
         self.state = transition.newState
 
-        self.logger.debug("TcpProxyConnection.init - state transition: \(oldState) to \(transition.newState), with \(transition.packetsToSend.count) packets to send")
-        if tcp.destinationPort == 7 || tcp.destinationPort == 853
-        {
-            self.tcpLogger.debug("TcpProxyConnection.init - state transition: \(oldState) to \(transition.newState), with \(transition.packetsToSend.count) packets to send")
-        }
+//        self.logger.debug("TcpProxyConnection.init - state transition: \(oldState) to \(transition.newState), with \(transition.packetsToSend.count) packets to send")
+//        if tcp.destinationPort == 7 || tcp.destinationPort == 853
+//        {
+//            self.tcpLogger.debug("TcpProxyConnection.init - state transition: \(oldState) to \(transition.newState), with \(transition.packetsToSend.count) packets to send")
+//        }
 
         guard self.state.open else
         {
-            self.logger.debug("TcpProxyConnection.init - connection was closed immediately!")
-            if tcp.destinationPort == 7 || tcp.destinationPort == 853
-            {
-                self.tcpLogger.debug("TcpProxyConnection.init - connection was closed immediately!")
-            }
+//            self.logger.debug("TcpProxyConnection.init - connection was closed immediately!")
+//            if tcp.destinationPort == 7 || tcp.destinationPort == 853
+//            {
+//                self.tcpLogger.debug("TcpProxyConnection.init - connection was closed immediately!")
+//            }
 
             throw TcpProxyConnectionError.tcpClosed
         }

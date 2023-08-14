@@ -15,6 +15,7 @@ class UdpProxy:
         self.upstream = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         self.upstream.bind(('0.0.0.0', 0))
         (self.host, self.port) = self.upstream.getsockname()
+
         self.log.write("sockname: %s:%d\n" % (self.host, self.port))
         self.log.flush()
 
@@ -33,15 +34,17 @@ class UdpProxy:
     # The format to talk to service is a 4 byte length, following by that many bytes.
     # Included in those bytes are a 4 byte host, a 2 byte port, and the then variable length payload.
     def pumpUpstream(self):
-        self.log.write("pumpUpstream started\n")
-        self.log.flush()
+#        self.log.write("pumpUpstream started\n")
+#        self.log.flush()
 
         while self.running:
             try:
                 lengthBytes = self.downstreamRead.read(4)
                 length = int.from_bytes(lengthBytes, "big")
-                self.log.write("length prefix bytes %s\n" % (binascii.hexlify(lengthBytes)))
-                self.log.write("length prefix is %d\n" % length)
+
+#                self.log.write("length prefix bytes %s\n" % (binascii.hexlify(lengthBytes)))
+#                self.log.write("length prefix is %d\n" % length)
+
                 data = self.downstreamRead.read(length)
 
                 if length < 6:
@@ -61,53 +64,69 @@ class UdpProxy:
                 port = int.from_bytes(portBytes, "big")
 
                 self.log.write("persona -> udpproxy - %s:%d - %d bytes\n" % (host, port, len(payload)))
+                self.log.flush()
 
                 self.upstream.sendto(payload, (host, port))
-                self.log.write("udpproxy -> echoserver wrote %d bytes to %s:%d\n" % (len(payload), host, port))
-                self.log.write("payload hex: %s" % (binascii.hexlify(payload)))
+
+                self.log.write("udpproxy -> %s:%d - %d bytes\n" % (host, port, len(payload)))
+                self.log.flush()
+
+#                self.log.write("payload hex: %s" % (binascii.hexlify(payload)))
+#                self.log.flush()
             except Exception as e:
                 self.log.write("exception in pumpUpstream %s" % str(e))
                 self.running = False
+
     def pumpDownstream(self):
-        self.log.write("pumpDownstream started\n")
-        self.log.flush()
+#        self.log.write("pumpDownstream started\n")
+#        self.log.flush()
 
         while self.running:
             try:
-                self.log.write("reading from %s:%d\n" % (self.host, self.port))
-                self.log.flush()
+#                self.log.write("udpproxy <- %s:%d\n" % (self.host, self.port))
+#                self.log.flush()
 
                 data, addr = self.upstream.recvfrom(2048)
                 (host, port) = addr
 
-                self.log.write("received %d bytes from upstream %s:%d\n" % (len(data), host, port))
-                self.log.write("udpproxy <- echoserver - received data %s" % (binascii.hexlify(data)))
+                self.log.write("udpproxy <- %s:%d - %d bytes\n" % (host, port, len(data)))
                 self.log.flush()
+
+#                self.log.write("udpproxy <- echoserver - received data %s" % (binascii.hexlify(data)))
+#                self.log.flush()
 
                 length = len(data) + 6
                 lengthBytes = length.to_bytes(4, "big")
 
-                self.log.write("total length %d\n" % length)
-                self.log.flush()
+#                self.log.write("total length %d\n" % length)
+#                self.log.flush()
 
                 hostBytes = socket.inet_aton(host)
-                self.log.write("hostBytes %d\n" % (len(hostBytes)))
-                self.log.flush()
 
-                self.log.write("port: %d\n" % port)
-                self.log.flush()
+#                self.log.write("hostBytes %d\n" % (len(hostBytes)))
+#                self.log.flush()
+
+ #               self.log.write("port: %d\n" % port)
+ #               self.log.flush()
 
                 portBytes = port.to_bytes(2, "big")
 
-                self.log.write("portBytes %d\n" % (len(portBytes)))
-                self.log.flush()
+#                self.log.write("portBytes %d\n" % (len(portBytes)))
+#                self.log.flush()
 
                 bs = lengthBytes + hostBytes + portBytes + data
+
                 self.log.write("writing %d bytes downstream\n" % (len(bs)))
+                self.log.flush()
+
                 self.downstreamWrite.write(bs)
                 self.downstreamWrite.flush()
-                self.log.write("persona <- udpproxy - wrote %d bytes downstream\n" % (len(bs)))
-                self.log.write("data written: %s" % (binascii.hexlify(bs)))
+
+                self.log.write("persona <- udpproxy - %d bytes\n" % (len(bs)))
+                self.log.flush()
+
+#                self.log.write("data written: %s" % (binascii.hexlify(bs)))
+#                self.log.flush()
             except Exception as e:
                 self.log.write("exception in pumpUpstream\n")
                 self.log.write("%s\n" % (str(e)))
