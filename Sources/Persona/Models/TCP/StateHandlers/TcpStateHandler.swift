@@ -78,6 +78,7 @@ public class TcpStateHandler
 
             guard let ipv4 = try IPv4(sourceAddress: self.identity.remoteAddress, destinationAddress: self.identity.localAddress, sourcePort: self.identity.remotePort, destinationPort: self.identity.localPort, sequenceNumber: sequenceNumber, acknowledgementNumber: acknowledgementNumber, syn: syn, ack: ack, fin: fin, rst: rst, windowSize: windowSize, payload: payload) else
             {
+                self.logger.debug("* sendPacket() failed to initialize IPv4 packet.")
                 self.tcpLogger.debug("* sendPacket() failed to initialize IPv4 packet.")
                 throw TcpProxyError.badIpv4Packet
             }
@@ -120,6 +121,7 @@ public class TcpStateHandler
         }
         catch
         {
+            self.logger.debug("* sendPacket() failed to initialize IPv4 packet. Received an error: \(error)")
             self.tcpLogger.debug("* sendPacket() failed to initialize IPv4 packet. Received an error: \(error)")
             throw error
         }

@@ -79,11 +79,20 @@ public class TcpListen: TcpStateHandler
         }
         
         self.logger.debug("TcpListen.processDownstreamPacket: try to make a SYN-ACK")
-        let synAck = try self.makeSynAck()
-        self.logger.debug("TcpListen.processDownstreamPacket: made a SYN-ACK")
         
-        let synReceived = TcpSynReceived(self)
-        return TcpStateTransition(newState: synReceived, packetsToSend: [synAck])
+        do
+        {
+            let synAck = try self.makeSynAck()
+            self.logger.debug("TcpListen.processDownstreamPacket: made a SYN-ACK")
+            
+            let synReceived = TcpSynReceived(self)
+            return TcpStateTransition(newState: synReceived, packetsToSend: [synAck])
+        }
+        catch
+        {
+            self.logger.debug("TcpListen.processDownstreamPacket: failed to make a SYN-ACK. Error: \n\(error)")
+            return TcpStateTransition(newState: self)
+        }
     }
 
     func makeSynAck() throws -> IPv4
