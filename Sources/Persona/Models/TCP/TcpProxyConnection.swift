@@ -238,7 +238,10 @@ public class TcpProxyConnection
 
     public func processDownstreamPacket(ipv4: IPv4, tcp: TCP, payload: Data?) async throws
     {
+        self.logger.debug("TcpProxyConnection.processDownstreamPacket - calling current TCP state processDownstreamPacket()")
         let transition = try self.state.processDownstreamPacket(ipv4: ipv4, tcp: tcp, payload: nil)
+        self.logger.debug("TcpProxyConnection.processDownstreamPacket - returned from current TCP state processDownstreamPacket()")
+        
         for packet in transition.packetsToSend
         {
             self.logger.debug("TcpProxyConnection - processDownstreamPacket: Sending packet - \(packet.data.hex)")

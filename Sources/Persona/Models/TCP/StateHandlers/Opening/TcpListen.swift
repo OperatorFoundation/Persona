@@ -77,8 +77,11 @@ public class TcpListen: TcpStateHandler
         {
             self.tcpLogger.debug("TcpListen.processDownstreamPacket: Packeted accepted! Sending SYN-ACK and switching to SYN-RECEIVED state")
         }
-
+        
+        self.logger.debug("TcpListen.processDownstreamPacket: try to make a SYN-ACK")
         let synAck = try self.makeSynAck()
+        self.logger.debug("TcpListen.processDownstreamPacket: made a SYN-ACK")
+        
         let synReceived = TcpSynReceived(self)
         return TcpStateTransition(newState: synReceived, packetsToSend: [synAck])
     }
