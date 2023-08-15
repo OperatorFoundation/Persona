@@ -116,8 +116,8 @@ class UdpProxy:
 
                 bs = lengthBytes + hostBytes + portBytes + data
 
-                self.log.write("writing %d bytes downstream\n" % (len(bs)))
-                self.log.flush()
+                # self.log.write("writing %d bytes downstream\n" % (len(bs)))
+                # self.log.flush()
 
                 self.downstreamWrite.write(bs)
                 self.downstreamWrite.flush()
