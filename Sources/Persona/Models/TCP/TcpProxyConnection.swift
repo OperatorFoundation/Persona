@@ -809,16 +809,55 @@ public class TcpProxyConnection
     func sendPacket(_ ipv4: IPv4) async throws
     {
         self.logger.info("TcpProxyConnection.sendPacket - \(ipv4.data.count) bytes")
-        if self.identity.remotePort == 7
+
+        let packet = Packet(ipv4Bytes: ipv4.data, timestamp: Date())
+        if let ipv4 = packet.ipv4, let tcp = packet.tcp
         {
-            self.tcpLogger.info("TcpProxyConnection.sendPacket - \(ipv4.data.count) bytes")
+            if tcp.syn
+            {
+                if tcp.ack
+                {
+                    self.logger.info("TcpProxyConnection.sendPacket - SYN-ACK")
+                }
+                else
+                {
+                    self.logger.info("TcpProxyConnection.sendPacket - SYN")
+                }
+            }
+            else if tcp.ack
+            {
+                if let payload = tcp.payload
+                {
+                    self.logger.info("TcpProxyConnection.sendPacket - ACK with \(payload.count) byte payload")
+                }
+                else
+                {
+                    self.logger.info("TcpProxyConnection.sendPacket - ACK with no payload")
+                }
+            }
+            else if tcp.fin
+            {
+                self.logger.info("TcpProxyConnection.sendPacket - FIN")
+            }
+            else if tcp.rst
+            {
+                self.logger.info("TcpProxyConnection.sendPacket - RST")
+            }
+            else if let payload = tcp.payload
+            {
+                self.logger.info("TcpProxyConnection.sendPacket - no flags, \(payload.count) byte payload")
+            }
+            else
+            {
+                self.logger.info("TcpProxyConnection.sendPacket - no flags, no payload")
+            }
+
+            self.writeLogger.info("TcpProxyConnection.sendPacket - write \(ipv4.data.count) bytes to client")
+
+            try await self.downstream.writeWithLengthPrefix(ipv4.data, 32)
+
+            self.writeLogger.info("TcpProxyConnection.sendPacket - succesfully wrote \(ipv4.data.count) bytes to client")
         }
-
-        self.writeLogger.info("TcpProxyConnection.sendPacket - write \(ipv4.data.count) bytes to client")
-
-        try await self.downstream.writeWithLengthPrefix(ipv4.data, 32)
-
-        self.writeLogger.info("TcpProxyConnection.sendPacket - succesfully wrote \(ipv4.data.count) bytes to client")
     }
 }
 

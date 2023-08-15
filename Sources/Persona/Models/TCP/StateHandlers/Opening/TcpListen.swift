@@ -72,10 +72,10 @@ public class TcpListen: TcpStateHandler
         // SYN gives us a sequence number, so reset the straw sequence number (previously 0)
         self.upstreamStraw = TCPUpstreamStraw(segmentStart: SequenceNumber(tcp.sequenceNumber))
 
-        self.logger.debug("TcpListen.processDownstreamPacket: Packeted accepted! Sending SYN-ACK and switching to SYN-RECEIVED state")
+        self.logger.debug("TcpListen.processDownstreamPacket: Packet accepted! Sending SYN-ACK and switching to SYN-RECEIVED state")
         if identity.remotePort == 7 || identity.remotePort == 853
         {
-            self.tcpLogger.debug("TcpListen.processDownstreamPacket: Packeted accepted! Sending SYN-ACK and switching to SYN-RECEIVED state")
+            self.tcpLogger.debug("TcpListen.processDownstreamPacket: Packet accepted! Sending SYN-ACK and switching to SYN-RECEIVED state")
         }
 
         let synAck = try self.makeSynAck()
