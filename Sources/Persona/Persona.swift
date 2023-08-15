@@ -16,9 +16,11 @@ import TransmissionAsync
 
 public class Persona
 {
-    let connection: AsyncConnection
+    public let stats: Stats = Stats()
 
+    let connection: AsyncConnection
     let logger: Logger
+
     var tcpLogger = Puppy()
     var udpLogger = Puppy()
     var packetLogger = Puppy()
@@ -159,6 +161,9 @@ public class Persona
         {
             // The packet is IPv4/TCP.
 
+            self.stats.ipv4 += 1
+            self.stats.tcp += 1
+
             if let payload = tcp.payload
             {
                 self.logger.info("🪀 TCP: \(ipv4.sourceAddress.ipv4AddressString ?? "not an ipv4 address"):\(tcp.sourcePort) -> \(ipv4.destinationAddress.ipv4AddressString ?? "not an ipv4 address"):\(tcp.destinationPort) - \(payload.count) byte payload")
@@ -176,6 +181,9 @@ public class Persona
         else if let ipv4 = packet.ipv4, let udp = packet.udp
         {
             // The packet is IPv4/UDP.
+
+            self.stats.ipv4 += 1
+            self.stats.udp += 1
 
             if let payload = udp.payload
             {
@@ -202,10 +210,15 @@ public class Persona
 //            self.packetLogger.info("IPv4 packet, neither TCP nor UDP: \(ipv4.protocolNumber)")
 
             // IPv4 packets that are neither TCP nor UDP are not supported
+
+            self.stats.ipv4 += 1
+            self.stats.nonTcpUdpIPv4 += 1
         }
         else
         {
             // The packet is not IPv4.
+
+            self.stats.nonIPv4 += 1
 
 //            self.logger.info("Non-IPv4 packet - \(data.hex)")
 //            self.packetLogger.info("Non-IPv4 packet - \(data.hex)")
