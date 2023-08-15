@@ -241,10 +241,13 @@ public class TcpProxyConnection
         let transition = try self.state.processDownstreamPacket(ipv4: ipv4, tcp: tcp, payload: nil)
         for packet in transition.packetsToSend
         {
+            self.logger.debug("TcpProxyConnection - processDownstreamPacket: Sending packet - \(packet.data.hex)")
             try await self.sendPacket(packet)
         }
-
+        
+        self.logger.debug("TcpProxyConnection - processDownstreamPacket: sent \(transition.packetsToSend.count) packets.")
         self.state = transition.newState
+        self.logger.debug("TcpProxyConnection - processDownstreamPacket: transitioned to a new state - \(self.state)")
 
         guard self.state.open else
         {
@@ -259,6 +262,8 @@ public class TcpProxyConnection
 
             throw TcpProxyConnectionError.tcpClosed
         }
+        
+        self.logger.debug("TcpProxyConnection - processDownstreamPacket: finished")
     }
 
 //    public func processDownstreamPacket(ipv4: IPv4, tcp: TCP, payload: Data?) async throws
