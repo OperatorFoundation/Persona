@@ -70,17 +70,22 @@ public class TcpStateHandler
         return try self.makePacket(sequenceNumber: self.downstreamStraw.sequenceNumber, acknowledgementNumber: self.upstreamStraw.acknowledgementNumber, rst: true)
     }
 
-    func makePacket(sequenceNumber: SequenceNumber = SequenceNumber(0), acknowledgementNumber: SequenceNumber = SequenceNumber(0), syn: Bool = false, ack: Bool = false, fin: Bool = false, rst: Bool = false, payload: Data? = nil) throws -> IPv4
+    func  makePacket(sequenceNumber: SequenceNumber = SequenceNumber(0), acknowledgementNumber: SequenceNumber = SequenceNumber(0), syn: Bool = false, ack: Bool = false, fin: Bool = false, rst: Bool = false, payload: Data? = nil) throws -> IPv4
     {
         do
         {
+            self.logger.debug("TcpStateHandler - makePacket: Start")
+            
             let windowSize = self.upstreamStraw.windowSize
-
+            
+            self.logger.debug("TcpStateHandler - makePacket: Try to make an IPv4 Packet")
             guard let ipv4 = try IPv4(sourceAddress: self.identity.remoteAddress, destinationAddress: self.identity.localAddress, sourcePort: self.identity.remotePort, destinationPort: self.identity.localPort, sequenceNumber: sequenceNumber, acknowledgementNumber: acknowledgementNumber, syn: syn, ack: ack, fin: fin, rst: rst, windowSize: windowSize, payload: payload) else
             {
+                self.logger.debug("* sendPacket() failed to initialize IPv4 packet.")
                 self.tcpLogger.debug("* sendPacket() failed to initialize IPv4 packet.")
                 throw TcpProxyError.badIpv4Packet
             }
+            self.logger.debug("TcpStateHandler - makePacket: Made an IPv4 Packet!")
 
             // Show the packet description in our log
             if self.identity.remotePort == 2234 // Log traffic from the TCP Echo Server to the TCP log for debugging
@@ -120,6 +125,7 @@ public class TcpStateHandler
         }
         catch
         {
+            self.logger.debug("* sendPacket() failed to initialize IPv4 packet. Received an error: \(error)")
             self.tcpLogger.debug("* sendPacket() failed to initialize IPv4 packet. Received an error: \(error)")
             throw error
         }
