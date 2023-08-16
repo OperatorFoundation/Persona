@@ -47,15 +47,19 @@ public class TcpSynReceived: TcpStateHandler
         if tcp.syn
         {
             let newSequenceNumber = SequenceNumber(tcp.sequenceNumber)
-            self.tcpLogger.info("duplicate SYN \(newSequenceNumber) \(self.downstreamStraw.sequenceNumber)")
+            self.tcpLogger.info("duplicate SYN \(newSequenceNumber) \(self.downstreamStraw.sequenceNumber), using new SYN")
 
-            self.logger.debug("TcpSynReceived: staying in SYN-RECEIVED, resending SYN-ACK")
+            // SYN gives us a sequence number, so reset the straw sequence number
+            self.downstreamStraw = TCPDownstreamStraw(segmentStart: self.downstreamStraw.sequenceNumber, windowSize: tcp.windowSize)
+            self.upstreamStraw = TCPUpstreamStraw(segmentStart: SequenceNumber(tcp.sequenceNumber))
+
+            self.logger.debug("TcpSynReceived: staying in SYN-RECEIVED, using new SYN, sending new SYN-ACK")
             if identity.remotePort == 7 || identity.remotePort == 853
             {
-                self.tcpLogger.debug("TcpSynReceived: staying in SYN-RECEIVED, resending SYN-ACK")
+                self.tcpLogger.debug("TcpSynReceived: staying in SYN-RECEIVED, using new SYN, sending new SYN-ACK")
             }
 
-            // They must not have received our SYN-ACK, resend it.
+            // Send a SYN-ACK for the new SYN
             let synAck = try self.makeSynAck()
             return TcpStateTransition(newState: self, packetsToSend: [synAck])
         }
