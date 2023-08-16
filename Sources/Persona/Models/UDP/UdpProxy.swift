@@ -37,11 +37,11 @@ public class UdpProxy
     // An IPVv4-UDP packet has been received from the client. Check that we know how to handle it and then send it to the udpproxy subsystem.
     public func processDownstreamPacket(ipv4: IPv4, udp: UDP, payload: Data) async throws
     {
-        self.logger.debug("UdpProxy.processDownstreamPacket: \(ipv4.sourceAddress.ipv4AddressString ?? "not an IPv4 address"):\(udp.sourcePort) -> \(ipv4.destinationAddress.ipv4AddressString ?? "not an IPv4 address"):\(udp.destinationPort)")
-        if udp.destinationPort == 7
-        {
-            self.udpLogger.debug("UdpProxy.processDownstreamPacket: \(ipv4.sourceAddress.ipv4AddressString ?? "not an IPv4 address"):\(udp.sourcePort) -> \(ipv4.destinationAddress.ipv4AddressString ?? "not an IPv4 address"):\(udp.destinationPort)")
-        }
+//        self.logger.debug("UdpProxy.processDownstreamPacket: \(ipv4.sourceAddress.ipv4AddressString ?? "not an IPv4 address"):\(udp.sourcePort) -> \(ipv4.destinationAddress.ipv4AddressString ?? "not an IPv4 address"):\(udp.destinationPort)")
+//        if udp.destinationPort == 7
+//        {
+//            self.udpLogger.debug("UdpProxy.processDownstreamPacket: \(ipv4.sourceAddress.ipv4AddressString ?? "not an IPv4 address"):\(udp.sourcePort) -> \(ipv4.destinationAddress.ipv4AddressString ?? "not an IPv4 address"):\(udp.destinationPort)")
+//        }
 
         // We need one udpproxy subsystem for each source address/port pair.
         // This is so we know how to route incoming traffic back to the client.

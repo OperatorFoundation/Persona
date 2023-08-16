@@ -106,38 +106,30 @@ public class UdpProxyConnection
         // udpproxy subsystem expects 4-byte length prefix + (4-byte address, 2-byte port, and payload)
         let bytes = hostBytes + portBytes + payload
 
-        self.logger.debug("Writing \(bytes.count) bytes to the UDP Proxy Server: \(bytes.hex)")
-
-        if udp.destinationPort == 7
-        {
-            self.udpLogger.debug("Writing \(bytes.count) bytes to the UDP Proxy Server: \(bytes.hex)")
-        }
-
         // Here is where we actually write the UDP packet to the udpproxy subsystem.
         try await self.upstream.writeWithLengthPrefix(bytes, 32)
 
-        self.logger.debug("Wrote \(bytes.count) bytes to the UDP Proxy Server:")
-
+        self.logger.debug("UDP: \(ipv4.sourceAddress.ipv4AddressString ?? "not an IPv4 address"):\(udp.sourcePort) -> \(ipv4.destinationAddress.ipv4AddressString ?? "not an IPv4 address"):\(udp.destinationPort) ; persona -> udpproxy: \(bytes.count) bytes")
         if udp.destinationPort == 7
         {
-            self.udpLogger.debug("Wrote \(bytes.count) bytes to the UDP Proxy Server:")
+            self.udpLogger.debug("UDP: \(ipv4.sourceAddress.ipv4AddressString ?? "not an IPv4 address"):\(udp.sourcePort) -> \(ipv4.destinationAddress.ipv4AddressString ?? "not an IPv4 address"):\(udp.destinationPort) ; persona -> udpproxy: \(bytes.count) bytes")
         }
     }
 
     // This runs in a loop in its own task. We can received UDP packets from the udpproxy subsystem at any time.
     func readUpstream() async throws
     {
-        self.logger.debug("UdpProxy.pumpRemote()")
+//        self.logger.debug("UdpProxy.pumpRemote()")
         while self.running
         {
-            self.logger.debug("UdpProxy.pumpRemote() - readWithLengthPrefix(32)")
-            self.udpLogger.info("persona <- udpproxy - trying to read")
+//            self.logger.debug("UdpProxy.pumpRemote() - readWithLengthPrefix(32)")
+//            self.udpLogger.info("persona <- udpproxy - trying to read")
 
             // udpproxy gives us 4-byte length prefix + (4-byte address, 2-byte port, and payload)
             let data = try await self.upstream.readWithLengthPrefix(prefixSizeInBits: 32)
 
-            self.logger.debug("UdpProxyConnection.pumpRemote() - read \(data.count)")
-            self.udpLogger.info("persona <- udpproxy - read \(data.count) bytes")
+//            self.logger.debug("UdpProxyConnection.pumpRemote() - read \(data.count)")
+//            self.udpLogger.info("persona <- udpproxy - read \(data.count) bytes")
 
             try await self.processUpstreamData(data)
         }
@@ -148,7 +140,7 @@ public class UdpProxyConnection
     // Here we process the raw data we got from the udpproxy subsystem. If it checks out, we send it downstream.
     func processUpstreamData(_ data: Data) async throws
     {
-        self.logger.trace("UDP Proxy Server Gave Us Data: (\(data.count) - \(data.hex))")
+//        self.logger.trace("UDP Proxy Server Gave Us Data: (\(data.count) - \(data.hex))")
 
         // udpproxy gives us 4-byte length prefix + (4-byte address, 2-byte port, and payload)
         // The 4-byte prefix was already stripped on the read.
@@ -177,10 +169,10 @@ public class UdpProxyConnection
             throw UdpProxyError.dataConversionFailed
         }
 
-        if sourcePort == 7
-        {
-            self.udpLogger.trace("UdpProxyConnection.processRemoteData(\(data.count) - \(data.hex))")
-        }
+//        if sourcePort == 7
+//        {
+//            self.udpLogger.trace("UdpProxyConnection.processRemoteData(\(data.count) - \(data.hex))")
+//        }
 
         // Here we do NAT translation on the UDP layer, adding the stored destination port.
         // This is why we need one udpproxy instance per address/port pair.
@@ -198,23 +190,26 @@ public class UdpProxyConnection
             return
         }
 
-        if sourcePort == 7
-        {
-            self.logger.trace("UdpProxyConnection.processRemoteData - udp packet: \(udp)")
-            self.logger.trace("UdpProxyConnection.processRemoteData - ipv4 packet: \(ipv4)")
+//        if sourcePort == 7
+//        {
+//            self.logger.trace("UdpProxyConnection.processRemoteData - udp packet: \(udp)")
+//            self.logger.trace("UdpProxyConnection.processRemoteData - ipv4 packet: \(ipv4)")
+//
+//            self.udpLogger.trace("UdpProxyConnection.processRemoteData - udp packet: \(udp)")
+//            self.udpLogger.trace("UdpProxyConnection.processRemoteData - ipv4 packet: \(ipv4)")
+//        }
 
-            self.udpLogger.trace("UdpProxyConnection.processRemoteData - udp packet: \(udp)")
-            self.udpLogger.trace("UdpProxyConnection.processRemoteData - ipv4 packet: \(ipv4)")
-        }
-
-        self.logger.trace("UdpProxyConnection.processRemoteData - writing to client \(ipv4.data.count)")
+//        self.logger.trace("UdpProxyConnection.processRemoteData - writing to client \(ipv4.data.count)")
 
         // We have a valid UDP packet, so we send it downstream to the client.
         // The client expects raw IPv4 packets prefixed with a 4-byte length.
         try await self.downstream.writeWithLengthPrefix(ipv4.data, 32)
 
-        self.logger.trace("UdpProxyConnection.processRemoteData - wrote to client \(ipv4.data.count)")
-        self.udpLogger.info("client <- persona - write \(ipv4.data.count) bytes")
+        self.logger.debug("UDP: \(ipv4.sourceAddress.ipv4AddressString ?? "not an IPv4 address"):\(udp.sourcePort) -> \(ipv4.destinationAddress.ipv4AddressString ?? "not an IPv4 address"):\(udp.destinationPort) ; persona <- udpproxy: \(ipv4.data.count) bytes")
+        if udp.destinationPort == 7
+        {
+            self.udpLogger.debug("UDP: \(ipv4.sourceAddress.ipv4AddressString ?? "not an IPv4 address"):\(udp.sourcePort) -> \(ipv4.destinationAddress.ipv4AddressString ?? "not an IPv4 address"):\(udp.destinationPort) ; persona <- udpproxy: \(ipv4.data.count) bytes")
+        }
         self.writeLogger.info("\(ipv4.data.count) - \(ipv4.data.hex)")
     }
 

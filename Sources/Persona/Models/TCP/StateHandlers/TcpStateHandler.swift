@@ -52,16 +52,26 @@ public class TcpStateHandler
 
     public func processDownstreamPacket(ipv4: IPv4, tcp: TCP, payload: Data?) throws -> TcpStateTransition
     {
+        self.logger.debug("TcpStateHandler.processDownstreamPacket: \(ipv4.sourceAddress.ipv4AddressString ?? "?.?.?.?"):\(tcp.sourcePort) -> \(ipv4.destinationAddress.data.ipv4AddressString ?? "?.?.?.?"):\(tcp.destinationPort)")
+        if tcp.destinationPort == 7
+        {
+            self.tcpLogger.debug("TcpStateHandler.processDownstreamPacket: \(ipv4.sourceAddress.ipv4AddressString ?? "?.?.?.?"):\(tcp.sourcePort) -> \(ipv4.destinationAddress.data.ipv4AddressString ?? "?.?.?.?"):\(tcp.destinationPort)")
+        }
+
         return try self.panicOnDownstream(ipv4: ipv4, tcp: tcp, payload: payload)
     }
 
     public func processUpstreamData(data: Data) throws -> TcpStateTransition
     {
+        self.logger.debug("TcpStateHandler.processUpstreamData")
+
         return self.panicOnUpstream(data: data)
     }
 
     public func processUpstreamClose() throws -> TcpStateTransition
     {
+        self.logger.debug("TcpStateHandler.processUpstreamClose")
+
         return self.panicOnUpstreamClose()
     }
 
