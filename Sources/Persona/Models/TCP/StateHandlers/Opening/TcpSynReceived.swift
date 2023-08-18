@@ -48,6 +48,10 @@ public class TcpSynReceived: TcpStateHandler
         {
             let newSequenceNumber = SequenceNumber(tcp.sequenceNumber)
             self.tcpLogger.info("duplicate SYN \(newSequenceNumber) \(self.downstreamStraw.sequenceNumber), using new SYN")
+            self.logger.trace("IPv4 of dup SYN: \(ipv4.description)")
+            self.logger.trace("TCP of dup SYN: \(tcp.description)")
+            self.tcpLogger.trace("IPv4 of dup SYN: \(ipv4.description)")
+            self.tcpLogger.trace("TCP of dup SYN: \(tcp.description)")
 
             // SYN gives us a sequence number, so reset the straw sequence number
             self.downstreamStraw = TCPDownstreamStraw(segmentStart: self.downstreamStraw.sequenceNumber, windowSize: tcp.windowSize)

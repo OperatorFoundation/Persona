@@ -74,9 +74,13 @@ public class TcpListen: TcpStateHandler
         self.upstreamStraw = TCPUpstreamStraw(segmentStart: SequenceNumber(tcp.sequenceNumber))
 
         self.logger.debug("TcpListen.processDownstreamPacket: Packet accepted! Sending SYN-ACK and switching to SYN-RECEIVED state")
+        self.logger.trace("IPv4 of SYN: \(ipv4.description)")
+        self.logger.trace("TCP of SYN: \(tcp.description)")
         if identity.remotePort == 7 || identity.remotePort == 853
         {
             self.tcpLogger.debug("TcpListen.processDownstreamPacket: Packet accepted! Sending SYN-ACK and switching to SYN-RECEIVED state")
+            self.tcpLogger.trace(ipv4.description)
+            self.tcpLogger.trace(tcp.description)
         }
         
         self.logger.debug("TcpListen.processDownstreamPacket: try to make a SYN-ACK")
@@ -85,7 +89,9 @@ public class TcpListen: TcpStateHandler
         {
             let synAck = try self.makeSynAck()
             self.logger.debug("TcpListen.processDownstreamPacket: made a SYN-ACK")
-            
+            self.logger.trace("IPv4 of SYN-ACK: \(synAck.description)")
+            self.tcpLogger.trace("IPv4 of SYN-ACK: \(synAck.description)")
+
             let synReceived = TcpSynReceived(self)
             return TcpStateTransition(newState: synReceived, packetsToSend: [synAck])
         }
