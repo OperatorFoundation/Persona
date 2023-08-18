@@ -71,7 +71,7 @@ public class TcpListen: TcpStateHandler
 
         // SYN gives us a sequence number, so reset the straw sequence number (previously 0)
         self.downstreamStraw = TCPDownstreamStraw(segmentStart: self.downstreamStraw.sequenceNumber, windowSize: tcp.windowSize)
-        self.upstreamStraw = TCPUpstreamStraw(segmentStart: SequenceNumber(tcp.sequenceNumber))
+        self.upstreamStraw = TCPUpstreamStraw(segmentStart: SequenceNumber(tcp.sequenceNumber).increment())
 
         self.logger.debug("TcpListen.processDownstreamPacket: Packet accepted! Sending SYN-ACK and switching to SYN-RECEIVED state")
         self.logger.trace("-> TcpListen.SYN: \(ipv4.sourceAddress.ipv4AddressString ?? "?.?.?.?."):\(tcp.sourcePort) -> \(ipv4.destinationAddress.ipv4AddressString ?? "?.?.?.?.") - SYN:\(tcp.syn), SEQ#:\(SequenceNumber(tcp.sequenceNumber)), ACK#:\(SequenceNumber(tcp.acknowledgementNumber)), CHK:\(tcp.checksum).data.hex")
