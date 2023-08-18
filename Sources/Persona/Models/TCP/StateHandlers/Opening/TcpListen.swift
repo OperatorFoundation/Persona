@@ -74,13 +74,11 @@ public class TcpListen: TcpStateHandler
         self.upstreamStraw = TCPUpstreamStraw(segmentStart: SequenceNumber(tcp.sequenceNumber))
 
         self.logger.debug("TcpListen.processDownstreamPacket: Packet accepted! Sending SYN-ACK and switching to SYN-RECEIVED state")
-        self.logger.trace("IPv4 of SYN: \(ipv4.description)")
-        self.logger.trace("TCP of SYN: \(tcp.description)")
+        self.logger.trace("-> TcpListen.SYN: \(ipv4.sourceAddress.ipv4AddressString ?? "?.?.?.?."):\(tcp.sourcePort) -> \(ipv4.destinationAddress.ipv4AddressString ?? "?.?.?.?.") - SYN:\(tcp.syn), SEQ#:\(SequenceNumber(tcp.sequenceNumber)), ACK#:\(SequenceNumber(tcp.acknowledgementNumber)), CHK:\(tcp.checksum).data.hex")
         if identity.remotePort == 7 || identity.remotePort == 853
         {
             self.tcpLogger.debug("TcpListen.processDownstreamPacket: Packet accepted! Sending SYN-ACK and switching to SYN-RECEIVED state")
-            self.tcpLogger.trace(ipv4.description)
-            self.tcpLogger.trace(tcp.description)
+            self.tcpLogger.trace("SYN: \(ipv4.sourceAddress.ipv4AddressString ?? "?.?.?.?."):\(tcp.sourcePort) -> \(ipv4.destinationAddress.ipv4AddressString ?? "?.?.?.?.") - SYN:\(tcp.syn), SEQ#:\(SequenceNumber(tcp.sequenceNumber)), ACK#:\(SequenceNumber(tcp.acknowledgementNumber)), CHK:\(tcp.checksum).data.hex")
         }
         
         self.logger.debug("TcpListen.processDownstreamPacket: try to make a SYN-ACK")
@@ -89,8 +87,12 @@ public class TcpListen: TcpStateHandler
         {
             let synAck = try self.makeSynAck()
             self.logger.debug("TcpListen.processDownstreamPacket: made a SYN-ACK")
-            self.logger.trace("IPv4 of SYN-ACK: \(synAck.description)")
-            self.tcpLogger.trace("IPv4 of SYN-ACK: \(synAck.description)")
+
+            let packet = Packet(ipv4Bytes: synAck.data, timestamp: Date())
+            if let ipv4 = packet.ipv4, let tcp = packet.tcp
+            {
+                self.logger.trace("<- TcpListen.SYN-ACK: \(ipv4.sourceAddress.ipv4AddressString ?? "?.?.?.?."):\(tcp.sourcePort) -> \(ipv4.destinationAddress.ipv4AddressString ?? "?.?.?.?.") - SYN:\(tcp.syn), SEQ#:\(SequenceNumber(tcp.sequenceNumber)), ACK#:\(SequenceNumber(tcp.acknowledgementNumber)), CHK:\(tcp.checksum).data.hex")
+            }
 
             let synReceived = TcpSynReceived(self)
             return TcpStateTransition(newState: synReceived, packetsToSend: [synAck])

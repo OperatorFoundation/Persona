@@ -22,6 +22,8 @@ public class TcpSynReceived: TcpStateHandler
         // We should not be receiving a RST.
         guard !tcp.rst else
         {
+            self.logger.trace("-> TcpSynReceived.RST: \(ipv4.sourceAddress.ipv4AddressString ?? "?.?.?.?."):\(tcp.sourcePort) -> \(ipv4.destinationAddress.ipv4AddressString ?? "?.?.?.?.") - RST:\(tcp.rst), SEQ#:\(SequenceNumber(tcp.sequenceNumber)), ACK#:\(SequenceNumber(tcp.acknowledgementNumber)), CHK:\(tcp.checksum).data.hex")
+
             self.logger.debug("TcpSynReceived: rejected packet because of RST")
             if identity.remotePort == 7 || identity.remotePort == 853
             {
@@ -34,6 +36,8 @@ public class TcpSynReceived: TcpStateHandler
         // We should not be receiving a FIN.
         guard !tcp.fin else
         {
+            self.logger.trace("-> TcpSynReceived.FIN: \(ipv4.sourceAddress.ipv4AddressString ?? "?.?.?.?."):\(tcp.sourcePort) -> \(ipv4.destinationAddress.ipv4AddressString ?? "?.?.?.?.") - FIN:\(tcp.fin), SEQ#:\(SequenceNumber(tcp.sequenceNumber)), ACK#:\(SequenceNumber(tcp.acknowledgementNumber)), CHK:\(tcp.checksum).data.hex")
+
             self.logger.debug("TcpSynReceived: rejected packet because of FIN")
             if identity.remotePort == 7 || identity.remotePort == 853
             {
@@ -48,10 +52,7 @@ public class TcpSynReceived: TcpStateHandler
         {
             let newSequenceNumber = SequenceNumber(tcp.sequenceNumber)
             self.tcpLogger.info("duplicate SYN \(newSequenceNumber) \(self.downstreamStraw.sequenceNumber), using new SYN")
-            self.logger.trace("IPv4 of dup SYN: \(ipv4.description)")
-            self.logger.trace("TCP of dup SYN: \(tcp.description)")
-            self.tcpLogger.trace("IPv4 of dup SYN: \(ipv4.description)")
-            self.tcpLogger.trace("TCP of dup SYN: \(tcp.description)")
+            self.logger.trace("-> TcpSynReceived.SYN: \(ipv4.sourceAddress.ipv4AddressString ?? "?.?.?.?."):\(tcp.sourcePort) -> \(ipv4.destinationAddress.ipv4AddressString ?? "?.?.?.?.") - SYN:\(tcp.syn), SEQ#:\(SequenceNumber(tcp.sequenceNumber)), ACK#:\(SequenceNumber(tcp.acknowledgementNumber)), CHK:\(tcp.checksum).data.hex")
 
             // SYN gives us a sequence number, so reset the straw sequence number
             self.downstreamStraw = TCPDownstreamStraw(segmentStart: self.downstreamStraw.sequenceNumber, windowSize: tcp.windowSize)
@@ -65,12 +66,21 @@ public class TcpSynReceived: TcpStateHandler
 
             // Send a SYN-ACK for the new SYN
             let synAck = try self.makeSynAck()
+
+            let packet = Packet(ipv4Bytes: synAck.data, timestamp: Date())
+            if let ipv4 = packet.ipv4, let tcp = packet.tcp
+            {
+                self.logger.trace("<- TcpSynReceived.SYN-ACK: \(ipv4.sourceAddress.ipv4AddressString ?? "?.?.?.?."):\(tcp.sourcePort) -> \(ipv4.destinationAddress.ipv4AddressString ?? "?.?.?.?.") - SYN:\(tcp.syn), SEQ#:\(SequenceNumber(tcp.sequenceNumber)), ACK#:\(SequenceNumber(tcp.acknowledgementNumber)), CHK:\(tcp.checksum).data.hex")
+            }
+
             return TcpStateTransition(newState: self, packetsToSend: [synAck])
         }
 
         // We expect to receive an ACK.
         guard tcp.ack else
         {
+            self.logger.trace("-> TcpSynReceived.ACK: \(ipv4.sourceAddress.ipv4AddressString ?? "?.?.?.?."):\(tcp.sourcePort) -> \(ipv4.destinationAddress.ipv4AddressString ?? "?.?.?.?.") - ACK:\(tcp.ack), SEQ#:\(SequenceNumber(tcp.sequenceNumber)), ACK#:\(SequenceNumber(tcp.acknowledgementNumber)), CHK:\(tcp.checksum).data.hex")
+
             self.logger.debug("TcpSynReceived: ACK received, transitioning to ESTABLISHED, no packets to send")
             if identity.remotePort == 7 || identity.remotePort == 853
             {
