@@ -11,6 +11,11 @@ import InternetProtocols
 
 public class TcpSynReceived: TcpStateHandler
 {
+    override public var description: String
+    {
+        return "[TcpSynReceived]"
+    }
+
     override public func processDownstreamPacket(ipv4: IPv4, tcp: TCP, payload: Data?) throws -> TcpStateTransition
     {
         self.logger.debug("TcpSynReceived.processDownstreamPacket: \(identity.localAddress.data.ipv4AddressString ?? "?.?.?.?"):\(identity.localPort) -> \(identity.remoteAddress.data.ipv4AddressString ?? "?.?.?.?"):\(identity.remotePort)")

@@ -14,6 +14,11 @@ import TransmissionAsync
 
 public class TcpStateHandler
 {
+    public var description: String
+    {
+        return "[TcpStateHandler]"
+    }
+
     public let identity: TcpIdentity
     public let logger: Logger
     public let tcpLogger: Puppy
@@ -179,3 +184,4 @@ public class TcpStateHandler
 public enum TcpStateHandlerError: Error
 {
 }
+

@@ -11,6 +11,11 @@ import InternetProtocols
 
 public class TcpEstablished: TcpStateHandler
 {
+    override public var description: String
+    {
+        return "[TcpEstablished]"
+    }
+
     override public func processDownstreamPacket(ipv4: IPv4, tcp: TCP, payload: Data?) throws -> TcpStateTransition
     {
         // We can only receive data inside the TCP window.

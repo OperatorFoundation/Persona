@@ -12,6 +12,11 @@ import InternetProtocols
 // FIXME me - implement this state
 public class TcpLastAck: TcpStateHandler
 {
+    override public var description: String
+    {
+        return "[TcpLastAck]"
+    }
+
     public func processDownstreamPacket(ipv4: IPv4, tcp: TCP, payload: Data?) async throws
     {
     }

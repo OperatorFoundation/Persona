@@ -12,6 +12,10 @@ import InternetProtocols
 // This state is not supported.
 public class TcpSynSent: TcpStateHandler
 {
+    override public var description: String
+    {
+        return "[TcpSynSent]"
+    }
 }
 
 public enum TcpSynSentError: Error
