@@ -10,17 +10,11 @@ import Foundation
 import InternetProtocols
 import Straw
 
-public class TCPDownstreamStraw
+public actor TCPDownstreamStraw
 {
     // Public computed properties
     public var sequenceNumber: SequenceNumber
     {
-        defer
-        {
-            self.functionLock.signal()
-        }
-        self.functionLock.wait()
-
         let result = self.window.lowerBound
 
         return result
@@ -28,12 +22,6 @@ public class TCPDownstreamStraw
     
     public var isEmpty: Bool
     {
-        defer
-        {
-            self.functionLock.signal()
-        }
-        self.functionLock.wait()
-
         return self.window.upperBound == self.window.lowerBound
     }
 
@@ -41,12 +29,6 @@ public class TCPDownstreamStraw
     {
         get
         {
-            defer
-            {
-                self.functionLock.signal()
-            }
-            self.functionLock.wait()
-
             let result = self.privateWindowSize
 
             return UInt16(result)
@@ -54,20 +36,12 @@ public class TCPDownstreamStraw
 
         set
         {
-            defer
-            {
-                self.functionLock.signal()
-            }
-            self.functionLock.wait()
-
             self.privateWindowSize = UInt32(newValue)
         }
     }
 
     // Private let properties
-    let straw = SynchronizedStraw()
-    let functionLock: DispatchSemaphore = DispatchSemaphore(value: 1)
-    let countLock: CountingLock = CountingLock()
+    let straw = StrawActor()
 
     // Private var properties
     var window: SequenceNumberRange
@@ -81,50 +55,16 @@ public class TCPDownstreamStraw
     }
 
     // Public functions
-    public func write(_ data: Data) throws
+    public func write(_ data: Data) async throws
     {
-        defer
-        {
-            self.functionLock.signal()
-        }
-        self.functionLock.wait()
-
-        self.straw.write(data)
+        await self.straw.write(data)
         // FIXME: Figure out how to adjust the bounds correctly
 //        try self.window.increaseBounds(by: data.count)
-        self.countLock.add(amount: data.count)
     }
 
-    public func read() throws -> SegmentData
+    public func read() async throws -> SegmentData
     {
-        self.countLock.waitFor(amount: 1)
-
-        defer
-        {
-            self.functionLock.signal()
-        }
-        self.functionLock.wait()
-
-        let data = try self.straw.read()
-        // FIXME: Figure out how to adjust the bounds correctly
-//        try self.window.increaseBounds(by: data.count)
-        let result = SegmentData(data: data, window: window)
-        self.countLock.waitFor(amount: data.count - 1)
-
-        return result
-    }
-
-    public func read(size: Int) throws -> SegmentData
-    {
-        self.countLock.waitFor(amount: size)
-
-        defer
-        {
-            self.functionLock.signal()
-        }
-        self.functionLock.wait()
-
-        let data = try self.straw.read(size: size)
+        let data = try await self.straw.read()
         // FIXME: Figure out how to adjust the bounds correctly
 //        try self.window.increaseBounds(by: data.count)
         let result = SegmentData(data: data, window: window)
@@ -132,33 +72,28 @@ public class TCPDownstreamStraw
         return result
     }
 
-    public func read(maxSize: Int) throws -> SegmentData
+    public func read(size: Int) async throws -> SegmentData
     {
-        self.countLock.waitFor(amount: 1)
-
-        defer
-        {
-            self.functionLock.signal()
-        }
-        self.functionLock.wait()
-
-        let data = try self.straw.read(maxSize: maxSize)
+        let data = try await self.straw.read(size: size)
         // FIXME: Figure out how to adjust the bounds correctly
 //        try self.window.increaseBounds(by: data.count)
         let result = SegmentData(data: data, window: window)
-        self.countLock.waitFor(amount: data.count - 1)
+
+        return result
+    }
+
+    public func read(maxSize: Int) async throws -> SegmentData
+    {
+        let data = try await self.straw.read(maxSize: maxSize)
+        // FIXME: Figure out how to adjust the bounds correctly
+//        try self.window.increaseBounds(by: data.count)
+        let result = SegmentData(data: data, window: window)
 
         return result
     }
 
     public func clear(bytesSent: Int) throws
     {
-        defer
-        {
-            self.functionLock.signal()
-        }
-        self.functionLock.wait()
-        
         let newLowerBound = self.window.lowerBound.add(bytesSent)
         self.window = SequenceNumberRange(lowerBound: newLowerBound, upperBound: self.window.upperBound)
     }

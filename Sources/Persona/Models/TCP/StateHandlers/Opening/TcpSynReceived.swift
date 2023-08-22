@@ -16,7 +16,7 @@ public class TcpSynReceived: TcpStateHandler
         return "[TcpSynReceived]"
     }
 
-    override public func processDownstreamPacket(ipv4: IPv4, tcp: TCP, payload: Data?) throws -> TcpStateTransition
+    override public func processDownstreamPacket(ipv4: IPv4, tcp: TCP, payload: Data?) async throws -> TcpStateTransition
     {
         self.logger.debug("TcpSynReceived.processDownstreamPacket: \(identity.localAddress.data.ipv4AddressString ?? "?.?.?.?"):\(identity.localPort) -> \(identity.remoteAddress.data.ipv4AddressString ?? "?.?.?.?"):\(identity.remotePort)")
         if identity.remotePort == 7 || identity.remotePort == 853
@@ -35,7 +35,7 @@ public class TcpSynReceived: TcpStateHandler
                 self.tcpLogger.debug("TcpSynReceived: rejected packet because of RST")
             }
 
-            return try self.panicOnDownstream(ipv4: ipv4, tcp: tcp, payload: payload)
+            return try await self.panicOnDownstream(ipv4: ipv4, tcp: tcp, payload: payload)
         }
 
         // We should not be receiving a FIN.
@@ -49,18 +49,19 @@ public class TcpSynReceived: TcpStateHandler
                 self.tcpLogger.debug("TcpSynReceived: rejected packet because of FIN")
             }
 
-            return try self.panicOnDownstream(ipv4: ipv4, tcp: tcp, payload: payload)
+            return try await self.panicOnDownstream(ipv4: ipv4, tcp: tcp, payload: payload)
         }
 
         // In the SYN-RECEIVED state, we may received duplicate SYNs, but new SYNs are not allowed.
         if tcp.syn
         {
             let newSequenceNumber = SequenceNumber(tcp.sequenceNumber)
-            self.tcpLogger.info("duplicate SYN \(newSequenceNumber) \(self.downstreamStraw.sequenceNumber), using new SYN")
+            let oldSequenceNumber = await self.downstreamStraw.sequenceNumber
+            self.tcpLogger.info("duplicate SYN \(newSequenceNumber) \(oldSequenceNumber), using new SYN")
             self.logger.trace("-> TcpSynReceived.SYN: \(ipv4.sourceAddress.ipv4AddressString ?? "?.?.?.?."):\(tcp.sourcePort) -> \(ipv4.destinationAddress.ipv4AddressString ?? "?.?.?.?.") - SYN:\(tcp.syn), SEQ#:\(SequenceNumber(tcp.sequenceNumber)), ACK#:\(SequenceNumber(tcp.acknowledgementNumber)), CHK:\(tcp.checksum).data.hex")
 
             // SYN gives us a sequence number, so reset the straw sequence number
-            self.downstreamStraw = TCPDownstreamStraw(segmentStart: self.downstreamStraw.sequenceNumber, windowSize: tcp.windowSize)
+            self.downstreamStraw = TCPDownstreamStraw(segmentStart: await self.downstreamStraw.sequenceNumber, windowSize: tcp.windowSize)
             self.upstreamStraw = TCPUpstreamStraw(segmentStart: SequenceNumber(tcp.sequenceNumber))
 
             self.logger.debug("TcpSynReceived: staying in SYN-RECEIVED, using new SYN, sending new SYN-ACK")
@@ -70,7 +71,7 @@ public class TcpSynReceived: TcpStateHandler
             }
 
             // Send a SYN-ACK for the new SYN
-            let synAck = try self.makeSynAck()
+            let synAck = try await self.makeSynAck()
 
             let packet = Packet(ipv4Bytes: synAck.data, timestamp: Date())
             if let ipv4 = packet.ipv4, let tcp = packet.tcp
@@ -99,7 +100,7 @@ public class TcpSynReceived: TcpStateHandler
                 self.tcpLogger.debug("TcpSynReceived: staying in SYN-RECEIVED, resending SYN-ACK")
             }
 
-            let synAck = try self.makeSynAck()
+            let synAck = try await self.makeSynAck()
             return TcpStateTransition(newState: self, packetsToSend: [synAck])
         }
 
@@ -107,9 +108,9 @@ public class TcpSynReceived: TcpStateHandler
         return TcpStateTransition(newState: TcpEstablished(self))
     }
 
-    func makeSynAck() throws -> IPv4
+    func makeSynAck() async throws -> IPv4
     {
-        return try self.makePacket(sequenceNumber: self.downstreamStraw.sequenceNumber, acknowledgementNumber: self.upstreamStraw.acknowledgementNumber, syn: true, ack: true)
+        return try await self.makePacket(sequenceNumber: self.downstreamStraw.sequenceNumber, acknowledgementNumber: self.upstreamStraw.acknowledgementNumber, syn: true, ack: true)
     }
 }
 

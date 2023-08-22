@@ -16,7 +16,7 @@ public class TcpListen: TcpStateHandler
         return "[TcpListen]"
     }
 
-    override public func processDownstreamPacket(ipv4: IPv4, tcp: TCP, payload: Data?) throws -> TcpStateTransition
+    override public func processDownstreamPacket(ipv4: IPv4, tcp: TCP, payload: Data?) async throws -> TcpStateTransition
     {
         self.logger.debug("TcpListen.processDownstreamPacket: \(identity.localAddress.data.ipv4AddressString ?? "?.?.?.?"):\(identity.localPort) -> \(identity.remoteAddress.data.ipv4AddressString ?? "?.?.?.?"):\(identity.remotePort)")
         if identity.remotePort == 7 || identity.remotePort == 853
@@ -45,7 +45,7 @@ public class TcpListen: TcpStateHandler
             }
 
             // Send a RST and close.
-            return try self.panicOnDownstream(ipv4: ipv4, tcp: tcp, payload: payload)
+            return try await self.panicOnDownstream(ipv4: ipv4, tcp: tcp, payload: payload)
         }
 
         guard !tcp.ack else
@@ -58,7 +58,7 @@ public class TcpListen: TcpStateHandler
             }
 
             // Send a RST and close.
-            return try self.panicOnDownstream(ipv4: ipv4, tcp: tcp, payload: payload)
+            return try await self.panicOnDownstream(ipv4: ipv4, tcp: tcp, payload: payload)
         }
 
         // In the LISTEN state, we only accept a SYN.
@@ -71,11 +71,11 @@ public class TcpListen: TcpStateHandler
             }
 
             // Send a RST and close.
-            return try self.panicOnDownstream(ipv4: ipv4, tcp: tcp, payload: payload)
+            return try await self.panicOnDownstream(ipv4: ipv4, tcp: tcp, payload: payload)
         }
 
         // SYN gives us a sequence number, so reset the straw sequence number (previously 0)
-        self.downstreamStraw = TCPDownstreamStraw(segmentStart: self.downstreamStraw.sequenceNumber, windowSize: tcp.windowSize)
+        self.downstreamStraw = await TCPDownstreamStraw(segmentStart: self.downstreamStraw.sequenceNumber, windowSize: tcp.windowSize)
         self.upstreamStraw = TCPUpstreamStraw(segmentStart: SequenceNumber(tcp.sequenceNumber).increment())
 
         self.logger.debug("TcpListen.processDownstreamPacket: Packet accepted! Sending SYN-ACK and switching to SYN-RECEIVED state")
@@ -90,7 +90,7 @@ public class TcpListen: TcpStateHandler
         
         do
         {
-            let synAck = try self.makeSynAck()
+            let synAck = try await self.makeSynAck()
             self.logger.debug("TcpListen.processDownstreamPacket: made a SYN-ACK")
 
             let packet = Packet(ipv4Bytes: synAck.data, timestamp: Date())
@@ -109,9 +109,9 @@ public class TcpListen: TcpStateHandler
         }
     }
 
-    func makeSynAck() throws -> IPv4
+    func makeSynAck() async throws -> IPv4
     {
-        return try self.makePacket(sequenceNumber: self.downstreamStraw.sequenceNumber, acknowledgementNumber: self.upstreamStraw.acknowledgementNumber, syn: true, ack: true)
+        return try await self.makePacket(sequenceNumber: self.downstreamStraw.sequenceNumber, acknowledgementNumber: self.upstreamStraw.acknowledgementNumber, syn: true, ack: true)
     }
 }
 

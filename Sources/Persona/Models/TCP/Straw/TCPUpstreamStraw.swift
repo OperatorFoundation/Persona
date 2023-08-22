@@ -12,7 +12,7 @@ import Straw
 
 // FIXME - add periodic acks if there is no data to send downstream
 
-public class TCPUpstreamStraw
+public actor TCPUpstreamStraw
 {
     // static private properties
     static let maxBufferSize: UInt32 = UInt32(UInt16.max)
@@ -20,24 +20,16 @@ public class TCPUpstreamStraw
     // public computed properties
     public var acknowledgementNumber: SequenceNumber
     {
-        self.functionLock.wait()
-
         let result = self.window.lowerBound
         self.lastAck = result
         self.privateAckUpdated = false
-
-        self.functionLock.signal()
 
         return result
     }
 
     public var windowSize: UInt16
     {
-        self.functionLock.wait()
-
         let result = self.privateWindowSize
-
-        self.functionLock.signal()
 
         return UInt16(result)
     }
@@ -55,8 +47,6 @@ public class TCPUpstreamStraw
 
     // private let properties
     let straw = SynchronizedStraw()
-    let functionLock: DispatchSemaphore = DispatchSemaphore(value: 1)
-    let readLock: CountingLock = CountingLock()
 
     // private var properties
     var lastAck: SequenceNumber? = nil
@@ -73,14 +63,11 @@ public class TCPUpstreamStraw
     // public functions
     func inWindow(_ tcp: InternetProtocols.TCP) -> Bool
     {
-        self.functionLock.wait()
-        
         let sequenceNumberData = tcp.sequenceNumber
         let sequenceNumber = SequenceNumber(sequenceNumberData)
         
         guard self.window.contains(sequenceNumber: sequenceNumber) else
         {
-            self.functionLock.signal()
             return false
         }
 
@@ -88,23 +75,15 @@ public class TCPUpstreamStraw
         {
             guard payload.count <= self.privateWindowSize else
             {
-                self.functionLock.signal()
                 return false
             }
         }
 
-        self.functionLock.signal()
         return true
     }
 
     public func write(_ segment: InternetProtocols.TCP) throws
     {
-        defer
-        {
-            self.functionLock.signal()
-        }
-        self.functionLock.wait()
-        
         guard self.open else
         {
             throw TCPUpstreamStrawError.strawClosed
@@ -123,22 +102,12 @@ public class TCPUpstreamStraw
 
         self.straw.write(payload)
         try self.window.increaseLowerBounds(by: payload.count)
-        self.readLock.add(amount: payload.count)
     }
 
     public func read() throws -> SegmentData
     {
-        self.readLock.waitFor(amount: 1) // We need at least 1 byte.
-
-        defer
-        {
-            self.functionLock.signal()
-        }
-        self.functionLock.wait()
-
         let data = try self.straw.read()
         let result = SegmentData(data: data, window: window)
-        self.readLock.waitFor(amount: data.count - 1) // We already waited for the first byte, decrement the counter for the rest of the bytes.
 
         return result
     }
@@ -149,14 +118,6 @@ public class TCPUpstreamStraw
         {
             throw TCPUpstreamStrawError.badReadSize(size)
         }
-
-        self.readLock.waitFor(amount: size)
-
-        defer
-        {
-            self.functionLock.signal()
-        }
-        self.functionLock.wait()
 
         let data = try self.straw.read(size: size)
         let result = SegmentData(data: data, window: window)
@@ -171,17 +132,8 @@ public class TCPUpstreamStraw
             throw TCPUpstreamStrawError.badReadSize(maxSize)
         }
 
-        self.readLock.waitFor(amount: 1) // We need at least 1 byte.
-
-        defer
-        {
-            self.functionLock.signal()
-        }
-        self.functionLock.wait()
-
         let data = try self.straw.read(maxSize: maxSize)
         let result = SegmentData(data: data, window: window)
-        self.readLock.waitFor(amount: data.count - 1) // We already waited for the first byte, decrement the counter for the rest of the bytes.
 
         return result
     }
@@ -192,12 +144,6 @@ public class TCPUpstreamStraw
         {
             throw TCPUpstreamStrawError.badClearSize(segment.window.size)
         }
-
-        defer
-        {
-            self.functionLock.signal()
-        }
-        self.functionLock.wait()
 
         guard segment.window.lowerBound == self.window.lowerBound else
         {

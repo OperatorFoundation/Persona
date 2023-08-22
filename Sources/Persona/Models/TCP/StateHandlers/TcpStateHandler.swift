@@ -55,7 +55,7 @@ public class TcpStateHandler
         self.upstreamStraw = oldState.upstreamStraw
     }
 
-    public func processDownstreamPacket(ipv4: IPv4, tcp: TCP, payload: Data?) throws -> TcpStateTransition
+    public func processDownstreamPacket(ipv4: IPv4, tcp: TCP, payload: Data?) async throws -> TcpStateTransition
     {
         self.logger.debug("TcpStateHandler.processDownstreamPacket: \(ipv4.sourceAddress.ipv4AddressString ?? "?.?.?.?"):\(tcp.sourcePort) -> \(ipv4.destinationAddress.data.ipv4AddressString ?? "?.?.?.?"):\(tcp.destinationPort)")
         if tcp.destinationPort == 7
@@ -63,7 +63,7 @@ public class TcpStateHandler
             self.tcpLogger.debug("TcpStateHandler.processDownstreamPacket: \(ipv4.sourceAddress.ipv4AddressString ?? "?.?.?.?"):\(tcp.sourcePort) -> \(ipv4.destinationAddress.data.ipv4AddressString ?? "?.?.?.?"):\(tcp.destinationPort)")
         }
 
-        return try self.panicOnDownstream(ipv4: ipv4, tcp: tcp, payload: payload)
+        return try await self.panicOnDownstream(ipv4: ipv4, tcp: tcp, payload: payload)
     }
 
     public func processUpstreamData(data: Data) throws -> TcpStateTransition
@@ -80,19 +80,19 @@ public class TcpStateHandler
         return self.panicOnUpstreamClose()
     }
 
-    func makeRst(ipv4: IPv4, tcp: TCP) throws -> IPv4
+    func makeRst(ipv4: IPv4, tcp: TCP) async throws -> IPv4
     {
-        return try self.makePacket(sequenceNumber: self.downstreamStraw.sequenceNumber, acknowledgementNumber: self.upstreamStraw.acknowledgementNumber, rst: true)
+        return try await self.makePacket(sequenceNumber: await self.downstreamStraw.sequenceNumber, acknowledgementNumber: await self.upstreamStraw.acknowledgementNumber, rst: true)
     }
 
-    func  makePacket(sequenceNumber: SequenceNumber = SequenceNumber(0), acknowledgementNumber: SequenceNumber = SequenceNumber(0), syn: Bool = false, ack: Bool = false, fin: Bool = false, rst: Bool = false, payload: Data? = nil) throws -> IPv4
+    func  makePacket(sequenceNumber: SequenceNumber = SequenceNumber(0), acknowledgementNumber: SequenceNumber = SequenceNumber(0), syn: Bool = false, ack: Bool = false, fin: Bool = false, rst: Bool = false, payload: Data? = nil) async throws -> IPv4
     {
         do
         {
             self.logger.debug("TcpStateHandler - makePacket: Start")
             self.logger.debug("upstreamStraw: \(self.upstreamStraw)")
             
-            let windowSize = self.upstreamStraw.windowSize
+            let windowSize = await self.upstreamStraw.windowSize
             
             self.logger.debug("TcpStateHandler - makePacket: Try to make an IPv4 Packet")
             guard let ipv4 = try IPv4(sourceAddress: self.identity.remoteAddress, destinationAddress: self.identity.localAddress, sourcePort: self.identity.remotePort, destinationPort: self.identity.localPort, sequenceNumber: sequenceNumber, acknowledgementNumber: acknowledgementNumber, syn: syn, ack: ack, fin: fin, rst: rst, windowSize: windowSize, payload: payload) else
@@ -148,7 +148,7 @@ public class TcpStateHandler
     }
 
     // Send a RST and close.
-    func panicOnDownstream(ipv4: IPv4, tcp: TCP, payload: Data?) throws -> TcpStateTransition
+    func panicOnDownstream(ipv4: IPv4, tcp: TCP, payload: Data?) async throws -> TcpStateTransition
     {
         self.logger.debug("TcpStateHandler.panicOnDownstream: \(ipv4.sourceAddress.ipv4AddressString ?? "not an IPv4 address"):\(tcp.sourcePort) -> \(ipv4.destinationAddress.ipv4AddressString ?? "not an IPv4 address"):\(tcp.destinationPort), closing, sending RST")
         if tcp.destinationPort == 7 || tcp.destinationPort == 853
@@ -156,7 +156,7 @@ public class TcpStateHandler
             self.tcpLogger.debug("TcpStateHandler.panicOnDownstream: \(ipv4.sourceAddress.ipv4AddressString ?? "not an IPv4 address"):\(tcp.sourcePort) -> \(ipv4.destinationAddress.ipv4AddressString ?? "not an IPv4 address"):\(tcp.destinationPort), closing, sending RST")
         }
 
-        let rst = try self.makeRst(ipv4: ipv4, tcp: tcp)
+        let rst = try await self.makeRst(ipv4: ipv4, tcp: tcp)
         return TcpStateTransition(newState: TcpClosed(self), packetsToSend: [rst])
     }
 
@@ -179,12 +179,6 @@ public class TcpStateHandler
         self.logger.debug("TcpStateHandler.panicOnUpstreamClose, closing")
 
         return TcpStateTransition(newState: TcpClosed(self))
-    }
-}
-
-extension TCPUpstreamStraw: CustomStringConvertible {
-    public var description: String {
-        return "[TCPUpstreamStraw: count: \(self.straw.count), maxBufferSize: \(Self.maxBufferSize)]"
     }
 }
 

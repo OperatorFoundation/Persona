@@ -16,13 +16,13 @@ public class TcpEstablished: TcpStateHandler
         return "[TcpEstablished]"
     }
 
-    override public func processDownstreamPacket(ipv4: IPv4, tcp: TCP, payload: Data?) throws -> TcpStateTransition
+    override public func processDownstreamPacket(ipv4: IPv4, tcp: TCP, payload: Data?) async throws -> TcpStateTransition
     {
         // We can only receive data inside the TCP window.
-        guard self.upstreamStraw.inWindow(tcp) else
+        guard await self.upstreamStraw.inWindow(tcp) else
         {
             // Send an ACK to let the client know that they are outside of the TCP window.
-            let ack = try self.makePacket(sequenceNumber: self.downstreamStraw.sequenceNumber, acknowledgementNumber: self.upstreamStraw.acknowledgementNumber, ack: true)
+            let ack = try await self.makePacket(sequenceNumber: self.downstreamStraw.sequenceNumber, acknowledgementNumber: self.upstreamStraw.acknowledgementNumber, ack: true)
             return TcpStateTransition(newState: self, packetsToSend: [ack])
         }
 
@@ -52,7 +52,7 @@ public class TcpEstablished: TcpStateHandler
             }
 
             // Write the payload to the tcpproxy subsystem
-            try self.upstreamStraw.write(tcp)
+            try await self.upstreamStraw.write(tcp)
 
             self.logger.debug("* Persona.processLocalPacket: payload upstream write complete\n")
 
@@ -78,7 +78,7 @@ public class TcpEstablished: TcpStateHandler
              This acknowledgment should be piggybacked on a segment being
              transmitted if possible without incurring undue delay.
              */
-            let ack = try self.makePacket(sequenceNumber: self.downstreamStraw.sequenceNumber, acknowledgementNumber: self.upstreamStraw.acknowledgementNumber, ack: true)
+            let ack = try await self.makePacket(sequenceNumber: self.downstreamStraw.sequenceNumber, acknowledgementNumber: self.upstreamStraw.acknowledgementNumber, ack: true)
             return TcpStateTransition(newState: self, packetsToSend: [ack])
         }
 

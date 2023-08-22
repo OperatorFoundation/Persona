@@ -184,7 +184,7 @@ public class TcpProxyConnection
             tcpLogger.debug("TcpProxyConnection.init: \(identity.localAddress.data.ipv4AddressString ?? "?.?.?.?."):\(identity.localPort) -> \(identity.remoteAddress.data.ipv4AddressString ?? "?.?.?.?."):\(identity.remotePort)")
         }
 
-        let transition = try self.state.processDownstreamPacket(ipv4: ipv4, tcp: tcp, payload: nil)
+        let transition = try await self.state.processDownstreamPacket(ipv4: ipv4, tcp: tcp, payload: nil)
         for packet in transition.packetsToSend
         {
             try await self.sendPacket(packet)
@@ -249,7 +249,7 @@ public class TcpProxyConnection
     public func processDownstreamPacket(ipv4: IPv4, tcp: TCP, payload: Data?) async throws
     {
 //        self.logger.debug("TcpProxyConnection.processDownstreamPacket - calling current TCP state processDownstreamPacket()")
-        let transition = try self.state.processDownstreamPacket(ipv4: ipv4, tcp: tcp, payload: nil)
+        let transition = try await self.state.processDownstreamPacket(ipv4: ipv4, tcp: tcp, payload: nil)
 //        self.logger.debug("TcpProxyConnection.processDownstreamPacket - returned from current TCP state processDownstreamPacket()")
         
         for packet in transition.packetsToSend
