@@ -90,7 +90,7 @@ public class TcpStateHandler
         do
         {
             self.logger.debug("TcpStateHandler - makePacket: Start")
-            self.logger.debug("upstreamStraw: \(self.upstreamStraw)")
+            self.logger.debug("upstreamStraw: \(self.upstreamStraw.description)")
             
             let windowSize = await self.upstreamStraw.windowSize
             
