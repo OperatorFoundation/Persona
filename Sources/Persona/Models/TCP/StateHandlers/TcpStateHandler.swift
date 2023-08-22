@@ -90,7 +90,7 @@ public class TcpStateHandler
         do
         {
             self.logger.debug("TcpStateHandler - makePacket: Start")
-            self.logger.debug("upstreamStraw: \(self.upstreamStraw)")
+            self.logger.debug("upstreamStraw: \(self.upstreamStraw.description)")
             
             let windowSize = self.upstreamStraw.windowSize
             
@@ -179,12 +179,6 @@ public class TcpStateHandler
         self.logger.debug("TcpStateHandler.panicOnUpstreamClose, closing")
 
         return TcpStateTransition(newState: TcpClosed(self))
-    }
-}
-
-extension TCPUpstreamStraw: CustomStringConvertible {
-    public var description: String {
-        return "[TCPUpstreamStraw: count: \(self.straw.count), maxBufferSize: \(Self.maxBufferSize)]"
     }
 }
 

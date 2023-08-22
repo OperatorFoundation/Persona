@@ -216,6 +216,16 @@ public class TCPUpstreamStraw
     }
 }
 
+extension TCPUpstreamStraw: CustomStringConvertible
+{
+    public var description: String
+    {
+        return "[TCPUpstreamStraw: count: \(self.straw.count)]"
+//        return "[TCPUpstreamStraw: count: \(self.straw.count), maxBufferSize: \(Self.maxBufferSize)]"
+
+    }
+}
+
 // public helpers structs
 public struct SegmentData
 {
