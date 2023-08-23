@@ -86,6 +86,8 @@ public class TcpListen: TcpStateHandler
         {
             self.tcpLogger.debug("TcpListen.processDownstreamPacket: Packet accepted! Sending SYN-ACK and switching to SYN-RECEIVED state")
             self.tcpLogger.trace("SYN: \(ipv4.sourceAddress.ipv4AddressString ?? "?.?.?.?."):\(tcp.sourcePort) -> \(ipv4.destinationAddress.ipv4AddressString ?? "?.?.?.?.") - SYN:\(tcp.syn), SEQ#:\(SequenceNumber(tcp.sequenceNumber)), ACK#:\(SequenceNumber(tcp.acknowledgementNumber)), CHK:\(tcp.checksum).data.hex")
+            self.tcpLogger.trace("IPv4 of SYN: \(ipv4.description)")
+            self.tcpLogger.trace("TCP of SYN: \(tcp.description)")
         }
         
         self.logger.debug("TcpListen.processDownstreamPacket: try to make a SYN-ACK")
@@ -99,6 +101,8 @@ public class TcpListen: TcpStateHandler
             if let ipv4 = packet.ipv4, let tcp = packet.tcp
             {
                 self.logger.trace("<- TcpListen.SYN-ACK: \(ipv4.sourceAddress.ipv4AddressString ?? "?.?.?.?."):\(tcp.sourcePort) -> \(ipv4.destinationAddress.ipv4AddressString ?? "?.?.?.?.") - SYN:\(tcp.syn), SEQ#:\(SequenceNumber(tcp.sequenceNumber)), ACK#:\(SequenceNumber(tcp.acknowledgementNumber)), CHK:\(tcp.checksum).data.hex")
+                self.tcpLogger.trace("IPv4 of SYN-ACK: \(ipv4.description)")
+                self.tcpLogger.trace("TCP of SYN-ACK: \(tcp.description)")
             }
 
             let synReceived = TcpSynReceived(self)

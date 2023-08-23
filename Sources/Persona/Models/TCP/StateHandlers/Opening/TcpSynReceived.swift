@@ -73,6 +73,8 @@ public class TcpSynReceived: TcpStateHandler
             if identity.remotePort == 7 || identity.remotePort == 853
             {
                 self.tcpLogger.debug("TcpSynReceived: staying in SYN-RECEIVED, using new SYN, sending new SYN-ACK")
+                self.tcpLogger.trace("IPv4 of new SYN: \(ipv4.description)")
+                self.tcpLogger.trace("TCP of new SYN: \(tcp.description)")
             }
 
             // Send a SYN-ACK for the new SYN
@@ -82,6 +84,8 @@ public class TcpSynReceived: TcpStateHandler
             if let ipv4 = packet.ipv4, let tcp = packet.tcp
             {
                 self.logger.trace("<- TcpSynReceived.SYN-ACK: \(ipv4.sourceAddress.ipv4AddressString ?? "?.?.?.?."):\(tcp.sourcePort) -> \(ipv4.destinationAddress.ipv4AddressString ?? "?.?.?.?.") - SYN:\(tcp.syn), SEQ#:\(SequenceNumber(tcp.sequenceNumber)), ACK#:\(SequenceNumber(tcp.acknowledgementNumber)), CHK:\(tcp.checksum).data.hex")
+                self.tcpLogger.trace("IPv4 of new SYN-ACK: \(ipv4.description)")
+                self.tcpLogger.trace("TCP of new SYN-ACK: \(tcp.description)")
             }
 
             return TcpStateTransition(newState: self, packetsToSend: [synAck])
@@ -108,6 +112,9 @@ public class TcpSynReceived: TcpStateHandler
             let synAck = try await self.makeSynAck(sequenceNumber: downstreamStraw.sequenceNumber, acknowledgementNumber: upstreamStraw.acknowledgementNumber, windowSize: upstreamStraw.windowSize)
             return TcpStateTransition(newState: self, packetsToSend: [synAck])
         }
+
+        self.tcpLogger.trace("IPv4 of ACK: \(ipv4.description)")
+        self.tcpLogger.trace("TCP of ACK: \(tcp.description)")
 
         // We have an ACK for our SYN-ACK. Change to ESTABLISHED state.
         return TcpStateTransition(newState: TcpEstablished(self))
