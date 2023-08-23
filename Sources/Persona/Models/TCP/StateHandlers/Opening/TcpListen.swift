@@ -45,7 +45,7 @@ public class TcpListen: TcpStateHandler
             }
 
             // Send a RST and close.
-            return try await self.panicOnDownstream(ipv4: ipv4, tcp: tcp, payload: payload)
+            return try await self.panicOnDownstream(ipv4: ipv4, tcp: tcp, payload: payload, sequenceNumber: SequenceNumber(0), acknowledgementNumber: SequenceNumber(0), windowSize: 0)
         }
 
         guard !tcp.ack else
@@ -58,7 +58,7 @@ public class TcpListen: TcpStateHandler
             }
 
             // Send a RST and close.
-            return try await self.panicOnDownstream(ipv4: ipv4, tcp: tcp, payload: payload)
+            return try await self.panicOnDownstream(ipv4: ipv4, tcp: tcp, payload: payload, sequenceNumber: SequenceNumber(0), acknowledgementNumber: SequenceNumber(0), windowSize: 0)
         }
 
         // In the LISTEN state, we only accept a SYN.
@@ -71,12 +71,14 @@ public class TcpListen: TcpStateHandler
             }
 
             // Send a RST and close.
-            return try await self.panicOnDownstream(ipv4: ipv4, tcp: tcp, payload: payload)
+            return try await self.panicOnDownstream(ipv4: ipv4, tcp: tcp, payload: payload, sequenceNumber: SequenceNumber(0), acknowledgementNumber: SequenceNumber(0), windowSize: 0)
         }
 
         // SYN gives us a sequence number, so reset the straw sequence number (previously 0)
-        self.downstreamStraw = await TCPDownstreamStraw(segmentStart: self.downstreamStraw.sequenceNumber, windowSize: tcp.windowSize)
-        self.upstreamStraw = TCPUpstreamStraw(segmentStart: SequenceNumber(tcp.sequenceNumber).increment())
+        let downstreamStraw = TCPDownstreamStraw(segmentStart: isn(), windowSize: tcp.windowSize)
+        let upstreamStraw = TCPUpstreamStraw(segmentStart: SequenceNumber(tcp.sequenceNumber).increment())
+        self.downstreamStraw = downstreamStraw
+        self.upstreamStraw = upstreamStraw
 
         self.logger.debug("TcpListen.processDownstreamPacket: Packet accepted! Sending SYN-ACK and switching to SYN-RECEIVED state")
         self.logger.trace("-> TcpListen.SYN: \(ipv4.sourceAddress.ipv4AddressString ?? "?.?.?.?."):\(tcp.sourcePort) -> \(ipv4.destinationAddress.ipv4AddressString ?? "?.?.?.?.") - SYN:\(tcp.syn), SEQ#:\(SequenceNumber(tcp.sequenceNumber)), ACK#:\(SequenceNumber(tcp.acknowledgementNumber)), CHK:\(tcp.checksum).data.hex")
@@ -90,7 +92,7 @@ public class TcpListen: TcpStateHandler
         
         do
         {
-            let synAck = try await self.makeSynAck()
+            let synAck = try await self.makeSynAck(sequenceNumber: downstreamStraw.sequenceNumber, acknowledgementNumber: upstreamStraw.acknowledgementNumber, windowSize: upstreamStraw.windowSize)
             self.logger.debug("TcpListen.processDownstreamPacket: made a SYN-ACK")
 
             let packet = Packet(ipv4Bytes: synAck.data, timestamp: Date())
@@ -109,9 +111,9 @@ public class TcpListen: TcpStateHandler
         }
     }
 
-    func makeSynAck() async throws -> IPv4
+    func makeSynAck(sequenceNumber: SequenceNumber, acknowledgementNumber: SequenceNumber, windowSize: UInt16) async throws -> IPv4
     {
-        return try await self.makePacket(sequenceNumber: self.downstreamStraw.sequenceNumber, acknowledgementNumber: self.upstreamStraw.acknowledgementNumber, syn: true, ack: true)
+        return try await self.makePacket(sequenceNumber: sequenceNumber, acknowledgementNumber: acknowledgementNumber, windowSize: windowSize, syn: true, ack: true)
     }
 }
 

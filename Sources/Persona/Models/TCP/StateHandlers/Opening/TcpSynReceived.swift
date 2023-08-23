@@ -18,6 +18,11 @@ public class TcpSynReceived: TcpStateHandler
 
     override public func processDownstreamPacket(ipv4: IPv4, tcp: TCP, payload: Data?) async throws -> TcpStateTransition
     {
+        guard let upstreamStraw = self.upstreamStraw, let downstreamStraw = self.downstreamStraw else
+        {
+            throw TcpEstablishedError.missingStraws
+        }
+
         self.logger.debug("TcpSynReceived.processDownstreamPacket: \(identity.localAddress.data.ipv4AddressString ?? "?.?.?.?"):\(identity.localPort) -> \(identity.remoteAddress.data.ipv4AddressString ?? "?.?.?.?"):\(identity.remotePort)")
         if identity.remotePort == 7 || identity.remotePort == 853
         {
@@ -35,7 +40,7 @@ public class TcpSynReceived: TcpStateHandler
                 self.tcpLogger.debug("TcpSynReceived: rejected packet because of RST")
             }
 
-            return try await self.panicOnDownstream(ipv4: ipv4, tcp: tcp, payload: payload)
+            return try await self.panicOnDownstream(ipv4: ipv4, tcp: tcp, payload: payload, sequenceNumber: downstreamStraw.sequenceNumber, acknowledgementNumber: upstreamStraw.acknowledgementNumber, windowSize: upstreamStraw.windowSize)
         }
 
         // We should not be receiving a FIN.
@@ -49,19 +54,19 @@ public class TcpSynReceived: TcpStateHandler
                 self.tcpLogger.debug("TcpSynReceived: rejected packet because of FIN")
             }
 
-            return try await self.panicOnDownstream(ipv4: ipv4, tcp: tcp, payload: payload)
+            return try await self.panicOnDownstream(ipv4: ipv4, tcp: tcp, payload: payload, sequenceNumber: downstreamStraw.sequenceNumber, acknowledgementNumber: upstreamStraw.acknowledgementNumber, windowSize: upstreamStraw.windowSize)
         }
 
         // In the SYN-RECEIVED state, we may received duplicate SYNs, but new SYNs are not allowed.
         if tcp.syn
         {
             let newSequenceNumber = SequenceNumber(tcp.sequenceNumber)
-            let oldSequenceNumber = await self.downstreamStraw.sequenceNumber
+            let oldSequenceNumber = await downstreamStraw.sequenceNumber
             self.tcpLogger.info("duplicate SYN \(newSequenceNumber) \(oldSequenceNumber), using new SYN")
             self.logger.trace("-> TcpSynReceived.SYN: \(ipv4.sourceAddress.ipv4AddressString ?? "?.?.?.?."):\(tcp.sourcePort) -> \(ipv4.destinationAddress.ipv4AddressString ?? "?.?.?.?.") - SYN:\(tcp.syn), SEQ#:\(SequenceNumber(tcp.sequenceNumber)), ACK#:\(SequenceNumber(tcp.acknowledgementNumber)), CHK:\(tcp.checksum).data.hex")
 
             // SYN gives us a sequence number, so reset the straw sequence number
-            self.downstreamStraw = TCPDownstreamStraw(segmentStart: await self.downstreamStraw.sequenceNumber, windowSize: tcp.windowSize)
+            self.downstreamStraw = TCPDownstreamStraw(segmentStart: await downstreamStraw.sequenceNumber, windowSize: tcp.windowSize)
             self.upstreamStraw = TCPUpstreamStraw(segmentStart: SequenceNumber(tcp.sequenceNumber))
 
             self.logger.debug("TcpSynReceived: staying in SYN-RECEIVED, using new SYN, sending new SYN-ACK")
@@ -71,7 +76,7 @@ public class TcpSynReceived: TcpStateHandler
             }
 
             // Send a SYN-ACK for the new SYN
-            let synAck = try await self.makeSynAck()
+            let synAck = try await self.makeSynAck(sequenceNumber: downstreamStraw.sequenceNumber, acknowledgementNumber: upstreamStraw.acknowledgementNumber, windowSize: upstreamStraw.windowSize)
 
             let packet = Packet(ipv4Bytes: synAck.data, timestamp: Date())
             if let ipv4 = packet.ipv4, let tcp = packet.tcp
@@ -100,7 +105,7 @@ public class TcpSynReceived: TcpStateHandler
                 self.tcpLogger.debug("TcpSynReceived: staying in SYN-RECEIVED, resending SYN-ACK")
             }
 
-            let synAck = try await self.makeSynAck()
+            let synAck = try await self.makeSynAck(sequenceNumber: downstreamStraw.sequenceNumber, acknowledgementNumber: upstreamStraw.acknowledgementNumber, windowSize: upstreamStraw.windowSize)
             return TcpStateTransition(newState: self, packetsToSend: [synAck])
         }
 
@@ -108,9 +113,9 @@ public class TcpSynReceived: TcpStateHandler
         return TcpStateTransition(newState: TcpEstablished(self))
     }
 
-    func makeSynAck() async throws -> IPv4
+    func makeSynAck(sequenceNumber: SequenceNumber, acknowledgementNumber: SequenceNumber, windowSize: UInt16) async throws -> IPv4
     {
-        return try await self.makePacket(sequenceNumber: self.downstreamStraw.sequenceNumber, acknowledgementNumber: self.upstreamStraw.acknowledgementNumber, syn: true, ack: true)
+        return try await self.makePacket(sequenceNumber: sequenceNumber, acknowledgementNumber: acknowledgementNumber, windowSize: windowSize, syn: true, ack: true)
     }
 }
 
