@@ -94,6 +94,14 @@ public class TcpListen: TcpStateHandler
         
         do
         {
+            self.logger.debug("SYN-ACK input 1/3")
+            let sequenceNumber = await downstreamStraw.sequenceNumber
+            self.logger.debug("SYN-ACK input 2/3")
+            let acknowledgementNumber = await upstreamStraw.acknowledgementNumber
+            self.logger.debug("SYN-ACK input 3/3")
+            let windowSize = await upstreamStraw.windowSize
+            self.logger.debug("SYN-ACK input done")
+
             let synAck = try await self.makeSynAck(sequenceNumber: downstreamStraw.sequenceNumber, acknowledgementNumber: upstreamStraw.acknowledgementNumber, windowSize: upstreamStraw.windowSize)
             self.logger.debug("TcpListen.processDownstreamPacket: made a SYN-ACK")
 
