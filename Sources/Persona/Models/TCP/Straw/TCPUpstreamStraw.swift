@@ -15,38 +15,10 @@ import Straw
 public actor TCPUpstreamStraw
 {
     // static private properties
-    static let maxBufferSize: UInt32 = UInt32(UInt16.max)
-
-    // public computed properties
-    public var acknowledgementNumber: SequenceNumber
-    {
-        let result = self.window.lowerBound
-        self.lastAck = result
-        self.privateAckUpdated = false
-
-        return result
-    }
-
-    public var windowSize: UInt16
-    {
-        let result = self.privateWindowSize
-
-        return UInt16(result)
-    }
-
-    public var ackUpdated: Bool
-    {
-        return self.privateAckUpdated
-    }
-
-    // private computed properties
-    var privateWindowSize: UInt32
-    {
-        return Self.maxBufferSize - UInt32(self.straw.count)
-    }
+    static public let maxBufferSize: UInt16 = UInt16.max
 
     // private let properties
-    let straw = SynchronizedStraw()
+    let straw = StrawActor()
 
     // private var properties
     var lastAck: SequenceNumber? = nil
@@ -57,11 +29,11 @@ public actor TCPUpstreamStraw
     // public constructors
     public init(segmentStart: SequenceNumber)
     {
-        self.window = SequenceNumberRange(lowerBound: segmentStart, size: Self.maxBufferSize)
+        self.window = SequenceNumberRange(lowerBound: segmentStart, size: UInt32(Self.maxBufferSize))
     }
 
     // public functions
-    func inWindow(_ tcp: InternetProtocols.TCP) -> Bool
+    func inWindow(_ tcp: InternetProtocols.TCP) async -> Bool
     {
         let sequenceNumberData = tcp.sequenceNumber
         let sequenceNumber = SequenceNumber(sequenceNumberData)
@@ -73,7 +45,8 @@ public actor TCPUpstreamStraw
 
         if let payload = tcp.payload
         {
-            guard payload.count <= self.privateWindowSize else
+            let maxSize = await self.windowSize()
+            guard payload.count <= maxSize else
             {
                 return false
             }
@@ -82,7 +55,22 @@ public actor TCPUpstreamStraw
         return true
     }
 
-    public func write(_ segment: InternetProtocols.TCP) throws
+    // public computed properties
+    public func acknowledgementNumber() -> SequenceNumber
+    {
+        let result = self.window.lowerBound
+        self.lastAck = result
+        self.privateAckUpdated = false
+
+        return result
+    }
+
+    public func windowSize() async -> UInt16
+    {
+        return Self.maxBufferSize - UInt16(await self.straw.count)
+    }
+
+    public func write(_ segment: InternetProtocols.TCP) async throws
     {
         guard self.open else
         {
@@ -100,39 +88,39 @@ public actor TCPUpstreamStraw
             throw TCPUpstreamStrawError.misorderedSegment
         }
 
-        self.straw.write(payload)
+        await self.straw.write(payload)
         try self.window.increaseLowerBounds(by: payload.count)
     }
 
-    public func read() throws -> SegmentData
+    public func read() async throws -> SegmentData
     {
-        let data = try self.straw.read()
+        let data = try await self.straw.read()
         let result = SegmentData(data: data, window: window)
 
         return result
     }
 
-    public func read(size: Int) throws -> SegmentData
+    public func read(size: Int) async throws -> SegmentData
     {
         guard size > 0 else
         {
             throw TCPUpstreamStrawError.badReadSize(size)
         }
 
-        let data = try self.straw.read(size: size)
+        let data = try await self.straw.read(size: size)
         let result = SegmentData(data: data, window: window)
 
         return result
     }
 
-    public func read(maxSize: Int) throws -> SegmentData
+    public func read(maxSize: Int) async throws -> SegmentData
     {
         guard maxSize > 0 else
         {
             throw TCPUpstreamStrawError.badReadSize(maxSize)
         }
 
-        let data = try self.straw.read(maxSize: maxSize)
+        let data = try await self.straw.read(maxSize: maxSize)
         let result = SegmentData(data: data, window: window)
 
         return result

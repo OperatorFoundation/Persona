@@ -12,34 +12,6 @@ import Straw
 
 public actor TCPDownstreamStraw
 {
-    // Public computed properties
-    public var sequenceNumber: SequenceNumber
-    {
-        let result = self.window.lowerBound
-
-        return result
-    }
-    
-    public var isEmpty: Bool
-    {
-        return self.window.upperBound == self.window.lowerBound
-    }
-
-    public var windowSize: UInt16
-    {
-        get
-        {
-            let result = self.privateWindowSize
-
-            return UInt16(result)
-        }
-
-        set
-        {
-            self.privateWindowSize = UInt32(newValue)
-        }
-    }
-
     // Private let properties
     let straw = StrawActor()
 
@@ -52,6 +24,28 @@ public actor TCPDownstreamStraw
     {
         self.window = SequenceNumberRange(lowerBound: segmentStart.increment(), size: UInt32(windowSize))
         self.privateWindowSize = UInt32(windowSize)
+    }
+
+    public func sequenceNumber() async -> SequenceNumber
+    {
+        return self.window.lowerBound
+    }
+
+    public func isEmpty() -> Bool
+    {
+        return self.window.upperBound == self.window.lowerBound
+    }
+
+    public func windowSize() async -> UInt16
+    {
+        let result = self.privateWindowSize
+
+        return UInt16(result)
+    }
+
+    public func setWindowSize(newValue: UInt16) async
+    {
+        self.privateWindowSize = UInt32(newValue)
     }
 
     // Public functions

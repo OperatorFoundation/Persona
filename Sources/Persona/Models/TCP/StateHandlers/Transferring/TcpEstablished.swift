@@ -26,8 +26,11 @@ public class TcpEstablished: TcpStateHandler
         // We can only receive data inside the TCP window.
         guard await upstreamStraw.inWindow(tcp) else
         {
+            let sequenceNumber = await downstreamStraw.sequenceNumber()
+            let acknowledgementNumber = await upstreamStraw.acknowledgementNumber()
+            let windowSize = await downstreamStraw.windowSize()
             // Send an ACK to let the client know that they are outside of the TCP window.
-            let ack = try await self.makePacket(sequenceNumber: downstreamStraw.sequenceNumber, acknowledgementNumber: upstreamStraw.acknowledgementNumber, windowSize: downstreamStraw.windowSize, ack: true)
+            let ack = try await self.makePacket(sequenceNumber: sequenceNumber, acknowledgementNumber: acknowledgementNumber, windowSize: windowSize, ack: true)
             return TcpStateTransition(newState: self, packetsToSend: [ack])
         }
 
@@ -83,7 +86,10 @@ public class TcpEstablished: TcpStateHandler
              This acknowledgment should be piggybacked on a segment being
              transmitted if possible without incurring undue delay.
              */
-            let ack = try await self.makePacket(sequenceNumber: downstreamStraw.sequenceNumber, acknowledgementNumber: upstreamStraw.acknowledgementNumber, windowSize: downstreamStraw.windowSize, ack: true)
+            let sequenceNumber = await downstreamStraw.sequenceNumber()
+            let acknowledgementNumber = await upstreamStraw.acknowledgementNumber()
+            let windowSize = await downstreamStraw.windowSize()
+            let ack = try self.makePacket(sequenceNumber: sequenceNumber, acknowledgementNumber: acknowledgementNumber, windowSize: windowSize, ack: true)
             return TcpStateTransition(newState: self, packetsToSend: [ack])
         }
 
