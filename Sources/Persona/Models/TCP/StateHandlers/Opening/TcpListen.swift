@@ -100,9 +100,9 @@ public class TcpListen: TcpStateHandler
             let acknowledgementNumber = await upstreamStraw.acknowledgementNumber
             self.logger.debug("SYN-ACK input 3/3")
             let windowSize = await upstreamStraw.windowSize
-            self.logger.debug("SYN-ACK input done")
+            self.logger.debug("SYN-ACK input done: \(sequenceNumber), \(acknowledgementNumber), \(windowSize)")
 
-            let synAck = try await self.makeSynAck(sequenceNumber: downstreamStraw.sequenceNumber, acknowledgementNumber: upstreamStraw.acknowledgementNumber, windowSize: upstreamStraw.windowSize)
+            let synAck = try await self.makeSynAck(sequenceNumber: sequenceNumber, acknowledgementNumber: acknowledgementNumber, windowSize: windowSize)
             self.logger.debug("TcpListen.processDownstreamPacket: made a SYN-ACK")
 
             let packet = Packet(ipv4Bytes: synAck.data, timestamp: Date())
@@ -125,6 +125,7 @@ public class TcpListen: TcpStateHandler
 
     func makeSynAck(sequenceNumber: SequenceNumber, acknowledgementNumber: SequenceNumber, windowSize: UInt16) async throws -> IPv4
     {
+        self.logger.trace("TcpListen.makeSynAck")
         return try await self.makePacket(sequenceNumber: sequenceNumber, acknowledgementNumber: acknowledgementNumber, windowSize: windowSize, syn: true, ack: true)
     }
 }
