@@ -71,32 +71,31 @@ public class TcpSynReceived: TcpStateHandler
             let newSequenceNumber = SequenceNumber(tcp.sequenceNumber)
             let oldSequenceNumber = await downstreamStraw.sequenceNumber()
 
-            if newSequenceNumber.increment() == oldSequenceNumber
+            if newSequenceNumber == oldSequenceNumber
             {
                 self.tcpLogger.info("duplicate SYN \(newSequenceNumber) \(oldSequenceNumber)")
+
+                // Send a SYN-ACK
+                let sequenceNumber = await upstreamStraw.sequenceNumber()
+                let acknowledgementNumber = await upstreamStraw.acknowledgementNumber()
+                let windowSize = await upstreamStraw.windowSize()
+                let synack = try await self.makeSynAck(sequenceNumber: sequenceNumber, acknowledgementNumber: acknowledgementNumber, windowSize: windowSize)
+
+                return TcpStateTransition(newState: self, packetsToSend: [synack])
             }
             else
             {
                 self.tcpLogger.info("brand new SYN \(newSequenceNumber) \(oldSequenceNumber)")
+
+                // Send a RST
+                let sequenceNumber = await downstreamStraw.sequenceNumber()
+                let acknowledgementNumber = await upstreamStraw.acknowledgementNumber()
+                let windowSize = await downstreamStraw.windowSize()
+                let rst = try self.makeRst(ipv4: ipv4, tcp: tcp, sequenceNumber: sequenceNumber, acknowledgementNumber: acknowledgementNumber, windowSize: windowSize)
+
+                let newState = TcpListen(self)
+                return TcpStateTransition(newState: newState, packetsToSend: [rst])
             }
-
-            // SYN gives us a sequence number, so reset the straw sequence number
-            self.logger.debug("TcpSynReceived: staying in SYN-RECEIVED, using new SYN, sending new SYN-ACK")
-            if identity.remotePort == 7 || identity.remotePort == 853
-            {
-                self.tcpLogger.debug("TcpSynReceived: staying in SYN-RECEIVED, using new SYN, sending new SYN-ACK")
-                self.tcpLogger.trace("IPv4 of new SYN: \(ipv4.description)")
-                self.tcpLogger.trace("TCP of new SYN: \(tcp.description)")
-            }
-
-            // Send a RST
-            let sequenceNumber = await downstreamStraw.sequenceNumber()
-            let acknowledgementNumber = await upstreamStraw.acknowledgementNumber()
-            let windowSize = await downstreamStraw.windowSize()
-            let rst = try await self.makeRst(ipv4: ipv4, tcp: tcp, sequenceNumber: sequenceNumber, acknowledgementNumber: acknowledgementNumber, windowSize: windowSize)
-
-            let newState = TcpListen(self)
-            return TcpStateTransition(newState: newState, packetsToSend: [rst])
         }
 
         // We expect to receive an ACK.
