@@ -74,9 +74,10 @@ public class TcpListen: TcpStateHandler
             return try await self.panicOnDownstream(ipv4: ipv4, tcp: tcp, payload: payload, sequenceNumber: SequenceNumber(0), acknowledgementNumber: SequenceNumber(0), windowSize: 0)
         }
 
-        // SYN gives us a sequence number, so reset the straw sequence number (previously 0)
-        let downstreamStraw = TCPDownstreamStraw(segmentStart: isn(), windowSize: tcp.windowSize)
-        let upstreamStraw = TCPUpstreamStraw(segmentStart: SequenceNumber(tcp.sequenceNumber).increment())
+        // SYN gives us a sequence number, so set the sequence numbers.
+        // downstreamStraw tracks the client to server data flow, upstreamStraw tracks the server to client data flow
+        let downstreamStraw = TCPDownstreamStraw(segmentStart: SequenceNumber(tcp.sequenceNumber).increment(), windowSize: tcp.windowSize)
+        let upstreamStraw = TCPUpstreamStraw(segmentStart: isn())
         self.downstreamStraw = downstreamStraw
         self.upstreamStraw = upstreamStraw
 
