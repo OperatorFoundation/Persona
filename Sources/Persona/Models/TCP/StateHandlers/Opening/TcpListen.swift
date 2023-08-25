@@ -100,7 +100,7 @@ public class TcpListen: TcpStateHandler
         do
         {
             let sequenceNumber = await upstreamStraw.sequenceNumber()
-            let acknowledgementNumber = await downstreamStraw.acknowledgementNumber()
+            let acknowledgementNumber = await upstreamStraw.acknowledgementNumber()
             let windowSize = await upstreamStraw.windowSize()
 
             let synAck = try self.makeSynAck(sequenceNumber: sequenceNumber, acknowledgementNumber: acknowledgementNumber, windowSize: windowSize)
