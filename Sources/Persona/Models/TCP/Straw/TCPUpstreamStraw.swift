@@ -24,12 +24,24 @@ public actor TCPUpstreamStraw
     var lastAck: SequenceNumber? = nil
     var window: SequenceNumberRange
     var privateAckUpdated = false
+    var privateAcknowledgementNumber: SequenceNumber
     var open = true
 
     // public constructors
-    public init(segmentStart: SequenceNumber)
+    public init(segmentStart: SequenceNumber, acknowledgementNumber: SequenceNumber)
     {
         self.window = SequenceNumberRange(lowerBound: segmentStart, size: UInt32(Self.maxBufferSize))
+        self.privateAcknowledgementNumber = acknowledgementNumber
+    }
+
+    public func acknowledgementNumber() async -> SequenceNumber
+    {
+        return self.privateAcknowledgementNumber
+    }
+
+    public func sequenceNumber() async -> SequenceNumber
+    {
+        return self.window.lowerBound
     }
 
     // public functions

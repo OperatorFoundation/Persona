@@ -18,17 +18,24 @@ public actor TCPDownstreamStraw
     // Private var properties
     var window: SequenceNumberRange
     var privateWindowSize: UInt32
+    var privateAcknowledgementNumber: SequenceNumber
 
     // Public constructors
-    public init(segmentStart: SequenceNumber, windowSize: UInt16)
+    public init(segmentStart: SequenceNumber, acknowledgementNumber: SequenceNumber, windowSize: UInt16)
     {
-        self.window = SequenceNumberRange(lowerBound: segmentStart.increment(), size: UInt32(windowSize))
+        self.window = SequenceNumberRange(lowerBound: segmentStart, size: UInt32(windowSize))
+        self.privateAcknowledgementNumber = acknowledgementNumber
         self.privateWindowSize = UInt32(windowSize)
     }
 
     public func sequenceNumber() async -> SequenceNumber
     {
         return self.window.lowerBound
+    }
+
+    public func acknowledgementNumber() async -> SequenceNumber
+    {
+        return self.privateAcknowledgementNumber
     }
 
     public func isEmpty() -> Bool

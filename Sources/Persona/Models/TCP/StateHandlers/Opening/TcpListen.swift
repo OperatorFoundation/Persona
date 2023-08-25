@@ -76,8 +76,9 @@ public class TcpListen: TcpStateHandler
 
         // SYN gives us a sequence number, so set the sequence numbers.
         // downstreamStraw tracks the client to server data flow, upstreamStraw tracks the server to client data flow
-        let downstreamStraw = TCPDownstreamStraw(segmentStart: SequenceNumber(tcp.sequenceNumber).increment(), windowSize: tcp.windowSize)
-        let upstreamStraw = TCPUpstreamStraw(segmentStart: isn())
+        let irs = SequenceNumber(tcp.sequenceNumber)
+        let downstreamStraw = TCPDownstreamStraw(segmentStart: irs, acknowledgementNumber: SequenceNumber(tcp.acknowledgementNumber), windowSize: tcp.windowSize)
+        let upstreamStraw = TCPUpstreamStraw(segmentStart: isn(), acknowledgementNumber: irs.increment())
         self.downstreamStraw = downstreamStraw
         self.upstreamStraw = upstreamStraw
 
@@ -98,8 +99,8 @@ public class TcpListen: TcpStateHandler
         
         do
         {
-            let sequenceNumber = await downstreamStraw.sequenceNumber()
-            let acknowledgementNumber = await upstreamStraw.acknowledgementNumber()
+            let sequenceNumber = await upstreamStraw.sequenceNumber()
+            let acknowledgementNumber = await downstreamStraw.acknowledgementNumber()
             let windowSize = await upstreamStraw.windowSize()
 
             let synAck = try self.makeSynAck(sequenceNumber: sequenceNumber, acknowledgementNumber: acknowledgementNumber, windowSize: windowSize)

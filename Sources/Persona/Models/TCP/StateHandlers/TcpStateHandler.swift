@@ -25,8 +25,8 @@ public class TcpStateHandler
     public let writeLogger: Puppy
 
     public var lastUsed: Date
-    public var downstreamStraw: TCPDownstreamStraw?
     public var upstreamStraw: TCPUpstreamStraw?
+    public var downstreamStraw: TCPDownstreamStraw?
     public var open: Bool = true
 
     public init(identity: TcpIdentity, logger: Logger, tcpLogger: Puppy, writeLogger: Puppy)
