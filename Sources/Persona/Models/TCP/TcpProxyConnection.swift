@@ -204,7 +204,7 @@ public class TcpProxyConnection
         let oldState = self.state
         self.state = transition.newState
 
-        logger.debug("TcpProxyConnection.init: \(oldState) == \(self.state), \(transition.packetsToSend.count) packets sent downstream")
+        logger.debug("TcpProxyConnection.init: \(oldState) => \(self.state), \(transition.packetsToSend.count) packets sent downstream")
         if identity.remotePort == 7 || identity.remotePort == 853
         {
             tcpLogger.debug("TcpProxyConnection.init: \(oldState) == \(self.state), \(transition.packetsToSend.count) packets sent downstream")
@@ -273,7 +273,7 @@ public class TcpProxyConnection
         logger.debug("TcpProxyConnection.processDownstreamPacket: \(oldState) == \(self.state), \(transition.packetsToSend.count) packets sent downstream")
         if identity.remotePort == 7 || identity.remotePort == 853
         {
-            tcpLogger.debug("TcpProxyConnection.init: \(oldState) == \(self.state), \(transition.packetsToSend.count) packets sent downstream")
+            tcpLogger.debug("TcpProxyConnection.init: \(oldState) => \(self.state), \(transition.packetsToSend.count) packets sent downstream")
         }
 
         guard self.state.open else

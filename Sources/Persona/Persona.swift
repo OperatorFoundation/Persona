@@ -164,16 +164,9 @@ public class Persona
             self.stats.ipv4 += 1
             self.stats.tcp += 1
 
-            if let payload = tcp.payload
-            {
-                self.logger.info("🪀 TCP: \(ipv4.sourceAddress.ipv4AddressString ?? "not an ipv4 address"):\(tcp.sourcePort) -> \(ipv4.destinationAddress.ipv4AddressString ?? "not an ipv4 address"):\(tcp.destinationPort) - \(payload.count) byte payload")
-                self.packetLogger.info("🪀 TCP: \(ipv4.sourceAddress.ipv4AddressString ?? "not an ipv4 address"):\(tcp.sourcePort) -> \(ipv4.destinationAddress.ipv4AddressString ?? "not an ipv4 address"):\(tcp.destinationPort) - \(payload.count) byte payload")
-            }
-            else
-            {
-                self.logger.info("🪀 TCP: \(ipv4.sourceAddress.ipv4AddressString ?? "not an ipv4 address"):\(tcp.sourcePort) -> \(ipv4.destinationAddress.ipv4AddressString ?? "not an ipv4 address"):\(tcp.destinationPort) - no payload")
-                self.packetLogger.info("🪀 TCP: \(ipv4.sourceAddress.ipv4AddressString ?? "not an ipv4 address"):\(tcp.sourcePort) -> \(ipv4.destinationAddress.ipv4AddressString ?? "not an ipv4 address"):\(tcp.destinationPort) - no payload")
-            }
+            self.logger.info("🪀 TCP: \(description(ipv4, tcp))")
+            self.tcpLogger.info("🪀 TCP: \(description(ipv4, tcp))")
+            self.packetLogger.info("🪀 TCP: \(description(ipv4, tcp))")
 
             // Process TCP packets
             try await self.tcpProxy.processDownstreamPacket(ipv4: ipv4, tcp: tcp, payload: tcp.payload)
@@ -202,7 +195,7 @@ public class Persona
                 throw PersonaError.emptyPayload
             }
         }
-        else if let ipv4 = packet.ipv4
+        else if let _ = packet.ipv4
         {
             // The packet is IPv4, but neither TCP nor UDP.
 
