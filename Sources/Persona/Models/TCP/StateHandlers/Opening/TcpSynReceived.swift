@@ -11,11 +11,6 @@ import InternetProtocols
 
 public class TcpSynReceived: TcpStateHandler
 {
-    override public var description: String
-    {
-        return "[TcpSynReceived]"
-    }
-
     override public func processDownstreamPacket(ipv4: IPv4, tcp: TCP, payload: Data?) async throws -> TcpStateTransition
     {
         guard let upstreamStraw = self.upstreamStraw, let downstreamStraw = self.downstreamStraw else
@@ -66,7 +61,7 @@ public class TcpSynReceived: TcpStateHandler
         // In the SYN-RECEIVED state, we may received duplicate SYNs, but new SYNs are not allowed.
         if tcp.syn
         {
-            self.logger.trace("-> TcpSynReceived.SYN: \(ipv4.sourceAddress.ipv4AddressString ?? "?.?.?.?."):\(tcp.sourcePort) -> \(ipv4.destinationAddress.ipv4AddressString ?? "?.?.?.?.") - SYN:\(tcp.syn), SEQ#:\(SequenceNumber(tcp.sequenceNumber)), ACK#:\(SequenceNumber(tcp.acknowledgementNumber)), CHK:\(tcp.checksum).data.hex")
+            self.logger.trace("-> TcpSynReceived.SYN: \(description(ipv4, tcp))")
 
             let newSequenceNumber = SequenceNumber(tcp.sequenceNumber)
             let oldSequenceNumber = await downstreamStraw.sequenceNumber()
@@ -101,7 +96,7 @@ public class TcpSynReceived: TcpStateHandler
         // We expect to receive an ACK.
         guard tcp.ack else
         {
-            self.logger.trace("-> TcpSynReceived.ACK: \(ipv4.sourceAddress.ipv4AddressString ?? "?.?.?.?."):\(tcp.sourcePort) -> \(ipv4.destinationAddress.ipv4AddressString ?? "?.?.?.?.") - ACK:\(tcp.ack), SEQ#:\(SequenceNumber(tcp.sequenceNumber)), ACK#:\(SequenceNumber(tcp.acknowledgementNumber)), CHK:\(tcp.checksum).data.hex")
+            self.logger.trace("-> TcpSynReceived.ACK: \(description(ipv4, tcp))")
 
             self.logger.debug("TcpSynReceived: ACK received, transitioning to ESTABLISHED, no packets to send")
             if identity.remotePort == 7 || identity.remotePort == 853
@@ -116,23 +111,20 @@ public class TcpSynReceived: TcpStateHandler
                 self.tcpLogger.debug("TcpSynReceived: staying in SYN-RECEIVED, resending SYN-ACK")
             }
 
-            let sequenceNumber = await downstreamStraw.sequenceNumber()
+            let sequenceNumber = await upstreamStraw.sequenceNumber()
             let acknowledgementNumber = await upstreamStraw.acknowledgementNumber()
-            let windowSize = await downstreamStraw.windowSize()
-            let synAck = try await self.makeSynAck(sequenceNumber: sequenceNumber, acknowledgementNumber: acknowledgementNumber, windowSize: windowSize)
+            let windowSize = await upstreamStraw.windowSize()
+            let synAck = try self.makeSynAck(sequenceNumber: sequenceNumber, acknowledgementNumber: acknowledgementNumber, windowSize: windowSize)
             return TcpStateTransition(newState: self, packetsToSend: [synAck])
         }
-
-        self.tcpLogger.trace("IPv4 of ACK: \(ipv4.description)")
-        self.tcpLogger.trace("TCP of ACK: \(tcp.description)")
 
         // We have an ACK for our SYN-ACK. Change to ESTABLISHED state.
         return TcpStateTransition(newState: TcpEstablished(self))
     }
 
-    func makeSynAck(sequenceNumber: SequenceNumber, acknowledgementNumber: SequenceNumber, windowSize: UInt16) async throws -> IPv4
+    func makeSynAck(sequenceNumber: SequenceNumber, acknowledgementNumber: SequenceNumber, windowSize: UInt16) throws -> IPv4
     {
-        return try await self.makePacket(sequenceNumber: sequenceNumber, acknowledgementNumber: acknowledgementNumber, windowSize: windowSize, syn: true, ack: true)
+        return try self.makePacket(sequenceNumber: sequenceNumber, acknowledgementNumber: acknowledgementNumber, windowSize: windowSize, syn: true, ack: true)
     }
 }
 

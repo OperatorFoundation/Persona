@@ -59,69 +59,50 @@ func isn() -> SequenceNumber
     return SequenceNumber(uint32)
 }
 
-//func sendRst(sourceAddress: IPv4Address, sourcePort: UInt16, destinationAddress: IPv4Address, destinationPort: UInt16, _ tcp: InternetProtocols.TCP, _ state: States) async throws
-//{
-//    switch state
-//    {
-//        case .closed:
-//            /*
-//             If the state is CLOSED (i.e., TCB does not exist) then
-//
-//             all data in the incoming segment is discarded.  An incoming
-//             segment containing a RST is discarded.  An incoming segment not
-//             containing a RST causes a RST to be sent in response.  The
-//             acknowledgment and sequence field values are selected to make the
-//             reset sequence acceptable to the TCP that sent the offending
-//             segment.
-//
-//             If the ACK bit is off, sequence number zero is used,
-//
-//             <SEQ=0><ACK=SEG.SEQ+SEG.LEN><CTL=RST,ACK>
-//
-//             If the ACK bit is on,
-//
-//             <SEQ=SEG.ACK><CTL=RST>
-//
-//             Return.
-//             */
-//
-//        case .listen:
-//            self.logger.debug("* TCP state is listen")
-//            if tcp.ack
-//            {
-//                /*
-//                 Any acknowledgment is bad if it arrives on a connection still in
-//                 the LISTEN state.  An acceptable reset segment should be formed
-//                 for any arriving ACK-bearing segment.  The RST should be
-//                 formatted as follows:
-//
-//                 <SEQ=SEG.ACK><CTL=RST>
-//                 */
-//
-//                self.logger.debug("* received tcp.ack, calling send packet with tcp.acknowledgementNumber, and ack: true")
-//
-//                self.tcpLogger.debug("(proxy)sendRst() called")
-//                try await self.sendPacket(sourceAddress: sourceAddress, sourcePort: sourcePort, destinationAddress: destinationAddress, destinationPort: destinationPort, sequenceNumber: SequenceNumber(tcp.acknowledgementNumber), ack: true)
-//            }
-//            else
-//            {
-//                self.logger.debug("* no tcp.ack received, doing nothing")
-//                return
-//            }
-//
-//        default:
-//            self.logger.debug("* TCP state is an unexpected value, doing nothing")
-//            return
-//    }
-//}
+public func description(_ ipv4: IPv4, _ tcp: TCP) -> String
+{
+    return "\(ipv4.sourceAddress.ipv4AddressString ?? "?.?.?.?."):\(tcp.sourcePort) -> \(ipv4.destinationAddress.ipv4AddressString ?? "?.?.?.?.") - \(describeFlags(tcp)), SEQ#:\(SequenceNumber(tcp.sequenceNumber)), ACK#:\(SequenceNumber(tcp.acknowledgementNumber)) - \(describePayload(tcp))"
+}
 
-//func sendPacket(sourceAddress: IPv4Address, sourcePort: UInt16, destinationAddress: IPv4Address, destinationPort: UInt16, sequenceNumber: SequenceNumber = SequenceNumber(0), acknowledgementNumber: SequenceNumber = SequenceNumber(0), ack: Bool = false) async throws
-//{
-//    guard let ipv4 = try? IPv4(sourceAddress: sourceAddress, destinationAddress: destinationAddress, sourcePort: sourcePort, destinationPort: destinationPort, sequenceNumber: sequenceNumber, acknowledgementNumber: acknowledgementNumber, syn: false, ack: ack, fin: false, rst: true, windowSize: 0, payload: nil) else
-//    {
-//        self.logger.error("* sendPacket() failed to create an IPV4packet")
-//        throw TcpProxyError.badIpv4Packet
-//    }
-//
-//    try await self.client.writeWithLengthPrefix(ipv4.data, 32)
-//}
+func describeFlags(_ tcp: TCP) -> String
+{
+    var result: String = ""
+    if tcp.syn
+    {
+        result = result + "S"
+    }
+
+    if tcp.ack
+    {
+        result = result + "A"
+    }
+
+    if tcp.fin
+    {
+        result = result + "F"
+    }
+
+    if tcp.rst
+    {
+        result = result + "R"
+    }
+
+    if result.isEmpty
+    {
+        result = "-"
+    }
+
+    return result
+}
+
+func describePayload(_ tcp: TCP) -> String
+{
+    if let payload = tcp.payload
+    {
+        return "\(payload.count) bytes"
+    }
+    else
+    {
+        return "no payload"
+    }
+}

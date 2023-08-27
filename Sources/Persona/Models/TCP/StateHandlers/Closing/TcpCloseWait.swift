@@ -12,11 +12,6 @@ import InternetProtocols
 // FIXME me - implement this state
 public class TcpCloseWait: TcpStateHandler
 {
-    override public var description: String
-    {
-        return "[TcpCloseWait]"
-    }
-
     public func processDownstreamPacket(ipv4: IPv4, tcp: TCP, payload: Data?) async throws
     {
     }

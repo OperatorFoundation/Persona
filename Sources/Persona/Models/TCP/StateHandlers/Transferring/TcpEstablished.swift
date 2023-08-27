@@ -11,11 +11,6 @@ import InternetProtocols
 
 public class TcpEstablished: TcpStateHandler
 {
-    override public var description: String
-    {
-        return "[TcpEstablished]"
-    }
-
     override public func processDownstreamPacket(ipv4: IPv4, tcp: TCP, payload: Data?) async throws -> TcpStateTransition
     {
         guard let upstreamStraw = self.upstreamStraw, let downstreamStraw = self.downstreamStraw else
@@ -26,9 +21,10 @@ public class TcpEstablished: TcpStateHandler
         // We can only receive data inside the TCP window.
         guard await upstreamStraw.inWindow(tcp) else
         {
-            let sequenceNumber = await downstreamStraw.sequenceNumber()
+            let sequenceNumber = await upstreamStraw.sequenceNumber()
             let acknowledgementNumber = await upstreamStraw.acknowledgementNumber()
-            let windowSize = await downstreamStraw.windowSize()
+            let windowSize = await upstreamStraw.windowSize()
+            
             // Send an ACK to let the client know that they are outside of the TCP window.
             let ack = try await self.makePacket(sequenceNumber: sequenceNumber, acknowledgementNumber: acknowledgementNumber, windowSize: windowSize, ack: true)
             return TcpStateTransition(newState: self, packetsToSend: [ack])
