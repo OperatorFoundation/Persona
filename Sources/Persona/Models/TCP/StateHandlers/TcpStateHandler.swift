@@ -84,50 +84,50 @@ public class TcpStateHandler
     {
         do
         {
-            self.logger.debug("TcpStateHandler - makePacket: Start")
-
-            self.logger.debug("TcpStateHandler - makePacket: Try to make an IPv4 Packet")
+//            self.logger.debug("TcpStateHandler - makePacket: Start")
+//
+//            self.logger.debug("TcpStateHandler - makePacket: Try to make an IPv4 Packet")
             guard let ipv4 = try IPv4(sourceAddress: self.identity.remoteAddress, destinationAddress: self.identity.localAddress, sourcePort: self.identity.remotePort, destinationPort: self.identity.localPort, sequenceNumber: sequenceNumber, acknowledgementNumber: acknowledgementNumber, syn: syn, ack: ack, fin: fin, rst: rst, windowSize: windowSize, payload: payload) else
             {
                 self.logger.debug("* sendPacket() failed to initialize IPv4 packet.")
                 self.tcpLogger.debug("* sendPacket() failed to initialize IPv4 packet.")
                 throw TcpProxyError.badIpv4Packet
             }
-            self.logger.debug("TcpStateHandler - makePacket: Made an IPv4 Packet!")
+//            self.logger.debug("TcpStateHandler - makePacket: Made an IPv4 Packet!")
 
-            // Show the packet description in our log
-            if self.identity.remotePort == 2234 // Log traffic from the TCP Echo Server to the TCP log for debugging
-            {
-                let packet = Packet(ipv4Bytes: ipv4.data, timestamp: Date())
-
-                if let tcp = packet.tcp, tcp.syn, tcp.ack
-                {
-                    self.tcpLogger.debug("************************************************************\n")
-                    self.tcpLogger.debug("* ⬅ SYN/ACK SEQ:\(SequenceNumber(tcp.sequenceNumber)) ACK:\(SequenceNumber(tcp.acknowledgementNumber)) 💖")
-                    self.tcpLogger.debug("************************************************************\n")
-                }
-                else if let tcp = packet.tcp, tcp.ack, tcp.payload == nil
-                {
-                    self.tcpLogger.debug("************************************************************\n")
-                    self.tcpLogger.debug("* ⬅ ACK SEQ:\(SequenceNumber(tcp.sequenceNumber)) ACK:\(SequenceNumber(tcp.acknowledgementNumber)) 💖")
-                    self.tcpLogger.debug("************************************************************\n")
-                }
-                else if let tcp = packet.tcp, tcp.payload != nil
-                {
-                    self.tcpLogger.debug("************************************************************\n")
-                    self.tcpLogger.debug("* ⬅ ACK SEQ:\(SequenceNumber(tcp.sequenceNumber)) ACK:\(SequenceNumber(tcp.acknowledgementNumber)) 💖 📦")
-                    self.tcpLogger.debug("Payload size: \(tcp.payload!.count)")
-                    self.tcpLogger.debug("Payload:\n\(tcp.payload!.hex)")
-                    self.tcpLogger.debug("************************************************************\n")
-                }
-                else
-                {
-                    self.tcpLogger.debug("************************************************************\n")
-                    self.tcpLogger.debug("* \(packet.tcp?.description ?? "No tcp packet")")
-                    self.tcpLogger.debug("* Downstream IPv4 Packet created 💖")
-                    self.tcpLogger.debug("************************************************************\n")
-                }
-            }
+//            // Show the packet description in our log
+//            if self.identity.remotePort == 2234 // Log traffic from the TCP Echo Server to the TCP log for debugging
+//            {
+//                let packet = Packet(ipv4Bytes: ipv4.data, timestamp: Date())
+//
+//                if let tcp = packet.tcp, tcp.syn, tcp.ack
+//                {
+//                    self.tcpLogger.debug("************************************************************\n")
+//                    self.tcpLogger.debug("* ⬅ SYN/ACK SEQ:\(SequenceNumber(tcp.sequenceNumber)) ACK:\(SequenceNumber(tcp.acknowledgementNumber)) 💖")
+//                    self.tcpLogger.debug("************************************************************\n")
+//                }
+//                else if let tcp = packet.tcp, tcp.ack, tcp.payload == nil
+//                {
+//                    self.tcpLogger.debug("************************************************************\n")
+//                    self.tcpLogger.debug("* ⬅ ACK SEQ:\(SequenceNumber(tcp.sequenceNumber)) ACK:\(SequenceNumber(tcp.acknowledgementNumber)) 💖")
+//                    self.tcpLogger.debug("************************************************************\n")
+//                }
+//                else if let tcp = packet.tcp, tcp.payload != nil
+//                {
+//                    self.tcpLogger.debug("************************************************************\n")
+//                    self.tcpLogger.debug("* ⬅ ACK SEQ:\(SequenceNumber(tcp.sequenceNumber)) ACK:\(SequenceNumber(tcp.acknowledgementNumber)) 💖 📦")
+//                    self.tcpLogger.debug("Payload size: \(tcp.payload!.count)")
+//                    self.tcpLogger.debug("Payload:\n\(tcp.payload!.hex)")
+//                    self.tcpLogger.debug("************************************************************\n")
+//                }
+//                else
+//                {
+//                    self.tcpLogger.debug("************************************************************\n")
+//                    self.tcpLogger.debug("* \(packet.tcp?.description ?? "No tcp packet")")
+//                    self.tcpLogger.debug("* Downstream IPv4 Packet created 💖")
+//                    self.tcpLogger.debug("************************************************************\n")
+//                }
+//            }
 
             return ipv4
         }
@@ -148,7 +148,7 @@ public class TcpStateHandler
             self.tcpLogger.debug("TcpStateHandler.panicOnDownstream: \(ipv4.sourceAddress.ipv4AddressString ?? "not an IPv4 address"):\(tcp.sourcePort) -> \(ipv4.destinationAddress.ipv4AddressString ?? "not an IPv4 address"):\(tcp.destinationPort), closing, sending RST")
         }
 
-        let rst = try await self.makeRst(ipv4: ipv4, tcp: tcp, sequenceNumber: sequenceNumber, acknowledgementNumber: acknowledgementNumber, windowSize: windowSize)
+        let rst = try self.makeRst(ipv4: ipv4, tcp: tcp, sequenceNumber: sequenceNumber, acknowledgementNumber: acknowledgementNumber, windowSize: windowSize)
         return TcpStateTransition(newState: TcpClosed(self), packetsToSend: [rst])
     }
 

@@ -26,7 +26,7 @@ public class TcpEstablished: TcpStateHandler
             let windowSize = await upstreamStraw.windowSize()
             
             // Send an ACK to let the client know that they are outside of the TCP window.
-            let ack = try await self.makePacket(sequenceNumber: sequenceNumber, acknowledgementNumber: acknowledgementNumber, windowSize: windowSize, ack: true)
+            let ack = try self.makePacket(sequenceNumber: sequenceNumber, acknowledgementNumber: acknowledgementNumber, windowSize: windowSize, ack: true)
             return TcpStateTransition(newState: self, packetsToSend: [ack])
         }
 

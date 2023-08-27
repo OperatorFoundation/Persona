@@ -74,7 +74,7 @@ public class TcpSynReceived: TcpStateHandler
                 let sequenceNumber = await upstreamStraw.sequenceNumber()
                 let acknowledgementNumber = await upstreamStraw.acknowledgementNumber()
                 let windowSize = await upstreamStraw.windowSize()
-                let synack = try await self.makeSynAck(sequenceNumber: sequenceNumber, acknowledgementNumber: acknowledgementNumber, windowSize: windowSize)
+                let synack = try self.makeSynAck(sequenceNumber: sequenceNumber, acknowledgementNumber: acknowledgementNumber, windowSize: windowSize)
 
                 return TcpStateTransition(newState: self, packetsToSend: [synack])
             }

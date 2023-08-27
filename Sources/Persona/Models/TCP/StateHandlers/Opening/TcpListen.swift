@@ -86,7 +86,7 @@ public class TcpListen: TcpStateHandler
             self.tcpLogger.trace("-> TcpListen.SYN: \(description(ipv4, tcp))")
         }
         
-        self.logger.debug("TcpListen.processDownstreamPacket: try to make a SYN-ACK")
+//        self.logger.debug("TcpListen.processDownstreamPacket: try to make a SYN-ACK")
         
         do
         {
@@ -95,16 +95,16 @@ public class TcpListen: TcpStateHandler
             let windowSize = await upstreamStraw.windowSize()
 
             let synAck = try self.makeSynAck(sequenceNumber: sequenceNumber, acknowledgementNumber: acknowledgementNumber, windowSize: windowSize)
-            self.logger.debug("TcpListen.processDownstreamPacket: made a SYN-ACK")
+//            self.logger.debug("TcpListen.processDownstreamPacket: made a SYN-ACK")
 
-            let packet = Packet(ipv4Bytes: synAck.data, timestamp: Date())
-            if let ipv4 = packet.ipv4, let tcp = packet.tcp
-            {
-                self.logger.trace("IPv4 of SYN-ACK: \(ipv4.description)")
-                self.logger.trace("TCP of SYN-ACK: \(tcp.description)")
-                self.logger.trace("<- TcpListen.SYN-ACK: \(description(ipv4, tcp))")
-                self.tcpLogger.trace("<- TcpListen.SYN-ACK: \(description(ipv4, tcp))")
-            }
+//            let packet = Packet(ipv4Bytes: synAck.data, timestamp: Date())
+//            if let ipv4 = packet.ipv4, let tcp = packet.tcp
+//            {
+//                self.logger.trace("IPv4 of SYN-ACK: \(ipv4.description)")
+//                self.logger.trace("TCP of SYN-ACK: \(tcp.description)")
+//                self.logger.trace("<- TcpListen.SYN-ACK: \(description(ipv4, tcp))")
+//                self.tcpLogger.trace("<- TcpListen.SYN-ACK: \(description(ipv4, tcp))")
+//            }
 
             let synReceived = TcpSynReceived(self)
             return TcpStateTransition(newState: synReceived, packetsToSend: [synAck])
@@ -118,7 +118,7 @@ public class TcpListen: TcpStateHandler
 
     func makeSynAck(sequenceNumber: SequenceNumber, acknowledgementNumber: SequenceNumber, windowSize: UInt16) throws -> IPv4
     {
-        self.logger.trace("TcpListen.makeSynAck")
+//        self.logger.trace("TcpListen.makeSynAck")
         return try self.makePacket(sequenceNumber: sequenceNumber, acknowledgementNumber: acknowledgementNumber, windowSize: windowSize, syn: true, ack: true)
     }
 }
