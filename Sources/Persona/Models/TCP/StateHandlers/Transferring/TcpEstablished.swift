@@ -30,7 +30,7 @@ public class TcpEstablished: TcpStateHandler
             return TcpStateTransition(newState: self, packetsToSend: [ack])
         }
 
-        self.logger.debug("TcpEstablished.processDownstreamPacket")
+//        self.logger.debug("TcpEstablished.processDownstreamPacket")
         /*
          Once in the ESTABLISHED state, it is possible to deliver segment
          text to user RECEIVE buffers.  Text from segments can be moved
@@ -40,25 +40,25 @@ public class TcpEstablished: TcpStateHandler
          has been received.
          */
 
-        if let payload = tcp.payload
+        if let _ = tcp.payload
         {
-            self.tcpLogger.debug("* Persona.processLocalPacket: tcp payload received on an established connection, buffering 🏆")
-            self.tcpLogger.debug("* SEQ:\(SequenceNumber(tcp.sequenceNumber)) ACK:\(SequenceNumber(tcp.acknowledgementNumber))")
-
-            let payloadString = String(decoding: payload, as: UTF8.self)
-            if payloadString.isEmpty
-            {
-                self.tcpLogger.debug("* Payload (\(payload.count) bytes): [\(payload.hex)]")
-            }
-            else
-            {
-                self.tcpLogger.debug("* Payload (\(payload.count) bytes): \"\(payloadString)\" [\(payload.hex)]")
-            }
+//            self.tcpLogger.debug("* Persona.processLocalPacket: tcp payload received on an established connection, buffering 🏆")
+//            self.tcpLogger.debug("* SEQ:\(SequenceNumber(tcp.sequenceNumber)) ACK:\(SequenceNumber(tcp.acknowledgementNumber))")
+//
+//            let payloadString = String(decoding: payload, as: UTF8.self)
+//            if payloadString.isEmpty
+//            {
+//                self.tcpLogger.debug("* Payload (\(payload.count) bytes): [\(payload.hex)]")
+//            }
+//            else
+//            {
+//                self.tcpLogger.debug("* Payload (\(payload.count) bytes): \"\(payloadString)\" [\(payload.hex)]")
+//            }
 
             // Write the payload to the tcpproxy subsystem
             try await upstreamStraw.write(tcp)
 
-            self.logger.debug("* Persona.processLocalPacket: payload upstream write complete\n")
+//            self.logger.debug("* Persona.processLocalPacket: payload upstream write complete\n")
 
             /*
              When the TCP takes responsibility for delivering the data to the

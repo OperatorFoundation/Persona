@@ -18,22 +18,22 @@ public class TcpSynReceived: TcpStateHandler
             throw TcpEstablishedError.missingStraws
         }
 
-        self.logger.debug("TcpSynReceived.processDownstreamPacket: \(identity.localAddress.data.ipv4AddressString ?? "?.?.?.?"):\(identity.localPort) -> \(identity.remoteAddress.data.ipv4AddressString ?? "?.?.?.?"):\(identity.remotePort)")
-        if identity.remotePort == 7 || identity.remotePort == 853
-        {
-            self.tcpLogger.debug("TcpSynReceived.procesDownstreamPacket: \(identity.localAddress.data.ipv4AddressString ?? "?.?.?.?"):\(identity.localPort) -> \(identity.remoteAddress.data.ipv4AddressString ?? "?.?.?.?"):\(identity.remotePort)")
-        }
+//        self.logger.debug("TcpSynReceived.processDownstreamPacket: \(identity.localAddress.data.ipv4AddressString ?? "?.?.?.?"):\(identity.localPort) -> \(identity.remoteAddress.data.ipv4AddressString ?? "?.?.?.?"):\(identity.remotePort)")
+//        if identity.remotePort == 7 || identity.remotePort == 853
+//        {
+//            self.tcpLogger.debug("TcpSynReceived.procesDownstreamPacket: \(identity.localAddress.data.ipv4AddressString ?? "?.?.?.?"):\(identity.localPort) -> \(identity.remoteAddress.data.ipv4AddressString ?? "?.?.?.?"):\(identity.remotePort)")
+//        }
 
         // We should not be receiving a RST.
         guard !tcp.rst else
         {
-            self.logger.trace("-> TcpSynReceived.RST: \(ipv4.sourceAddress.ipv4AddressString ?? "?.?.?.?."):\(tcp.sourcePort) -> \(ipv4.destinationAddress.ipv4AddressString ?? "?.?.?.?.") - RST:\(tcp.rst), SEQ#:\(SequenceNumber(tcp.sequenceNumber)), ACK#:\(SequenceNumber(tcp.acknowledgementNumber)), CHK:\(tcp.checksum).data.hex")
-
-            self.logger.debug("TcpSynReceived: rejected packet because of RST")
-            if identity.remotePort == 7 || identity.remotePort == 853
-            {
-                self.tcpLogger.debug("TcpSynReceived: rejected packet because of RST")
-            }
+//            self.logger.trace("-> TcpSynReceived.RST: \(ipv4.sourceAddress.ipv4AddressString ?? "?.?.?.?."):\(tcp.sourcePort) -> \(ipv4.destinationAddress.ipv4AddressString ?? "?.?.?.?.") - RST:\(tcp.rst), SEQ#:\(SequenceNumber(tcp.sequenceNumber)), ACK#:\(SequenceNumber(tcp.acknowledgementNumber)), CHK:\(tcp.checksum).data.hex")
+//
+//            self.logger.debug("TcpSynReceived: rejected packet because of RST")
+//            if identity.remotePort == 7 || identity.remotePort == 853
+//            {
+//                self.tcpLogger.debug("TcpSynReceived: rejected packet because of RST")
+//            }
 
             let sequenceNumber = await downstreamStraw.sequenceNumber()
             let acknowledgementNumber = await upstreamStraw.acknowledgementNumber()
@@ -44,13 +44,13 @@ public class TcpSynReceived: TcpStateHandler
         // We should not be receiving a FIN.
         guard !tcp.fin else
         {
-            self.logger.trace("-> TcpSynReceived.FIN: \(ipv4.sourceAddress.ipv4AddressString ?? "?.?.?.?."):\(tcp.sourcePort) -> \(ipv4.destinationAddress.ipv4AddressString ?? "?.?.?.?.") - FIN:\(tcp.fin), SEQ#:\(SequenceNumber(tcp.sequenceNumber)), ACK#:\(SequenceNumber(tcp.acknowledgementNumber)), CHK:\(tcp.checksum).data.hex")
-
-            self.logger.debug("TcpSynReceived: rejected packet because of FIN")
-            if identity.remotePort == 7 || identity.remotePort == 853
-            {
-                self.tcpLogger.debug("TcpSynReceived: rejected packet because of FIN")
-            }
+//            self.logger.trace("-> TcpSynReceived.FIN: \(ipv4.sourceAddress.ipv4AddressString ?? "?.?.?.?."):\(tcp.sourcePort) -> \(ipv4.destinationAddress.ipv4AddressString ?? "?.?.?.?.") - FIN:\(tcp.fin), SEQ#:\(SequenceNumber(tcp.sequenceNumber)), ACK#:\(SequenceNumber(tcp.acknowledgementNumber)), CHK:\(tcp.checksum).data.hex")
+//
+//            self.logger.debug("TcpSynReceived: rejected packet because of FIN")
+//            if identity.remotePort == 7 || identity.remotePort == 853
+//            {
+//                self.tcpLogger.debug("TcpSynReceived: rejected packet because of FIN")
+//            }
 
             let sequenceNumber = await downstreamStraw.sequenceNumber()
             let acknowledgementNumber = await upstreamStraw.acknowledgementNumber()
@@ -96,20 +96,20 @@ public class TcpSynReceived: TcpStateHandler
         // We expect to receive an ACK.
         guard tcp.ack else
         {
-            self.logger.trace("-> TcpSynReceived.ACK: \(description(ipv4, tcp))")
-
-            self.logger.debug("TcpSynReceived: ACK received, transitioning to ESTABLISHED, no packets to send")
-            if identity.remotePort == 7 || identity.remotePort == 853
-            {
-                self.tcpLogger.debug("TcpSynReceived: ACK received, transitioning to ESTABLISHED, no packets to send")
-            }
-
-            // They must not have heard our SYN-ACK, resend it.
-            self.logger.debug("TcpSynReceived: staying in SYN-RECEIVED, resending SYN-ACK")
-            if identity.remotePort == 7 || identity.remotePort == 853
-            {
-                self.tcpLogger.debug("TcpSynReceived: staying in SYN-RECEIVED, resending SYN-ACK")
-            }
+//            self.logger.trace("-> TcpSynReceived.ACK: \(description(ipv4, tcp))")
+//
+//            self.logger.debug("TcpSynReceived: ACK received, transitioning to ESTABLISHED, no packets to send")
+//            if identity.remotePort == 7 || identity.remotePort == 853
+//            {
+//                self.tcpLogger.debug("TcpSynReceived: ACK received, transitioning to ESTABLISHED, no packets to send")
+//            }
+//
+//            // They must not have heard our SYN-ACK, resend it.
+//            self.logger.debug("TcpSynReceived: staying in SYN-RECEIVED, resending SYN-ACK")
+//            if identity.remotePort == 7 || identity.remotePort == 853
+//            {
+//                self.tcpLogger.debug("TcpSynReceived: staying in SYN-RECEIVED, resending SYN-ACK")
+//            }
 
             let sequenceNumber = await upstreamStraw.sequenceNumber()
             let acknowledgementNumber = await upstreamStraw.acknowledgementNumber()

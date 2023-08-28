@@ -266,7 +266,7 @@ public class TcpProxyConnection
         }
         
 //        self.logger.debug("TcpProxyConnection - processDownstreamPacket: sent \(transition.packetsToSend.count) packets.")
-        let oldState = self.state
+//        let oldState = self.state
         self.state = transition.newState
 //        self.logger.debug("TcpProxyConnection - processDownstreamPacket: transitioned to a new state - \(self.state)")
 
@@ -290,7 +290,7 @@ public class TcpProxyConnection
             throw TcpProxyConnectionError.tcpClosed
         }
         
-        self.logger.debug("TcpProxyConnection - processDownstreamPacket: finished")
+//        self.logger.debug("TcpProxyConnection - processDownstreamPacket: finished")
     }
 
 //    public func processDownstreamPacket(ipv4: IPv4, tcp: TCP, payload: Data?) async throws
