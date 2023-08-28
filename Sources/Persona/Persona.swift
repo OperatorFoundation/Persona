@@ -164,9 +164,9 @@ public class Persona
             self.stats.ipv4 += 1
             self.stats.tcp += 1
 
-            self.logger.info("🪀 TCP: \(description(ipv4, tcp))")
-            self.tcpLogger.info("🪀 TCP: \(description(ipv4, tcp))")
-            self.packetLogger.info("🪀 TCP: \(description(ipv4, tcp))")
+            self.logger.info("🪀 -> TCP: \(description(ipv4, tcp))")
+            self.tcpLogger.info("🪀 -> TCP: \(description(ipv4, tcp))")
+            self.packetLogger.info("🪀 -> TCP: \(description(ipv4, tcp))")
 
             // Process TCP packets
             try await self.tcpProxy.processDownstreamPacket(ipv4: ipv4, tcp: tcp, payload: tcp.payload)

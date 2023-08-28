@@ -184,7 +184,7 @@ public class TcpProxyConnection
 //            tcpLogger.debug("TcpProxyConnection.init: \(description(ipv4, tcp))")
 //        }
 
-        self.logger.debug("TcpProxyConnection.init[\(self.state)] - \(description(ipv4, tcp))")
+//        self.logger.debug("TcpProxyConnection.init[\(self.state)] - \(description(ipv4, tcp))")
 
         let transition = try await self.state.processDownstreamPacket(ipv4: ipv4, tcp: tcp, payload: nil)
 
@@ -248,7 +248,7 @@ public class TcpProxyConnection
 
     public func processDownstreamPacket(ipv4: IPv4, tcp: TCP, payload: Data?) async throws
     {
-        self.logger.debug("TcpProxyConnection.processDownstreamPacket[\(self.state)] - \(description(ipv4, tcp))")
+//        self.logger.debug("TcpProxyConnection.processDownstreamPacket[\(self.state)] - \(description(ipv4, tcp))")
         let transition = try await self.state.processDownstreamPacket(ipv4: ipv4, tcp: tcp, payload: nil)
 //        self.logger.debug("TcpProxyConnection.processDownstreamPacket - returned from current TCP state processDownstreamPacket()")
 
@@ -270,11 +270,11 @@ public class TcpProxyConnection
         self.state = transition.newState
 //        self.logger.debug("TcpProxyConnection - processDownstreamPacket: transitioned to a new state - \(self.state)")
 
-        logger.debug("TcpProxyConnection.processDownstreamPacket: \(oldState) => \(self.state), \(transition.packetsToSend.count) packets sent downstream")
-        if identity.remotePort == 7 || identity.remotePort == 853
-        {
-            tcpLogger.debug("TcpProxyConnection.init: \(oldState) => \(self.state), \(transition.packetsToSend.count) packets sent downstream")
-        }
+//        logger.debug("TcpProxyConnection.processDownstreamPacket: \(oldState) => \(self.state), \(transition.packetsToSend.count) packets sent downstream")
+//        if identity.remotePort == 7 || identity.remotePort == 853
+//        {
+//            tcpLogger.debug("TcpProxyConnection.init: \(oldState) => \(self.state), \(transition.packetsToSend.count) packets sent downstream")
+//        }
 
         guard self.state.open else
         {
@@ -840,49 +840,49 @@ public class TcpProxyConnection
 
     func sendPacket(_ ipv4: IPv4) async throws
     {
-        self.logger.info("TcpProxyConnection.sendPacket - \(ipv4.data.count) bytes")
+//        self.logger.info("TcpProxyConnection.sendPacket - \(ipv4.data.count) bytes")
 
         let packet = Packet(ipv4Bytes: ipv4.data, timestamp: Date())
-        if let ipv4 = packet.ipv4, let tcp = packet.tcp
+        if let ipv4 = packet.ipv4, let _ = packet.tcp
         {
-            if tcp.syn
-            {
-                if tcp.ack
-                {
-                    self.logger.info("TcpProxyConnection.sendPacket - SYN-ACK")
-                }
-                else
-                {
-                    self.logger.info("TcpProxyConnection.sendPacket - SYN")
-                }
-            }
-            else if tcp.ack
-            {
-                if let payload = tcp.payload
-                {
-                    self.logger.info("TcpProxyConnection.sendPacket - ACK with \(payload.count) byte payload")
-                }
-                else
-                {
-                    self.logger.info("TcpProxyConnection.sendPacket - ACK with no payload")
-                }
-            }
-            else if tcp.fin
-            {
-                self.logger.info("TcpProxyConnection.sendPacket - FIN")
-            }
-            else if tcp.rst
-            {
-                self.logger.info("TcpProxyConnection.sendPacket - RST")
-            }
-            else if let payload = tcp.payload
-            {
-                self.logger.info("TcpProxyConnection.sendPacket - no flags, \(payload.count) byte payload")
-            }
-            else
-            {
-                self.logger.info("TcpProxyConnection.sendPacket - no flags, no payload")
-            }
+//            if tcp.syn
+//            {
+//                if tcp.ack
+//                {
+//                    self.logger.info("TcpProxyConnection.sendPacket - SYN-ACK")
+//                }
+//                else
+//                {
+//                    self.logger.info("TcpProxyConnection.sendPacket - SYN")
+//                }
+//            }
+//            else if tcp.ack
+//            {
+//                if let payload = tcp.payload
+//                {
+//                    self.logger.info("TcpProxyConnection.sendPacket - ACK with \(payload.count) byte payload")
+//                }
+//                else
+//                {
+//                    self.logger.info("TcpProxyConnection.sendPacket - ACK with no payload")
+//                }
+//            }
+//            else if tcp.fin
+//            {
+//                self.logger.info("TcpProxyConnection.sendPacket - FIN")
+//            }
+//            else if tcp.rst
+//            {
+//                self.logger.info("TcpProxyConnection.sendPacket - RST")
+//            }
+//            else if let payload = tcp.payload
+//            {
+//                self.logger.info("TcpProxyConnection.sendPacket - no flags, \(payload.count) byte payload")
+//            }
+//            else
+//            {
+//                self.logger.info("TcpProxyConnection.sendPacket - no flags, no payload")
+//            }
 
             self.writeLogger.info("TcpProxyConnection.sendPacket - write \(ipv4.data.count) bytes to client")
 
