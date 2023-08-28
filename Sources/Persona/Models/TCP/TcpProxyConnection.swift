@@ -188,7 +188,7 @@ public class TcpProxyConnection
 
         let transition = try await self.state.processDownstreamPacket(ipv4: ipv4, tcp: tcp, payload: nil)
 
-        self.logger.debug("\(self.state) => \(transition.newState) (\(transition.packetsToSend.count) packets to send)")
+        self.logger.debug("! \(self.state) => \(transition.newState), \(transition.packetsToSend.count) packets to send")
 
         for packet in transition.packetsToSend
         {
@@ -201,14 +201,14 @@ public class TcpProxyConnection
             try await self.sendPacket(packet)
         }
 
-        let oldState = self.state
+//        let oldState = self.state
         self.state = transition.newState
 
-        logger.debug("TcpProxyConnection.init: \(oldState) => \(self.state), \(transition.packetsToSend.count) packets sent downstream")
-        if identity.remotePort == 7 || identity.remotePort == 853
-        {
-            tcpLogger.debug("TcpProxyConnection.init: \(oldState) => \(self.state), \(transition.packetsToSend.count) packets sent downstream")
-        }
+//        logger.debug("TcpProxyConnection.init: \(oldState) => \(self.state), \(transition.packetsToSend.count) packets sent downstream")
+//        if identity.remotePort == 7 || identity.remotePort == 853
+//        {
+//            tcpLogger.debug("TcpProxyConnection.init: \(oldState) => \(self.state), \(transition.packetsToSend.count) packets sent downstream")
+//        }
 
         guard self.state.open else
         {
@@ -252,7 +252,7 @@ public class TcpProxyConnection
         let transition = try await self.state.processDownstreamPacket(ipv4: ipv4, tcp: tcp, payload: nil)
 //        self.logger.debug("TcpProxyConnection.processDownstreamPacket - returned from current TCP state processDownstreamPacket()")
 
-        self.logger.debug("\(self.state) => \(transition.newState) (\(transition.packetsToSend.count) packets to send)")
+        self.logger.debug("@ \(self.state) => \(transition.newState), \(transition.packetsToSend.count) packets to send")
         
         for packet in transition.packetsToSend
         {
