@@ -192,7 +192,7 @@ public class TcpProxyConnection
 
         for packet in transition.packetsToSend
         {
-            let outPacket = Packet(ipv4Bytes: ipv4.data, timestamp: Date())
+            let outPacket = Packet(ipv4Bytes: packet.data, timestamp: Date())
             if let outTcp = outPacket.tcp
             {
                 self.logger.debug("<- \(description(packet, outTcp))")
@@ -207,7 +207,7 @@ public class TcpProxyConnection
         logger.debug("TcpProxyConnection.init: \(oldState) => \(self.state), \(transition.packetsToSend.count) packets sent downstream")
         if identity.remotePort == 7 || identity.remotePort == 853
         {
-            tcpLogger.debug("TcpProxyConnection.init: \(oldState) == \(self.state), \(transition.packetsToSend.count) packets sent downstream")
+            tcpLogger.debug("TcpProxyConnection.init: \(oldState) => \(self.state), \(transition.packetsToSend.count) packets sent downstream")
         }
 
         guard self.state.open else
@@ -256,7 +256,7 @@ public class TcpProxyConnection
         
         for packet in transition.packetsToSend
         {
-            let outPacket = Packet(ipv4Bytes: ipv4.data, timestamp: Date())
+            let outPacket = Packet(ipv4Bytes: packet.data, timestamp: Date())
             if let outTcp = outPacket.tcp
             {
                 self.logger.debug("<- \(description(packet, outTcp))")
@@ -270,7 +270,7 @@ public class TcpProxyConnection
         self.state = transition.newState
 //        self.logger.debug("TcpProxyConnection - processDownstreamPacket: transitioned to a new state - \(self.state)")
 
-        logger.debug("TcpProxyConnection.processDownstreamPacket: \(oldState) == \(self.state), \(transition.packetsToSend.count) packets sent downstream")
+        logger.debug("TcpProxyConnection.processDownstreamPacket: \(oldState) => \(self.state), \(transition.packetsToSend.count) packets sent downstream")
         if identity.remotePort == 7 || identity.remotePort == 853
         {
             tcpLogger.debug("TcpProxyConnection.init: \(oldState) => \(self.state), \(transition.packetsToSend.count) packets sent downstream")

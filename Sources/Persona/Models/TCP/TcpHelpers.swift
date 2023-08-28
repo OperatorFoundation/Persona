@@ -61,7 +61,7 @@ func isn() -> SequenceNumber
 
 public func description(_ ipv4: IPv4, _ tcp: TCP) -> String
 {
-    return "\(ipv4.sourceAddress.ipv4AddressString ?? "?.?.?.?."):\(tcp.sourcePort) -> \(ipv4.destinationAddress.ipv4AddressString ?? "?.?.?.?.") - \(describeFlags(tcp)), SEQ#:\(SequenceNumber(tcp.sequenceNumber)), ACK#:\(SequenceNumber(tcp.acknowledgementNumber)) - \(describePayload(tcp))"
+    return "\(ipv4.sourceAddress.ipv4AddressString ?? "?.?.?.?."):\(tcp.sourcePort) ~ \(ipv4.destinationAddress.ipv4AddressString ?? "?.?.?.?."):\(tcp.destinationPort) - \(describeFlags(tcp)), SEQ#:\(SequenceNumber(tcp.sequenceNumber)), ACK#:\(SequenceNumber(tcp.acknowledgementNumber)) - \(describePayload(tcp))"
 }
 
 func describeFlags(_ tcp: TCP) -> String
