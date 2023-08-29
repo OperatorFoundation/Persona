@@ -9,15 +9,37 @@ import Foundation
 
 import InternetProtocols
 
-// FIXME me - implement this state
 public class TcpLastAck: TcpStateHandler
 {
-    public func processDownstreamPacket(ipv4: IPv4, tcp: TCP, payload: Data?) async throws
+    override public func processDownstreamPacket(ipv4: IPv4, tcp: TCP, payload: Data?) async throws -> TcpStateTransition
     {
-    }
-
-    public func processUpstreamData(data: Data) async throws
-    {
+        guard tcp.ack else
+        {
+            return TcpStateTransition(newState: self)
+        }
+        
+        let acknowledgementNumber = SequenceNumber(tcp.acknowledgementNumber)
+        
+        guard let upstreamStraw = self.upstreamStraw else
+        {
+            throw TCPUpstreamStrawError.strawClosed
+        }
+        
+        let sequenceNumber = await upstreamStraw.sequenceNumber()
+        guard acknowledgementNumber == sequenceNumber else
+        {
+            self.logger.log(level: .debug, "TCPLastAck processDownstreamPacket received an ACK with acknowledgement number (\(acknowledgementNumber)) that does not match our last sequence number (\(sequenceNumber)). Re-sending previous ack")
+            
+            /// If the connection is in a synchronized state (ESTABLISHED, FIN-WAIT-1, FIN-WAIT-2, CLOSE-WAIT, CLOSING, LAST-ACK, TIME-WAIT),
+            /// any unacceptable segment (out of window sequence number or unacceptable acknowledgment number) must elicit only an empty
+            /// acknowledgment segment containing the current send-sequence number and an acknowledgment indicating the next sequence number expected
+            /// to be received, and the connection remains in the same state.
+            
+            let ack = try await makeAck()
+            return TcpStateTransition(newState: self, packetsToSend: [ack])
+        }
+        
+        return TcpStateTransition(newState: TcpClosed(self))
     }
 }
 

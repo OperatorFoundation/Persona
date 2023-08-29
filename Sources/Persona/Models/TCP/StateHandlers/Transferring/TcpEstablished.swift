@@ -111,17 +111,22 @@ public class TcpEstablished: TcpStateHandler
 
         if tcp.ack
         {
-            // FIXME - adjust windowSize based on ACK
+            // FIXME: - adjust windowSize based on ACK
         }
 
         if tcp.rst
         {
-            // FIXME - reset connection
+            // FIXME: - reset connection
         }
 
         if tcp.fin
         {
-            // FIXME -s tart closing connection
+            /// If an unsolicited FIN arrives from the network, the receiving TCP
+            /// can ACK it and tell the user that the connection is closing.
+            
+            // Send ACK and move to CLOSE-WAIT state
+            let ack = try await makeAck()
+            return TcpStateTransition(newState: TcpCloseWait(self), packetsToSend: [ack])
         }
 
         // Stay in ESTABLISHED until we get a FIN or RST or the upstream connection closes.

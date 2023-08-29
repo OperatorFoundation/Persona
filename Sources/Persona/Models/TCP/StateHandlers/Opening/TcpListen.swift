@@ -39,8 +39,9 @@ public class TcpListen: TcpStateHandler
 //                self.tcpLogger.debug("TcpListen.processDownstreamPacket: packet rejected because of FIN")
 //            }
 
-            // Send a RST and close.
-            return try await self.panicOnDownstream(ipv4: ipv4, tcp: tcp, payload: payload, sequenceNumber: SequenceNumber(0), acknowledgementNumber: SequenceNumber(0), windowSize: 0)
+            /// Do not process the FIN if the state is CLOSED, LISTEN or SYN-SENT
+            /// since the SEG.SEQ cannot be validated; drop the segment and return.
+            return TcpStateTransition(newState: self)
         }
 
         guard !tcp.ack else

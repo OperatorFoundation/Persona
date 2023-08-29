@@ -79,6 +79,21 @@ public class TcpStateHandler
     {
         return try self.makePacket(sequenceNumber: sequenceNumber, acknowledgementNumber: acknowledgementNumber, windowSize: windowSize, rst: true)
     }
+    
+    func makeAck() async throws -> IPv4
+    {
+        guard let upstreamStraw = upstreamStraw else
+        {
+            throw TCPUpstreamStrawError.strawClosed
+        }
+        
+        let sequenceNumber = await upstreamStraw.sequenceNumber()
+        let acknowledgementNumber = await upstreamStraw.acknowledgementNumber()
+        let windowSize = await upstreamStraw.windowSize()
+        let ack = try self.makePacket(sequenceNumber: sequenceNumber, acknowledgementNumber: acknowledgementNumber, windowSize: windowSize, ack: true)
+        
+        return ack
+    }
 
     func makePacket(sequenceNumber: SequenceNumber, acknowledgementNumber: SequenceNumber, windowSize: UInt16, syn: Bool = false, ack: Bool = false, fin: Bool = false, rst: Bool = false, payload: Data? = nil) throws -> IPv4
     {
