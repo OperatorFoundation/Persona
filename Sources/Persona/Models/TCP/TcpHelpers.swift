@@ -106,3 +106,16 @@ func describePayload(_ tcp: TCP) -> String
         return "no payload"
     }
 }
+
+func acceptableSegment(upstreamStraw: TCPUpstreamStraw?, tcp: TCP) async throws -> Bool
+{
+    guard let upstreamStraw = upstreamStraw else
+    {
+        throw TCPUpstreamStrawError.strawClosed
+    }
+    
+    let acknowledgementNumber = SequenceNumber(tcp.acknowledgementNumber)
+    let sequenceNumber = await upstreamStraw.sequenceNumber()
+    
+    return acknowledgementNumber == sequenceNumber
+}

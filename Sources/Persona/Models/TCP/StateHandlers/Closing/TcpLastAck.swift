@@ -18,17 +18,10 @@ public class TcpLastAck: TcpStateHandler
             return TcpStateTransition(newState: self)
         }
         
-        let acknowledgementNumber = SequenceNumber(tcp.acknowledgementNumber)
-        
-        guard let upstreamStraw = self.upstreamStraw else
+        guard try await acceptableSegment(upstreamStraw: self.upstreamStraw, tcp: tcp) else
         {
-            throw TCPUpstreamStrawError.strawClosed
-        }
-        
-        let sequenceNumber = await upstreamStraw.sequenceNumber()
-        guard acknowledgementNumber == sequenceNumber else
-        {
-            self.logger.log(level: .debug, "TCPLastAck processDownstreamPacket received an ACK with acknowledgement number (\(acknowledgementNumber)) that does not match our last sequence number (\(sequenceNumber)). Re-sending previous ack")
+            let seqNum = await upstreamStraw?.sequenceNumber()
+            self.logger.log(level: .debug, "TCPLastAck processDownstreamPacket received an ACK with acknowledgement number (\(SequenceNumber(tcp.acknowledgementNumber))) that does not match our last sequence number (\(String(describing: seqNum))). Re-sending previous ack")
             
             /// If the connection is in a synchronized state (ESTABLISHED, FIN-WAIT-1, FIN-WAIT-2, CLOSE-WAIT, CLOSING, LAST-ACK, TIME-WAIT),
             /// any unacceptable segment (out of window sequence number or unacceptable acknowledgment number) must elicit only an empty
