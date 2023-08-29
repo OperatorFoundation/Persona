@@ -59,14 +59,14 @@ public class TcpSynReceived: TcpStateHandler
         {
             self.logger.trace("-> TcpSynReceived.SYN: \(description(ipv4, tcp))")
 
-            let newSequenceNumber = SequenceNumber(tcp.sequenceNumber)
             let oldSequenceNumber = await downstreamStraw.sequenceNumber()
+            let newSequenceNumber = SequenceNumber(tcp.sequenceNumber)
 
             self.logger.trace("old SEQ:\(oldSequenceNumber), new SEQ:\(newSequenceNumber)")
 
-            if newSequenceNumber.increment() == oldSequenceNumber
+            if oldSequenceNumber == newSequenceNumber.increment()
             {
-                self.tcpLogger.info("duplicate SYN \(newSequenceNumber)")
+                self.logger.info("duplicate SYN \(newSequenceNumber)")
 
                 // Send a SYN-ACK
                 let (sequenceNumber, acknowledgementNumber, windowSize) = try await self.getState()
@@ -76,7 +76,7 @@ public class TcpSynReceived: TcpStateHandler
             }
             else
             {
-                self.tcpLogger.info("brand new SYN \(newSequenceNumber) \(oldSequenceNumber)")
+                self.logger.info("brand new SYN \(newSequenceNumber) \(oldSequenceNumber)")
 
                 // Send a RST
                 let (sequenceNumber, acknowledgementNumber, windowSize) = try await self.getState()
