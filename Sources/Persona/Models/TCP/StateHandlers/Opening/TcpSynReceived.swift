@@ -57,16 +57,16 @@ public class TcpSynReceived: TcpStateHandler
         // In the SYN-RECEIVED state, we may received duplicate SYNs, but new SYNs are not allowed.
         if tcp.syn
         {
-            self.logger.trace("-> TcpSynReceived.SYN: \(description(ipv4, tcp))")
+//            self.logger.trace("-> TcpSynReceived.SYN: \(description(ipv4, tcp))")
 
             let oldSequenceNumber = await downstreamStraw.sequenceNumber()
             let newSequenceNumber = SequenceNumber(tcp.sequenceNumber)
 
-            self.logger.trace("old SEQ:\(oldSequenceNumber), new SEQ:\(newSequenceNumber)")
+//             self.logger.trace("old SEQ:\(oldSequenceNumber), new SEQ:\(newSequenceNumber)")
 
             if oldSequenceNumber == newSequenceNumber.increment()
             {
-                self.logger.info("duplicate SYN \(newSequenceNumber)")
+//                self.logger.info("duplicate SYN \(newSequenceNumber)")
 
                 // Send a SYN-ACK
                 let (sequenceNumber, acknowledgementNumber, windowSize) = try await self.getState()
@@ -76,7 +76,7 @@ public class TcpSynReceived: TcpStateHandler
             }
             else
             {
-                self.logger.info("brand new SYN \(newSequenceNumber) \(oldSequenceNumber)")
+//                self.logger.info("brand new SYN \(newSequenceNumber) \(oldSequenceNumber)")
 
                 // Send a RST
                 let (sequenceNumber, acknowledgementNumber, windowSize) = try await self.getState()
