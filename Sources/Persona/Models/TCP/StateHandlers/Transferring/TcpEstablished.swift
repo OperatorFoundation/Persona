@@ -64,11 +64,23 @@ public class TcpEstablished: TcpStateHandler
 //            }
 
             // Write the payload to the tcpproxy subsystem
-            try await upstreamStraw.write(tcp)
+            guard let downstreamStraw = self.downstreamStraw else
+            {
+                throw TcpEstablishedError.missingStraws
+            }
+
+            try await downstreamStraw.write(tcp)
 
 //            self.logger.debug("* Persona.processLocalPacket: payload upstream write complete\n")
 
             /*
+             2023-08-29T22:06:36+0000 debug Persona : <- 142.250.141.188:5228 ~ 10.0.0.1:41256 - A, SEQ#:3247424205, ACK#:2598137323, windowSize:65535 - no payload
+             2023-08-29T22:06:36+0000 trace Persona : TcpProxyConnection.pumpUpstreamStrawToUpstream
+             2023-08-29T22:06:36+0000 debug Persona : TcpStateHandler.panicOnUpstreamClose, closing
+             2023-08-29T22:06:36+0000 info Persona : 🪀 -> TCP: 10.0.0.1:41256 ~ 142.250.141.188:5228 - A, SEQ#:2598137840, ACK#:3247424206, windowSize:65535 - no payload
+             2023-08-29T22:06:36+0000 error Persona : ❌ 3247424205 <= 2598137840..<2598203375 <= 3247489740
+             2023-08-29T22:06:36+0000 debug Persona : @ Persona.TcpEstablished => Persona.TcpEstablished, 1 packets to send
+             2023-08-29T22:06:36+0000 debug Persona : <- 142.250.141.188:5228 ~ 10.0.0.1:41256 - A, SEQ#:3247424205, ACK#:2598137323, windowSize:65535 - no paylo
              When the TCP takes responsibility for delivering the data to the
              user it must also acknowledge the receipt of the data.
              */

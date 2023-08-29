@@ -19,6 +19,7 @@ public actor TCPDownstreamStraw
     var window: SequenceNumberRange
     var privateWindowSize: UInt32
     var privateAcknowledgementNumber: SequenceNumber
+    var open = true
 
     // Public constructors
     public init(segmentStart: SequenceNumber, acknowledgementNumber: SequenceNumber, windowSize: UInt16)
@@ -56,18 +57,31 @@ public actor TCPDownstreamStraw
     }
 
     // Public functions
-    public func write(_ data: Data) async throws
+    public func write(_ segment: InternetProtocols.TCP) async throws
     {
-        await self.straw.write(data)
-        // FIXME: Figure out how to adjust the bounds correctly
-//        try self.window.increaseBounds(by: data.count)
+        guard self.open else
+        {
+            throw TCPUpstreamStrawError.strawClosed
+        }
+
+        guard let payload = segment.payload else
+        {
+            return
+        }
+
+        // TODO: Handle out of sequence things
+        guard segment.window.lowerBound == self.window.lowerBound else
+        {
+            throw TCPUpstreamStrawError.misorderedSegment
+        }
+
+        await self.straw.write(payload)
+        try self.window.increaseLowerBounds(by: payload.count)
     }
 
     public func read() async throws -> SegmentData
     {
-        let data = try await self.straw.read()
-        // FIXME: Figure out how to adjust the bounds correctly
-//        try self.window.increaseBounds(by: data.count)
+        let data = try await self.straw.readAllData()
         let result = SegmentData(data: data, window: window)
 
         return result

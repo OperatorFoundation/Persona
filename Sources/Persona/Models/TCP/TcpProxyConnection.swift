@@ -352,31 +352,31 @@ public class TcpProxyConnection
         }
     }
 
-    func pumpUpstreamToUpstreamStraw() async throws
-    {
-        guard let downstreamStraw = self.state.downstreamStraw else
-        {
-            return
-        }
-
-        do
-        {
-            let segment = try await self.upstream.readWithLengthPrefix(prefixSizeInBits: 32)
-            self.logger.info("\(segment.data.count) bytes : Persona <-- tcpproxy")
-
-            self.logger.debug("\n* Sent received data (\(segment.data.count) bytes) upstream.")
-            self.logger.debug("* Data sent upstream: \n\(segment.data.hex)\n")
-
-            try await downstreamStraw.write(segment)
-        }
-        catch
-        {
-            self.logger.error("Upstream write failed, closing connection")
-            self.tcpLogger.error("Upstream write failed, closing connection")
-            let _ = self.state.panicOnUpstreamClose() // FIXME
-            return
-        }
-    }
+//    func pumpUpstreamToUpstreamStraw() async throws
+//    {
+//        guard let downstreamStraw = self.state.downstreamStraw else
+//        {
+//            return
+//        }
+//
+//        do
+//        {
+//            let data = try await self.upstream.readWithLengthPrefix(prefixSizeInBits: 32)
+//            self.logger.info("\(segment.data.count) bytes : Persona <-- tcpproxy")
+//
+//            self.logger.debug("\n* Sent received data (\(segment.data.count) bytes) upstream.")
+//            self.logger.debug("* Data sent upstream: \n\(segment.data.hex)\n")
+//
+//            try await upstreamStraw.write(data)
+//        }
+//        catch
+//        {
+//            self.logger.error("Upstream write failed, closing connection")
+//            self.tcpLogger.error("Upstream write failed, closing connection")
+//            let _ = self.state.panicOnUpstreamClose() // FIXME
+//            return
+//        }
+//    }
 
 
 //    func pumpDownstream() async throws
