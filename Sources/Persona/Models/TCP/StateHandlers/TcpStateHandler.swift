@@ -121,6 +121,8 @@ public class TcpStateHandler
 
     func makePacket(sequenceNumber: SequenceNumber, acknowledgementNumber: SequenceNumber, windowSize: UInt16, syn: Bool = false, ack: Bool = false, fin: Bool = false, rst: Bool = false, payload: Data? = nil) throws -> IPv4
     {
+        self.logger.trace("makePacket(sequenceNumber: \(sequenceNumber), acknowledgementNumber: \(acknowledgementNumber)")
+
         do
         {
 //            self.logger.debug("TcpStateHandler - makePacket: Start")

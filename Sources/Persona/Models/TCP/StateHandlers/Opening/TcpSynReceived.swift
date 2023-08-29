@@ -13,7 +13,7 @@ public class TcpSynReceived: TcpStateHandler
 {
     override public func processDownstreamPacket(ipv4: IPv4, tcp: TCP, payload: Data?) async throws -> TcpStateTransition
     {
-        guard let upstreamStraw = self.upstreamStraw, let downstreamStraw = self.downstreamStraw else
+        guard let downstreamStraw = self.downstreamStraw else
         {
             throw TcpEstablishedError.missingStraws
         }
