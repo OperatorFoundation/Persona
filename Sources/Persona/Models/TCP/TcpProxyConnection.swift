@@ -221,21 +221,21 @@ public class TcpProxyConnection
             throw TcpProxyConnectionError.tcpClosed
         }
 
-        Task
-        {
-            while self.state.open
-            {
-                try await self.pumpUpstreamStrawToUpstream()
-            }
-        }
-
-        Task
-        {
-            while self.state.open
-            {
-                try await self.pumpUpstreamToUpstreamStraw()
-            }
-        }
+//        Task
+//        {
+//            while self.state.open
+//            {
+//                try await self.pumpUpstreamStrawToUpstream()
+//            }
+//        }
+//
+//        Task
+//        {
+//            while self.state.open
+//            {
+//                try await self.pumpUpstreamToUpstreamStraw()
+//            }
+//        }
 
 //
 //        Task
