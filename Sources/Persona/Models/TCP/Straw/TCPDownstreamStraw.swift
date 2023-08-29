@@ -39,6 +39,28 @@ public actor TCPDownstreamStraw
         return self.privateAcknowledgementNumber
     }
 
+    func inWindow(_ tcp: InternetProtocols.TCP) async -> Bool
+    {
+        let sequenceNumberData = tcp.sequenceNumber
+        let sequenceNumber = SequenceNumber(sequenceNumberData)
+
+        guard self.window.contains(sequenceNumber: sequenceNumber) else
+        {
+            return false
+        }
+
+        if let payload = tcp.payload
+        {
+            let maxSize = await self.windowSize()
+            guard payload.count <= maxSize else
+            {
+                return false
+            }
+        }
+
+        return true
+    }
+
     public func isEmpty() -> Bool
     {
         return self.window.upperBound == self.window.lowerBound

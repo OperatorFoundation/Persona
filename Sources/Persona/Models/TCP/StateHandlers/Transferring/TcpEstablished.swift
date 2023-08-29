@@ -13,19 +13,19 @@ public class TcpEstablished: TcpStateHandler
 {
     override public func processDownstreamPacket(ipv4: IPv4, tcp: TCP, payload: Data?) async throws -> TcpStateTransition
     {
-        guard let upstreamStraw = self.upstreamStraw else
+        guard let upstreamStraw = self.upstreamStraw, let downstreamStraw = self.downstreamStraw else
         {
             throw TcpEstablishedError.missingStraws
         }
 
-        let upstreamWindow = await upstreamStraw.window
+        let downstreamWindow = await downstreamStraw.window
         let packetLowerBound = SequenceNumber(tcp.sequenceNumber)
         let packetUpperBound = packetLowerBound.add(Int(tcp.windowSize))
 
         // We can only receive data inside the TCP window.
-        guard await upstreamStraw.inWindow(tcp) else
+        guard await downstreamStraw.inWindow(tcp) else
         {
-            self.logger.error("❌ \(upstreamWindow.lowerBound) <= \(packetLowerBound)..<\(packetUpperBound) <= \(upstreamWindow.upperBound)")
+            self.logger.error("❌ \(downstreamWindow.lowerBound) <= \(packetLowerBound)..<\(packetUpperBound) <= \(downstreamWindow.upperBound)")
 
             let sequenceNumber = await upstreamStraw.sequenceNumber()
             let acknowledgementNumber = await upstreamStraw.acknowledgementNumber()
@@ -36,7 +36,7 @@ public class TcpEstablished: TcpStateHandler
             return TcpStateTransition(newState: self, packetsToSend: [ack])
         }
 
-        self.logger.error("✅ \(upstreamWindow.lowerBound) <= \(packetLowerBound)..<\(packetUpperBound) <= \(upstreamWindow.upperBound)")
+        self.logger.error("✅ \(downstreamWindow.lowerBound) <= \(packetLowerBound)..<\(packetUpperBound) <= \(downstreamWindow.upperBound)")
 
 //        self.logger.debug("TcpEstablished.processDownstreamPacket")
         /*
