@@ -311,7 +311,7 @@ public class TcpProxyConnection
 //            }
 //        }
 
-        try await self.pumpUpstreamStrawToUpstream()
+//        try await self.pumpUpstreamStrawToUpstream()
     }
 
     func pumpUpstreamStrawToUpstream() async throws
