@@ -316,6 +316,8 @@ public class TcpProxyConnection
 
     func pumpUpstreamStrawToUpstream() async throws
     {
+        self.logger.trace("TcpProxyConnection.pumptUpstreamStrawToUpstream")
+
         do
         {
             guard let upstreamStraw = self.state.upstreamStraw else
