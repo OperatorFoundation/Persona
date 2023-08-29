@@ -94,7 +94,7 @@ public actor TCPDownstreamStraw
         // TODO: Handle out of sequence things
         guard segment.window.lowerBound == self.window.lowerBound else
         {
-            throw TCPUpstreamStrawError.misorderedSegment
+            throw TCPDownstreamStrawError.misorderedSegment(expected: self.window.lowerBound, actual: segment.window.lowerBound)
         }
 
         await self.straw.write(payload)
@@ -134,4 +134,9 @@ public actor TCPDownstreamStraw
         let newLowerBound = self.window.lowerBound.add(bytesSent)
         self.window = SequenceNumberRange(lowerBound: newLowerBound, upperBound: self.window.upperBound)
     }
+}
+
+public enum TCPDownstreamStrawError: Error
+{
+    case misorderedSegment(expected: SequenceNumber, actual: SequenceNumber)
 }

@@ -75,6 +75,25 @@ public class TcpStateHandler
         return self.panicOnUpstreamClose()
     }
 
+    func getState() async throws -> (sequenceNumber: SequenceNumber, acknowledgeNumber: SequenceNumber, windowSize: UInt16)
+    {
+        guard let upstreamStraw = self.upstreamStraw, let downstreamStraw = self.downstreamStraw else
+        {
+            throw TcpStateHandlerError.missingStraws
+        }
+
+        // Our sequence number is taken from upstream.
+        let sequenceNumber = await upstreamStraw.sequenceNumber()
+
+        // We acknowledge bytes we have handled from downstream.
+        let acknowledgementNumber = await downstreamStraw.acknowledgementNumber()
+
+        // Our window size is how many more bytes we are willing to accept from downstream.
+        let windowSize = await upstreamStraw.windowSize()
+
+        return (sequenceNumber, acknowledgementNumber, windowSize)
+    }
+
     func makeRst(ipv4: IPv4, tcp: TCP, sequenceNumber: SequenceNumber, acknowledgementNumber: SequenceNumber, windowSize: UInt16) throws -> IPv4
     {
         return try self.makePacket(sequenceNumber: sequenceNumber, acknowledgementNumber: acknowledgementNumber, windowSize: windowSize, rst: true)
@@ -87,8 +106,13 @@ public class TcpStateHandler
             throw TCPUpstreamStrawError.strawClosed
         }
         
+        // Our sequence number is taken from upstream.
         let sequenceNumber = await upstreamStraw.sequenceNumber()
+
+        // We acknowledge bytes we have handled from downstream.
         let acknowledgementNumber = await upstreamStraw.acknowledgementNumber()
+
+        // Our window size is how many more bytes we are willing to accept from downstream.
         let windowSize = await upstreamStraw.windowSize()
         let ack = try self.makePacket(sequenceNumber: sequenceNumber, acknowledgementNumber: acknowledgementNumber, windowSize: windowSize, ack: true)
         
@@ -97,6 +121,8 @@ public class TcpStateHandler
 
     func makePacket(sequenceNumber: SequenceNumber, acknowledgementNumber: SequenceNumber, windowSize: UInt16, syn: Bool = false, ack: Bool = false, fin: Bool = false, rst: Bool = false, payload: Data? = nil) throws -> IPv4
     {
+        self.logger.trace("makePacket(sequenceNumber: \(sequenceNumber), acknowledgementNumber: \(acknowledgementNumber)")
+
         do
         {
 //            self.logger.debug("TcpStateHandler - makePacket: Start")
@@ -191,5 +217,6 @@ public class TcpStateHandler
 
 public enum TcpStateHandlerError: Error
 {
+    case missingStraws
 }
 

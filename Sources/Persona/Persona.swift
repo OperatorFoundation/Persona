@@ -137,7 +137,7 @@ public class Persona
                 }
                 catch
                 {
-                    self.logger.info("Persona.run - failed to handle message: \(message). Moving on to next message.")
+                    self.logger.info("Persona.run - failed to handle message: \(message): \(error). Moving on to next message.")
                 }
             }
             catch
