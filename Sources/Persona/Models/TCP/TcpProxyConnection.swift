@@ -221,13 +221,22 @@ public class TcpProxyConnection
             throw TcpProxyConnectionError.tcpClosed
         }
 
-//        Task
-//        {
-//            while self.state.open
-//            {
-//                try await self.pumpUpstream()
-//            }
-//        }
+        Task
+        {
+            while self.state.open
+            {
+                try await self.pumpUpstreamStrawToUpstream()
+            }
+        }
+
+        Task
+        {
+            while self.state.open
+            {
+                try await self.pumpUpstreamToUpstreamStraw()
+            }
+        }
+
 //
 //        Task
 //        {
@@ -293,339 +302,69 @@ public class TcpProxyConnection
 //        self.logger.debug("TcpProxyConnection - processDownstreamPacket: finished")
     }
 
-//    public func processDownstreamPacket(ipv4: IPv4, tcp: TCP, payload: Data?) async throws
-//    {
-//        // For the most part, we can only handle packets that are inside the TCP window.
-//        // Otherwise, they might be old packets from a previous connection or redundant retransmissions.
-//        if self.upstreamStraw.inWindow(tcp)
-//        {
-//            if tcp.rst
-//            {
-//                self.logger.debug("* Persona.processLocalPacket: received rst")
-//                /*
-//                 SYN-RECEIVED STATE
-//
-//                 If the RST bit is set
-//
-//                 If this connection was initiated with a passive OPEN (i.e.,
-//                 came from the LISTEN state), then return this connection to
-//                 LISTEN state and return.  The user need not be informed.  If
-//                 this connection was initiated with an active OPEN (i.e., came
-//                 from SYN-SENT state) then the connection was refused, signal
-//                 the user "connection refused".  In either case, all segments
-//                 on the retransmission queue should be removed.  And in the
-//                 active OPEN case, enter the CLOSED state and delete the TCB,
-//                 and return.
-//                 */
-//                try await self.closeUpstream()
-//                return
-//            }
-//            else if tcp.syn
-//            {
-//                self.logger.debug("* Persona.processLocalPacket: received syn in the update window, sending rst")
-//                /*
-//                 If the SYN is in the window it is an error, send a reset, any
-//                 outstanding RECEIVEs and SEND should receive "reset" responses,
-//                 all segment queues should be flushed, the user should also
-//                 receive an unsolicited general "connection reset" signal, enter
-//                 the CLOSED state, delete the TCB, and return.
-//                 */
-//
-//                try await self.sendRst(tcp, States.closed)
-//                try await self.closeUpstream()
-//                return
-//            }
-//            else if tcp.ack
-//            {
-//                self.logger.debug("* Persona.processLocalPacket: received ack")
-//                
-//                switch state
-//                {
-//                    case .synReceived:
-//                        self.logger.debug("* Persona.processLocalPacket: synReceived state")
-//                        /*
-//                         SYN-RECEIVED STATE
-//
-//                         If SND.UNA =< SEG.ACK =< SND.NXT then enter ESTABLISHED state
-//                         and continue processing.
-//
-//                         If the segment acknowledgment is not acceptable, form a
-//                         reset segment,
-//
-//                         <SEQ=SEG.ACK><CTL=RST>
-//
-//                         and send it.
-//                         */
-//
-//                        // FIXME - deal with duplicate SYNs
-////                        if (self.sndUna <= SequenceNumber(tcp.acknowledgementNumber)) && (SequenceNumber(tcp.acknowledgementNumber) <= self.sndNxt)
-////                        {
-////                            self.logger.debug("✅ Persona.processLocalPacket: state set to established")
-////                            self.state = .established
-////                        }
-////                        else
-////                        {
-//                        self.logger.debug("🛑 Syn received state but the segment acknowledgment is not acceptable. Sending reset.")
-//                        try await self.sendRst(tcp, self.state)
-//
-//                        return
-////                        }
-//
-//                    case .established, .finWait1, .finWait2, .closeWait, .closing, .lastAck, .timeWait:
-//                        self.logger.debug("* Persona.processLocalPacket: .established, .finWait1, .finWait2, .closeWait, .closing, .lastAck, .timeWait state")
-//                        /*
-//                         ESTABLISHED STATE
-//                         */
-//
-//                        // FIXME: handle downstream straw
-////                        try self.downstreamStraw.clear(acknowledgementNumber: SequenceNumber(tcp.acknowledgementNumber), sequenceNumber: tcp.window.upperBound)
-//
-//                        // Additional processing for specific states
-//                        switch state
-//                        {
-//                            case .established, .finWait1, .finWait2:
-//                                }
-//
-//                                switch state
-//                                {
-//                                    case .finWait1:
-//                                        self.logger.debug("* Persona.processLocalPacket: finWait1 state")
-//                                        /*
-//                                         FIN-WAIT-1 STATE
-//
-//                                         In addition to the processing for the ESTABLISHED state, if
-//                                         our FIN is now acknowledged then enter FIN-WAIT-2 and continue
-//                                         processing in that state.
-//                                         */
-//                                        if self.retransmissionQueue.isEmpty
-//                                        {
-//                                            self.state = .finWait2
-//                                            return
-//                                        }
-//
-//                                    case .finWait2:
-//                                        self.logger.debug("* Persona.processLocalPacket: finWait2 state")
-//                                        /*
-//                                         FIN-WAIT-2 STATE
-//
-//                                         In addition to the processing for the ESTABLISHED state, if
-//                                         the retransmission queue is empty, the user's CLOSE can be
-//                                         acknowledged ("ok") but do not delete the TCB.
-//                                         */
-//
-//                                        // Nothing for us to do here in our implementation.
-//                                        return
-//
-//                                    default:
-//                                        return
-//                                }
-//
-//                            case .closeWait:
-//                                self.logger.debug("* Persona.processLocalPacket: closeWait state")
-//                                /*
-//                                 CLOSE-WAIT STATE
-//
-//                                 Do the same processing as for the ESTABLISHED state.
-//                                 */
-//
-//                                return
-//
-//                            case .closing:
-//                                self.logger.debug("* Persona.processLocalPacket: closing state")
-//                                /*
-//                                 CLOSING STATE
-//
-//                                 In addition to the processing for the ESTABLISHED state, if
-//                                 the ACK acknowledges our FIN then enter the TIME-WAIT state,
-//                                 otherwise ignore the segment.
-//                                 */
-//
-//                                if self.retransmissionQueue.isEmpty
-//                                {
-//                                    self.state = .timeWait
-//                                    return
-//                                }
-//
-//                            case .lastAck:
-//                                self.logger.debug("* Persona.processLocalPacket: lastAck state")
-//                                /*
-//                                 LAST-ACK STATE
-//
-//                                 The only thing that can arrive in this state is an
-//                                 acknowledgment of our FIN.  If our FIN is now acknowledged,
-//                                 delete the TCB, enter the CLOSED state, and return.
-//                                 */
-//
-//                                if self.retransmissionQueue.isEmpty
-//                                {
-//                                    try await self.closeUpstream()
-//                                }
-//
-//                            default:
-//                                return
-//                        }
-//
-//                    default:
-//                        return
-//                }
-//
-//                // The client has closed the connection.
-//                // The client will send no more data after this packet.
-//                // However, the FIN packet may have its own payload.
-//                if tcp.fin
-//                {
-//                    self.logger.debug("🛑 Persona.processLocalPacket: tcp.fin")
-//                    // Closing the client TCP connection takes a while.
-//                    // We will close the connection to the server when we have finished closing the connection to the client.
-//                    // In the meantime, tidy up the loose ends of closing the connection:
-//                    // - send our own fin to the client, if necessary
-//                    // - retransmit un-acked data
-//                    // - ack incoming fin packets
-//                    switch self.state
-//                    {
-//                        case .synReceived, .established:
-//                            self.state = .closeWait
-//                            
-//                            if self.downstreamStraw.isEmpty
-//                            {
-//                                try await self.closeUpstream()
-//
-//                                self.logger.info("closing downstream because we received a FIN")
-//
-//                                try await self.closeDownstream()
-//                            }
-//                            else
-//                            {
-//                                // TODO: case where we still have data to send
-//                            }
-//
-//                        case .finWait1:
-//                            if self.retransmissionQueue.isEmpty
-//                            {
-//                                self.state = .timeWait
-//                                self.startTimeWaitTimer()
-//                                self.cancelOtherTimers()
-//                            }
-//                            else
-//                            {
-//                                self.state = .closing
-//                            }
-//
-//                        case .finWait2:
-//                            self.state = .timeWait
-//                            self.startTimeWaitTimer()
-//                            self.cancelOtherTimers()
-//
-//                        case .closeWait, .closing, .lastAck:
-//                            return
-//
-//                        case .timeWait:
-//                            self.restartTimeWaitTimer()
-//
-//                        default:
-//                            return
-//                    }
-//                }
-//            }
-//            else
-//            {
-//                /*
-//                 if the ACK bit is off drop the segment and return
-//                 */
-//                self.logger.debug("🛑 Persona.processLocalPacket: ACK bit is off, dropping the packet")
-//                
-//                return
-//            }
-//        }
-//        else
-//        {
-//            self.logger.debug("* Persona.processLocalPacket: NOT inWindow")
-//            tcpLogger?.debug("☠️ Packet NOT IN WINDOW")
-//            tcpLogger?.debug("* \(tcp.description)")
-//            /*
-//             If an incoming segment is not acceptable, an acknowledgment
-//             should be sent in reply (unless the RST bit is set, if so drop
-//             the segment and return):
-//
-//             <SEQ=SND.NXT><ACK=RCV.NXT><CTL=ACK>
-//
-//             After sending the acknowledgment, drop the unacceptable segment
-//             and return.
-//             */
-//
-//            if tcp.rst
-//            {
-//                self.logger.debug("* Persona.processLocalPacket: incoming segment is not acceptable, rst bit received, dropping packet")
-//                // If the rst bit is set, do not send an ack, drop the unacceptable segment and return
-//                return
-//            }
-//            else
-//            {
-//                self.logger.debug("* Persona.processLocalPacket: incoming segment is not acceptable, and no rst bit, sending ack and dropping packet")
-//
-//                let sndNxt = self.downstreamStraw.sequenceNumber
-//                let rcvNxt = self.upstreamStraw.acknowledgementNumber
-//
-//                // Send an ack
-//                try await self.sendPacket(sequenceNumber: sndNxt, acknowledgementNumber: rcvNxt, ack: true)
-//                // Drop the unacceptable segment
-//                return
-//            }
-//        }
-//    }
-//
-//    public func closeUpstream() async throws
-//    {
-//        self.open = false
-//        try await self.upstream.close()
-//        self.upstreamStraw.close()
-//
-//        AsyncAwaitThrowingEffectSynchronizer.sync
-//        {
-//            await self.proxy.removeConnection(self)
-//        }
-//    }
-//
-//    func filterRetransmissions(_ ack: SequenceNumber)
-//    {
-//        self.retransmissionQueue = self.retransmissionQueue.filter
-//        {
-//            (tcp: InternetProtocols.TCP) -> Bool in
-//
-//            let expectedAck = SequenceNumber(tcp.sequenceNumber).add(Int(TcpProxy.sequenceLength(tcp)))
-//            return ack < expectedAck // Keep packets which have not been acked
-//        }
-//    }
-//
-//    func pumpUpstream() async throws
-//    {
-//        do
-//        {
-//            let segment = try self.upstreamStraw.read()
-//
-//            do
-//            {
-//                try await self.connection.writeWithLengthPrefix(segment.data, 32)
-//            }
-//            catch
-//            {
-//                self.tcpLogger?.error("Upstream write failed, closing connection")
-//                try await self.closeUpstream()
-//                return
-//            }
-//            
-//            self.logger.debug("\n* Sent received data (\(segment.data.count) bytes) upstream.")
-//            self.logger.debug("* Data sent upstream: \n\(segment.data.hex)\n")
-//
-//            try self.upstreamStraw.clear(segment: segment)
-//        }
-//        catch
-//        {
-//            try await self.closeUpstream()
-//            return
-//        }
-//    }
-//
+    func pumpUpstreamStrawToUpstream() async throws
+    {
+        do
+        {
+            guard let upstreamStraw = self.state.upstreamStraw else
+            {
+                return
+            }
+
+            let segment = try await upstreamStraw.read()
+
+            do
+            {
+                self.logger.info("\(segment.data.count) bytes : Persona --> tcpproxy")
+                try await self.upstream.writeWithLengthPrefix(segment.data, 32)
+            }
+            catch
+            {
+                self.logger.error("Upstream write failed, closing connection")
+                self.tcpLogger.error("Upstream write failed, closing connection")
+                let _ = self.state.panicOnUpstreamClose() // FIXME
+                return
+            }
+
+            self.logger.debug("\n* Sent received data (\(segment.data.count) bytes) upstream.")
+            self.logger.debug("* Data sent upstream: \n\(segment.data.hex)\n")
+
+            try await upstreamStraw.clear(segment: segment)
+        }
+        catch
+        {
+            let _ = self.state.panicOnUpstreamClose() // FIXME
+            return
+        }
+    }
+
+    func pumpUpstreamToUpstreamStraw() async throws
+    {
+        guard let downstreamStraw = self.state.downstreamStraw else
+        {
+            return
+        }
+
+        do
+        {
+            let segment = try await self.upstream.readWithLengthPrefix(prefixSizeInBits: 32)
+            self.logger.info("\(segment.data.count) bytes : Persona <-- tcpproxy")
+
+            self.logger.debug("\n* Sent received data (\(segment.data.count) bytes) upstream.")
+            self.logger.debug("* Data sent upstream: \n\(segment.data.hex)\n")
+
+            try await downstreamStraw.write(segment)
+        }
+        catch
+        {
+            self.logger.error("Upstream write failed, closing connection")
+            self.tcpLogger.error("Upstream write failed, closing connection")
+            let _ = self.state.panicOnUpstreamClose() // FIXME
+            return
+        }
+    }
+
+
 //    func pumpDownstream() async throws
 //    {
 //        let windowSize = self.downstreamStraw.windowSize

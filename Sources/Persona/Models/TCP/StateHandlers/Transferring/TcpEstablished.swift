@@ -13,14 +13,20 @@ public class TcpEstablished: TcpStateHandler
 {
     override public func processDownstreamPacket(ipv4: IPv4, tcp: TCP, payload: Data?) async throws -> TcpStateTransition
     {
-        guard let upstreamStraw = self.upstreamStraw, let downstreamStraw = self.downstreamStraw else
+        guard let upstreamStraw = self.upstreamStraw else
         {
             throw TcpEstablishedError.missingStraws
         }
 
+        let upstreamWindow = await upstreamStraw.window
+        let packetLowerBound = SequenceNumber(tcp.sequenceNumber)
+        let packetUpperBound = packetLowerBound.add(Int(tcp.windowSize))
+
         // We can only receive data inside the TCP window.
         guard await upstreamStraw.inWindow(tcp) else
         {
+            self.logger.error("❌ \(upstreamWindow.lowerBound) <= \(packetLowerBound)..<\(packetUpperBound) <= \(upstreamWindow.upperBound)")
+
             let sequenceNumber = await upstreamStraw.sequenceNumber()
             let acknowledgementNumber = await upstreamStraw.acknowledgementNumber()
             let windowSize = await upstreamStraw.windowSize()
@@ -29,6 +35,8 @@ public class TcpEstablished: TcpStateHandler
             let ack = try self.makePacket(sequenceNumber: sequenceNumber, acknowledgementNumber: acknowledgementNumber, windowSize: windowSize, ack: true)
             return TcpStateTransition(newState: self, packetsToSend: [ack])
         }
+
+        self.logger.error("✅ \(upstreamWindow.lowerBound) <= \(packetLowerBound)..<\(packetUpperBound) <= \(upstreamWindow.upperBound)")
 
 //        self.logger.debug("TcpEstablished.processDownstreamPacket")
         /*
@@ -82,9 +90,9 @@ public class TcpEstablished: TcpStateHandler
              This acknowledgment should be piggybacked on a segment being
              transmitted if possible without incurring undue delay.
              */
-            let sequenceNumber = await downstreamStraw.sequenceNumber()
+            let sequenceNumber = await upstreamStraw.sequenceNumber()
             let acknowledgementNumber = await upstreamStraw.acknowledgementNumber()
-            let windowSize = await downstreamStraw.windowSize()
+            let windowSize = await upstreamStraw.windowSize()
             let ack = try self.makePacket(sequenceNumber: sequenceNumber, acknowledgementNumber: acknowledgementNumber, windowSize: windowSize, ack: true)
             return TcpStateTransition(newState: self, packetsToSend: [ack])
         }
