@@ -13,7 +13,7 @@ public class TcpEstablished: TcpStateHandler
 {
     override public func processDownstreamPacket(ipv4: IPv4, tcp: TCP, payload: Data?) async throws -> TcpStateTransition
     {
-        guard let upstreamStraw = self.upstreamStraw, let downstreamStraw = self.downstreamStraw else
+        guard let downstreamStraw = self.downstreamStraw else
         {
             throw TcpEstablishedError.missingStraws
         }
@@ -27,14 +27,7 @@ public class TcpEstablished: TcpStateHandler
         {
             self.logger.error("❌ \(downstreamWindow.lowerBound) <= \(packetLowerBound)..<\(packetUpperBound) <= \(downstreamWindow.upperBound)")
 
-            // Our sequence number is taken from upstream.
-            let sequenceNumber = await upstreamStraw.sequenceNumber()
-
-            // We acknowledge bytes we have handled from downstream.
-            let acknowledgementNumber = await upstreamStraw.acknowledgementNumber()
-
-            // Our window size is how many more bytes we are willing to accept from downstream.
-            let windowSize = await upstreamStraw.windowSize()
+            let (sequenceNumber, acknowledgementNumber, windowSize) = try await self.getState()
 
             // Send an ACK to let the client know that they are outside of the TCP window.
             let ack = try self.makePacket(sequenceNumber: sequenceNumber, acknowledgementNumber: acknowledgementNumber, windowSize: windowSize, ack: true)

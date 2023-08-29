@@ -131,14 +131,8 @@ public class TcpSynReceived: TcpStateHandler
 //                self.tcpLogger.debug("TcpSynReceived: staying in SYN-RECEIVED, resending SYN-ACK")
 //            }
 
-            // Our sequence number is taken from upstream.
-            let sequenceNumber = await upstreamStraw.sequenceNumber()
+            let (sequenceNumber, acknowledgementNumber, windowSize) = try await self.getState()
 
-            // We acknowledge bytes we have handled from downstream.
-            let acknowledgementNumber = await upstreamStraw.acknowledgementNumber()
-
-            // Our window size is how many more bytes we are willing to accept from downstream.
-            let windowSize = await upstreamStraw.windowSize()
             let synAck = try self.makeSynAck(sequenceNumber: sequenceNumber, acknowledgementNumber: acknowledgementNumber, windowSize: windowSize)
             return TcpStateTransition(newState: self, packetsToSend: [synAck])
         }

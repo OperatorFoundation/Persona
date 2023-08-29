@@ -101,13 +101,7 @@ public class TcpListen: TcpStateHandler
         do
         {
             // Our sequence number is taken from upstream.
-            let sequenceNumber = await upstreamStraw.sequenceNumber()
-
-            // We acknowledge bytes we have handled from downstream.
-            let acknowledgementNumber = await downstreamStraw.acknowledgementNumber()
-
-            // Our window size is how many more bytes we are willing to accept from downstream.
-            let windowSize = await upstreamStraw.windowSize()
+            let (sequenceNumber, acknowledgementNumber, windowSize) = try await self.getState()
 
             let synAck = try self.makeSynAck(sequenceNumber: sequenceNumber, acknowledgementNumber: acknowledgementNumber, windowSize: windowSize)
 //            self.logger.debug("TcpListen.processDownstreamPacket: made a SYN-ACK")
