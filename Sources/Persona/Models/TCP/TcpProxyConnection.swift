@@ -300,16 +300,18 @@ public class TcpProxyConnection
         
 //        self.logger.debug("TcpProxyConnection - processDownstreamPacket: finished")
 
-        if let upstreamStraw = self.state.upstreamStraw
-        {
-            let count = await upstreamStraw.count()
-            if count > 0
-            {
-                let segment = try await upstreamStraw.read()
-                try await self.upstream.write(segment.data)
-                try await upstreamStraw.clear(segment: segment)
-            }
-        }
+//        if let upstreamStraw = self.state.upstreamStraw
+//        {
+//            let count = await upstreamStraw.count()
+//            if count > 0
+//            {
+//                let segment = try await upstreamStraw.read()
+//                try await self.upstream.write(segment.data)
+//                try await upstreamStraw.clear(segment: segment)
+//            }
+//        }
+
+        try await self.pumpUpstreamStrawToUpstream()
     }
 
     func pumpUpstreamStrawToUpstream() async throws

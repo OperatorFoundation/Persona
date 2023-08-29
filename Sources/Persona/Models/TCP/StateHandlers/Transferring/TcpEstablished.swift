@@ -97,7 +97,6 @@ public class TcpEstablished: TcpStateHandler
             return TcpStateTransition(newState: self, packetsToSend: [ack])
         }
 
-
         if tcp.ack
         {
             // FIXME - adjust windowSize based on ACK
