@@ -87,8 +87,13 @@ public class TcpStateHandler
             throw TCPUpstreamStrawError.strawClosed
         }
         
+        // Our sequence number is taken from upstream.
         let sequenceNumber = await upstreamStraw.sequenceNumber()
+
+        // We acknowledge bytes we have handled from downstream.
         let acknowledgementNumber = await upstreamStraw.acknowledgementNumber()
+
+        // Our window size is how many more bytes we are willing to accept from downstream.
         let windowSize = await upstreamStraw.windowSize()
         let ack = try self.makePacket(sequenceNumber: sequenceNumber, acknowledgementNumber: acknowledgementNumber, windowSize: windowSize, ack: true)
         

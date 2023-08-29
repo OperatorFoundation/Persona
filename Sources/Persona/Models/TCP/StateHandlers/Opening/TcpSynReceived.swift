@@ -35,9 +35,14 @@ public class TcpSynReceived: TcpStateHandler
 //                self.tcpLogger.debug("TcpSynReceived: rejected packet because of RST")
 //            }
 
-            let sequenceNumber = await downstreamStraw.sequenceNumber()
+            // Our sequence number is taken from upstream.
+            let sequenceNumber = await upstreamStraw.sequenceNumber()
+
+            // We acknowledge bytes we have handled from downstream.
             let acknowledgementNumber = await upstreamStraw.acknowledgementNumber()
-            let windowSize = await downstreamStraw.windowSize()
+
+            // Our window size is how many more bytes we are willing to accept from downstream.
+            let windowSize = await upstreamStraw.windowSize()
             return try await self.panicOnDownstream(ipv4: ipv4, tcp: tcp, payload: payload, sequenceNumber: sequenceNumber, acknowledgementNumber: acknowledgementNumber, windowSize: windowSize)
         }
 
@@ -52,9 +57,14 @@ public class TcpSynReceived: TcpStateHandler
 //                self.tcpLogger.debug("TcpSynReceived: rejected packet because of FIN")
 //            }
 
-            let sequenceNumber = await downstreamStraw.sequenceNumber()
+            // Our sequence number is taken from upstream.
+            let sequenceNumber = await upstreamStraw.sequenceNumber()
+
+            // We acknowledge bytes we have handled from downstream.
             let acknowledgementNumber = await upstreamStraw.acknowledgementNumber()
-            let windowSize = await downstreamStraw.windowSize()
+
+            // Our window size is how many more bytes we are willing to accept from downstream.
+            let windowSize = await upstreamStraw.windowSize()
             return try await self.panicOnDownstream(ipv4: ipv4, tcp: tcp, payload: payload, sequenceNumber: sequenceNumber, acknowledgementNumber: acknowledgementNumber, windowSize: windowSize)
        }
 
@@ -66,13 +76,18 @@ public class TcpSynReceived: TcpStateHandler
             let newSequenceNumber = SequenceNumber(tcp.sequenceNumber)
             let oldSequenceNumber = await downstreamStraw.sequenceNumber()
 
-            if newSequenceNumber == oldSequenceNumber
+            if newSequenceNumber.increment() == oldSequenceNumber
             {
-                self.tcpLogger.info("duplicate SYN \(newSequenceNumber) \(oldSequenceNumber)")
+                self.tcpLogger.info("duplicate SYN \(newSequenceNumber)")
 
                 // Send a SYN-ACK
+                // Our sequence number is taken from upstream.
                 let sequenceNumber = await upstreamStraw.sequenceNumber()
+
+                // We acknowledge bytes we have handled from downstream.
                 let acknowledgementNumber = await upstreamStraw.acknowledgementNumber()
+
+                // Our window size is how many more bytes we are willing to accept from downstream.
                 let windowSize = await upstreamStraw.windowSize()
                 let synack = try self.makeSynAck(sequenceNumber: sequenceNumber, acknowledgementNumber: acknowledgementNumber, windowSize: windowSize)
 
@@ -83,9 +98,14 @@ public class TcpSynReceived: TcpStateHandler
                 self.tcpLogger.info("brand new SYN \(newSequenceNumber) \(oldSequenceNumber)")
 
                 // Send a RST
-                let sequenceNumber = await downstreamStraw.sequenceNumber()
+                // Our sequence number is taken from upstream.
+                let sequenceNumber = await upstreamStraw.sequenceNumber()
+
+                // We acknowledge bytes we have handled from downstream.
                 let acknowledgementNumber = await upstreamStraw.acknowledgementNumber()
-                let windowSize = await downstreamStraw.windowSize()
+
+                // Our window size is how many more bytes we are willing to accept from downstream.
+                let windowSize = await upstreamStraw.windowSize()
                 let rst = try self.makeRst(ipv4: ipv4, tcp: tcp, sequenceNumber: sequenceNumber, acknowledgementNumber: acknowledgementNumber, windowSize: windowSize)
 
                 let newState = TcpListen(self)
@@ -111,8 +131,13 @@ public class TcpSynReceived: TcpStateHandler
 //                self.tcpLogger.debug("TcpSynReceived: staying in SYN-RECEIVED, resending SYN-ACK")
 //            }
 
+            // Our sequence number is taken from upstream.
             let sequenceNumber = await upstreamStraw.sequenceNumber()
+
+            // We acknowledge bytes we have handled from downstream.
             let acknowledgementNumber = await upstreamStraw.acknowledgementNumber()
+
+            // Our window size is how many more bytes we are willing to accept from downstream.
             let windowSize = await upstreamStraw.windowSize()
             let synAck = try self.makeSynAck(sequenceNumber: sequenceNumber, acknowledgementNumber: acknowledgementNumber, windowSize: windowSize)
             return TcpStateTransition(newState: self, packetsToSend: [synAck])

@@ -72,9 +72,18 @@ public class TcpListen: TcpStateHandler
 
         // SYN gives us a sequence number, so set the sequence numbers.
         // downstreamStraw tracks the client to server data flow, upstreamStraw tracks the server to client data flow
-        let irs = SequenceNumber(tcp.sequenceNumber)
-        let downstreamStraw = TCPDownstreamStraw(segmentStart: irs, acknowledgementNumber: SequenceNumber(tcp.acknowledgementNumber), windowSize: tcp.windowSize)
-        let upstreamStraw = TCPUpstreamStraw(segmentStart: isn(), acknowledgementNumber: irs.increment())
+        let irs = SequenceNumber(tcp.sequenceNumber) // Initial received sequence number
+        let downstreamSequenceNumber = irs.increment() // Include the SYN in the count
+
+        // Don't forget to actually send this acknowledgementNumber downstream, or else we'll be out of sync.
+        let downstreamStraw = TCPDownstreamStraw(segmentStart: downstreamSequenceNumber, acknowledgementNumber: downstreamSequenceNumber, windowSize: tcp.windowSize)
+
+        // Generate a random upstream sequence number
+        let upstreamSequenceNumber = isn()
+
+        // Set the acknowledgement number to the sequence number instead of 0. This signifies that nothing has been acknowledged yet and the math works out better than special casing zero.
+        let upstreamStraw = TCPUpstreamStraw(segmentStart: upstreamSequenceNumber, acknowledgementNumber: upstreamSequenceNumber)
+
         self.downstreamStraw = downstreamStraw
         self.upstreamStraw = upstreamStraw
 
@@ -91,8 +100,13 @@ public class TcpListen: TcpStateHandler
         
         do
         {
+            // Our sequence number is taken from upstream.
             let sequenceNumber = await upstreamStraw.sequenceNumber()
-            let acknowledgementNumber = await upstreamStraw.acknowledgementNumber()
+
+            // We acknowledge bytes we have handled from downstream.
+            let acknowledgementNumber = await downstreamStraw.acknowledgementNumber()
+
+            // Our window size is how many more bytes we are willing to accept from downstream.
             let windowSize = await upstreamStraw.windowSize()
 
             let synAck = try self.makeSynAck(sequenceNumber: sequenceNumber, acknowledgementNumber: acknowledgementNumber, windowSize: windowSize)

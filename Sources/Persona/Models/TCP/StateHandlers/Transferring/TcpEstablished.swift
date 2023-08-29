@@ -27,10 +27,15 @@ public class TcpEstablished: TcpStateHandler
         {
             self.logger.error("❌ \(downstreamWindow.lowerBound) <= \(packetLowerBound)..<\(packetUpperBound) <= \(downstreamWindow.upperBound)")
 
+            // Our sequence number is taken from upstream.
             let sequenceNumber = await upstreamStraw.sequenceNumber()
+
+            // We acknowledge bytes we have handled from downstream.
             let acknowledgementNumber = await upstreamStraw.acknowledgementNumber()
+
+            // Our window size is how many more bytes we are willing to accept from downstream.
             let windowSize = await upstreamStraw.windowSize()
-            
+
             // Send an ACK to let the client know that they are outside of the TCP window.
             let ack = try self.makePacket(sequenceNumber: sequenceNumber, acknowledgementNumber: acknowledgementNumber, windowSize: windowSize, ack: true)
             return TcpStateTransition(newState: self, packetsToSend: [ack])
@@ -74,13 +79,6 @@ public class TcpEstablished: TcpStateHandler
 //            self.logger.debug("* Persona.processLocalPacket: payload upstream write complete\n")
 
             /*
-             2023-08-29T22:06:36+0000 debug Persona : <- 142.250.141.188:5228 ~ 10.0.0.1:41256 - A, SEQ#:3247424205, ACK#:2598137323, windowSize:65535 - no payload
-             2023-08-29T22:06:36+0000 trace Persona : TcpProxyConnection.pumpUpstreamStrawToUpstream
-             2023-08-29T22:06:36+0000 debug Persona : TcpStateHandler.panicOnUpstreamClose, closing
-             2023-08-29T22:06:36+0000 info Persona : 🪀 -> TCP: 10.0.0.1:41256 ~ 142.250.141.188:5228 - A, SEQ#:2598137840, ACK#:3247424206, windowSize:65535 - no payload
-             2023-08-29T22:06:36+0000 error Persona : ❌ 3247424205 <= 2598137840..<2598203375 <= 3247489740
-             2023-08-29T22:06:36+0000 debug Persona : @ Persona.TcpEstablished => Persona.TcpEstablished, 1 packets to send
-             2023-08-29T22:06:36+0000 debug Persona : <- 142.250.141.188:5228 ~ 10.0.0.1:41256 - A, SEQ#:3247424205, ACK#:2598137323, windowSize:65535 - no paylo
              When the TCP takes responsibility for delivering the data to the
              user it must also acknowledge the receipt of the data.
              */
