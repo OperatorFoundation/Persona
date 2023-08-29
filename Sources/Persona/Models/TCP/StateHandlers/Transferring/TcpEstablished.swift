@@ -102,10 +102,7 @@ public class TcpEstablished: TcpStateHandler
              This acknowledgment should be piggybacked on a segment being
              transmitted if possible without incurring undue delay.
              */
-            let sequenceNumber = await upstreamStraw.sequenceNumber()
-            let acknowledgementNumber = await upstreamStraw.acknowledgementNumber()
-            let windowSize = await upstreamStraw.windowSize()
-            let ack = try self.makePacket(sequenceNumber: sequenceNumber, acknowledgementNumber: acknowledgementNumber, windowSize: windowSize, ack: true)
+            let ack = try await makeAck()
             return TcpStateTransition(newState: self, packetsToSend: [ack])
         }
 
@@ -136,7 +133,6 @@ public class TcpEstablished: TcpStateHandler
     override public func processUpstreamData(data: Data) throws -> TcpStateTransition
     {
         // FIXME - pump downstream
-
         return TcpStateTransition(newState: self)
     }
 
