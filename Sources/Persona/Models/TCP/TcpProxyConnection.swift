@@ -311,12 +311,12 @@ public class TcpProxyConnection
 //            }
 //        }
 
-        try await self.pumpUpstreamStrawToUpstream()
+//        try await self.pumpUpstreamStrawToUpstream()
     }
 
     func pumpUpstreamStrawToUpstream() async throws
     {
-        self.logger.trace("TcpProxyConnection.pumptUpstreamStrawToUpstream")
+        self.logger.trace("TcpProxyConnection.pumpUpstreamStrawToUpstream")
 
         do
         {
