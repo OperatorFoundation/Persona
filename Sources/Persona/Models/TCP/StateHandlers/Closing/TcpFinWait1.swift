@@ -9,15 +9,69 @@ import Foundation
 
 import InternetProtocols
 
-// FIXME me - implement this state
+/**
+ Case 1:  Local user initiates the close
+
+   In this case, a FIN segment can be constructed and placed on the
+   outgoing segment queue.  No further SENDs from the user will be
+   accepted by the TCP, and it enters the FIN-WAIT-1 state.  RECEIVEs
+   are allowed in this state.  All segments preceding and including FIN
+   will be retransmitted until acknowledged.  When the other TCP has
+   both acknowledged the FIN and sent a FIN of its own, the first TCP
+   can ACK this FIN.  Note that a TCP receiving a FIN will ACK but not
+   send its own FIN until its user has CLOSED the connection also.
+ */
+
 public class TcpFinWait1: TcpStateHandler
 {
-    public func processDownstreamPacket(ipv4: IPv4, tcp: TCP, payload: Data?) async throws
+    override public func processDownstreamPacket(ipv4: IPv4, tcp: TCP, payload: Data?) async throws -> TcpStateTransition
     {
-    }
-
-    public func processUpstreamData(data: Data) async throws
-    {
+        let acknowledgementNumber = SequenceNumber(tcp.acknowledgementNumber)
+        
+        guard let upstreamStraw = self.upstreamStraw else
+        {
+            throw TCPUpstreamStrawError.strawClosed
+        }
+        
+        let sequenceNumber = await upstreamStraw.sequenceNumber()
+        guard acknowledgementNumber == sequenceNumber else
+        {
+            self.logger.log(level: .debug, "TCPLastAck processDownstreamPacket received an ACK with acknowledgement number (\(acknowledgementNumber)) that does not match our last sequence number (\(sequenceNumber)). Re-sending previous ack")
+            
+            /// If the connection is in a synchronized state (ESTABLISHED, FIN-WAIT-1, FIN-WAIT-2, CLOSE-WAIT, CLOSING, LAST-ACK, TIME-WAIT),
+            /// any unacceptable segment (out of window sequence number or unacceptable acknowledgment number) must elicit only an empty
+            /// acknowledgment segment containing the current send-sequence number and an acknowledgment indicating the next sequence number expected
+            /// to be received, and the connection remains in the same state.
+            
+            let ack = try await makeAck()
+            return TcpStateTransition(newState: self, packetsToSend: [ack])
+        }
+        
+        if tcp.ack
+        {
+            return TcpStateTransition(newState: TcpFinWait2(self))
+        }
+        
+        if tcp.fin
+        {
+            let ack = try await makeAck()
+            return TcpStateTransition(newState: TcpClosing(self), packetsToSend: [ack])
+        }
+        
+        /**
+         If the TCP is in one of the synchronized states (ESTABLISHED,
+         FIN-WAIT-1, FIN-WAIT-2, CLOSE-WAIT, CLOSING, LAST-ACK, TIME-WAIT), it
+         aborts the connection and informs its user.  We discuss this latter
+         case under "half-open" connections below.
+         */
+        if tcp.rst
+        {
+            // FIXME: Abort the connection and inform the user
+            return TcpStateTransition(newState: TcpClosing(self))
+        }
+        
+        // FIXME: Other tcp flags
+        return TcpStateTransition(newState: self)
     }
 }
 
