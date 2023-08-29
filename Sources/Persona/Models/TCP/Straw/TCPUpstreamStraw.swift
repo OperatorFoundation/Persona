@@ -116,7 +116,7 @@ public actor TCPUpstreamStraw
 
     public func read() async throws -> SegmentData
     {
-        let data = try await self.straw.read()
+        let data = try await self.straw.readAllData()
         let result = SegmentData(data: data, window: window)
 
         return result
