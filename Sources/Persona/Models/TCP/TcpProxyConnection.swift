@@ -221,19 +221,18 @@ public class TcpProxyConnection
             throw TcpProxyConnectionError.tcpClosed
         }
 
-//        Task
+//        Asynchronizer.async
 //        {
 //            while self.state.open
 //            {
-//                try await self.pumpUpstreamStrawToUpstream()
-//            }
-//        }
-//
-//        Task
-//        {
-//            while self.state.open
-//            {
-//                try await self.pumpUpstreamToUpstreamStraw()
+//                dp
+//                {
+//                    try await self.pumpUpstreamToUpstreamStraw()
+//                }
+//                catch
+//                {
+//                    self.logger.error("Error in pumpUpstreamToUpstreamStraw")
+//                }
 //            }
 //        }
 
@@ -300,6 +299,17 @@ public class TcpProxyConnection
         }
         
 //        self.logger.debug("TcpProxyConnection - processDownstreamPacket: finished")
+
+        if let upstreamStraw = self.state.upstreamStraw
+        {
+            let count = await upstreamStraw.count()
+            if count > 0
+            {
+                let segment = try await upstreamStraw.read()
+                try await self.upstream.write(segment.data)
+                try await upstreamStraw.clear(segment: segment)
+            }
+        }
     }
 
     func pumpUpstreamStrawToUpstream() async throws

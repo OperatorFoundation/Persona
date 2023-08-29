@@ -82,6 +82,16 @@ public actor TCPUpstreamStraw
         return Self.maxBufferSize - UInt16(await self.straw.count)
     }
 
+    public func count() async -> Int
+    {
+        return await self.straw.count
+    }
+
+    public func isEmpty() async -> Bool
+    {
+        return await self.straw.isEmpty
+    }
+
     public func write(_ segment: InternetProtocols.TCP) async throws
     {
         guard self.open else
