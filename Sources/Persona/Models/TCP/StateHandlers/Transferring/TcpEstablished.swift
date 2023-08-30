@@ -62,12 +62,7 @@ public class TcpEstablished: TcpStateHandler
 //            }
 
             // Write the payload to the tcpproxy subsystem
-            guard let downstreamStraw = self.downstreamStraw else
-            {
-                throw TcpEstablishedError.missingStraws
-            }
-
-            try await downstreamStraw.write(tcp)
+            try await self.pumpToUpstream(tcp)
 
 //            self.logger.debug("* Persona.processLocalPacket: payload upstream write complete\n")
 
@@ -132,6 +127,21 @@ public class TcpEstablished: TcpStateHandler
         // FIXME - being closing connection
 
         return TcpStateTransition(newState: self)
+    }
+
+    func pumpToUpstream(_ tcp: TCP) async throws
+    {
+        guard let downstreamStraw = self.downstreamStraw else
+        {
+            throw TcpEstablishedError.missingStraws
+        }
+
+        try await downstreamStraw.write(tcp)
+
+        let segment = try await downstreamStraw.read()
+        try await self.upstream.writeWithLengthPrefix(segment.data, 32)
+
+        try await downstreamStraw.clear(bytesSent: segment.data.count)
     }
 }
 

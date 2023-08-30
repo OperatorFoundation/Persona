@@ -22,11 +22,14 @@ public class TcpStateHandler
     public var lastUsed: Date
     public var upstreamStraw: TCPUpstreamStraw?
     public var downstreamStraw: TCPDownstreamStraw?
+    public var upstream: AsyncConnection
     public var open: Bool = true
 
-    public init(identity: TcpIdentity, logger: Logger, tcpLogger: Puppy, writeLogger: Puppy)
+    public init(identity: TcpIdentity, upstream: AsyncConnection, logger: Logger, tcpLogger: Puppy, writeLogger: Puppy)
     {
         self.identity = identity
+        self.upstream = upstream
+
         self.logger = logger
         self.tcpLogger = tcpLogger
         self.writeLogger = writeLogger
@@ -40,6 +43,7 @@ public class TcpStateHandler
     public init(_ oldState: TcpStateHandler)
     {
         self.identity = oldState.identity
+        self.upstream = oldState.upstream
         self.logger = oldState.logger
         self.tcpLogger = oldState.tcpLogger
         self.writeLogger = oldState.writeLogger

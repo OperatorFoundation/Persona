@@ -176,7 +176,7 @@ public class TcpProxyConnection
 //            self.tcpLogger.debug("TcpProxyConnection.init - tcpstatus was success")
 //        }
 
-        self.state = TcpListen(identity: identity, logger: logger, tcpLogger: tcpLogger, writeLogger: writeLogger)
+        self.state = TcpListen(identity: identity, upstream: self.upstream, logger: logger, tcpLogger: tcpLogger, writeLogger: writeLogger)
 
 //        logger.debug("TcpProxyConnection.init::\(self.state) \(description(ipv4, tcp))")
 //        if identity.remotePort == 7 || identity.remotePort == 853
