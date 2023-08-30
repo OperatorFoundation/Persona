@@ -44,6 +44,18 @@ public actor TCPUpstreamStraw
         return self.window.lowerBound
     }
 
+    // For SYN and FIN
+    public func incrementSequenceNumber() async
+    {
+        self.window.lowerBound = self.window.lowerBound.increment()
+    }
+
+    // For resending SYN and FIN
+    public func decrementSequenceNumber() async
+    {
+        self.window.lowerBound = self.window.lowerBound.decrement()
+    }
+
     // public functions
     func inWindow(_ tcp: InternetProtocols.TCP) async -> Bool
     {

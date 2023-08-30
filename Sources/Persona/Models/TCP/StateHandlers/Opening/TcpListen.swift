@@ -115,6 +115,13 @@ public class TcpListen: TcpStateHandler
 //                self.tcpLogger.trace("<- TcpListen.SYN-ACK: \(description(ipv4, tcp))")
 //            }
 
+            // Count the SYN we sent
+            guard let upstreamStraw = self.upstreamStraw else
+            {
+                throw TcpListenError.missingStraws
+            }
+            await upstreamStraw.incrementSequenceNumber()
+
             let synReceived = TcpSynReceived(self)
             return TcpStateTransition(newState: synReceived, packetsToSend: [synAck])
         }
@@ -136,4 +143,5 @@ public enum TcpListenError: Error
 {
     case listenStateRequiresSynPacket
     case rstReceived
+    case missingStraws
 }
