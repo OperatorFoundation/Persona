@@ -142,6 +142,8 @@ public class TcpEstablished: TcpStateHandler
         try await self.upstream.writeWithLengthPrefix(segment.data, 32)
 
         try await downstreamStraw.clear(bytesSent: segment.data.count)
+
+        self.logger.info("TcpEstablished.pumpToUpstream --> tcpproxy - \(segment.data.count) bytes")
     }
 }
 
