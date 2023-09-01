@@ -28,14 +28,6 @@ public class TcpClosed: TcpStateHandler
 
         self.open = false
     }
-
-    public func processDownstreamPacket(ipv4: IPv4, tcp: TCP, payload: Data?) async throws
-    {
-    }
-
-    public func processUpstreamData(data: Data) async throws
-    {
-    }
 }
 
 public enum TcpClosedError: Error
