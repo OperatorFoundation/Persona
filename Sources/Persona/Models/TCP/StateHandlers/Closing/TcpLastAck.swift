@@ -13,9 +13,16 @@ public class TcpLastAck: TcpStateHandler
 {
     override public func processDownstreamPacket(ipv4: IPv4, tcp: TCP, payload: Data?) async throws -> TcpStateTransition
     {
-        guard tcp.ack else
+        /**
+         If the TCP is in one of the synchronized states (ESTABLISHED,
+         FIN-WAIT-1, FIN-WAIT-2, CLOSE-WAIT, CLOSING, LAST-ACK, TIME-WAIT), it
+         aborts the connection and informs its user.  We discuss this latter
+         case under "half-open" connections below.
+         */
+        if tcp.rst
         {
-            return TcpStateTransition(newState: self)
+            // FIXME: Abort the connection and inform the user
+            return TcpStateTransition(newState: TcpClosed(self))
         }
         
         guard try await acceptableSegment(upstreamStraw: self.upstreamStraw, tcp: tcp) else
@@ -30,6 +37,12 @@ public class TcpLastAck: TcpStateHandler
             
             let ack = try await makeAck()
             return TcpStateTransition(newState: self, packetsToSend: [ack])
+        }
+        
+        guard tcp.ack else
+        {
+            // TODO: Log this
+            return TcpStateTransition(newState: self)
         }
         
         return TcpStateTransition(newState: TcpClosed(self))
