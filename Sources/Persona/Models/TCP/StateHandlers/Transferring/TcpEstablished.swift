@@ -184,7 +184,7 @@ public class TcpEstablished: TcpStateHandler
     func pumpServerToClient(_ tcp: TCP) async throws -> [IPv4]
     {
         // Buffer data from the server until the client ACKs it.
-        let data = try await self.upstream.readWithLengthPrefix(prefixSizeInBits: 32)
+        let data = try await self.upstream.read()
 
         if data.count > 0
         {

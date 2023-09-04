@@ -219,15 +219,15 @@ class TcpProxy:
                 self.log.write("tcpproxy <- %s:%d - %d\n" % (self.host, self.port, len(data)))
                 self.log.flush()
 
-                length = len(data)
-                lengthBytes = length.to_bytes(4, "big")
-
-                bs = lengthBytes + data
+                # length = len(data)
+                # lengthBytes = length.to_bytes(4, "big")
+                #
+                # bs = lengthBytes + data
 
 #                self.log.write("client <- tcpproxy - writing %d bytes\n" % (len(bs)))
 #                self.log.flush()
 
-                self.downstreamWrite.write(bs)
+                self.downstreamWrite.write(data)
                 self.downstreamWrite.flush()
 
                 self.log.write("client <- tcpproxy - %d bytes\n" % (len(bs)))
