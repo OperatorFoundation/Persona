@@ -80,7 +80,7 @@ public class TCPStraw
     // This is the client window
     public func clientWindow(size: UInt16) -> SequenceNumberRange
     {
-        return SequenceNumberRange(lowerBound: self.sequenceNumber, size: UInt32(size))
+        return SequenceNumberRange(lowerBound: self.acknowledgementNumber, size: UInt32(size))
     }
 
     public func serverWindow() -> SequenceNumberRange
