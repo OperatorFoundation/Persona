@@ -58,7 +58,7 @@ public class TCPStraw
         let sequenceNumberData = tcp.sequenceNumber
         let tcpSequenceNumber = SequenceNumber(sequenceNumberData)
 
-        let window = SequenceNumberRange(lowerBound: self.sequenceNumber, size: UInt32(Self.serverWindowSize))
+        let window = SequenceNumberRange(lowerBound: self.acknowledgementNumber, size: UInt32(Self.serverWindowSize))
         guard window.contains(sequenceNumber: tcpSequenceNumber) else
         {
             return false
