@@ -147,6 +147,12 @@ public class TCPStraw
     public func acknowledge(_ ack: SequenceNumber) throws
     {
         let size = ack - self.sequenceNumber
+
+        guard size > 0 else
+        {
+            return
+        }
+
         try self.straw.clear(Int(size))
 
         self.sequenceNumber = ack
