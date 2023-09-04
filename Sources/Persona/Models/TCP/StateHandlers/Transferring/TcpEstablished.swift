@@ -186,7 +186,7 @@ public class TcpEstablished: TcpStateHandler
         while totalPayloadSize < sizeToSend
         {
             // Each packet is limited is by the amount left to send and the MTU (which we guess).
-            let nextPacketSize = min(sizeToSend, 1400)
+            let nextPacketSize = min(sizeToSend - totalPayloadSize, 1400)
 
             let window = SequenceNumberRange(lowerBound: nextSequenceNumber, size: UInt32(nextPacketSize))
             let packet = try await self.makeAck(window: window)
