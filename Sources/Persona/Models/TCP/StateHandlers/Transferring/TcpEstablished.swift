@@ -60,7 +60,10 @@ public class TcpEstablished: TcpStateHandler
         if tcp.ack
         {
             let acknowledgementNumber = SequenceNumber(tcp.acknowledgementNumber)
+
+            self.logger.info("TcpEstablished.processDownstreamPacket - clearing buffer up to \(acknowledgementNumber) (currently at \(self.straw.sequenceNumber):\(self.straw.count)")
             try self.straw.acknowledge(acknowledgementNumber)
+            self.logger.info("TcpEstablished.processDownstreamPacket - cleared buffer (now at \(self.straw.sequenceNumber):\(self.straw.count)")
         }
 
         if tcp.payload != nil
