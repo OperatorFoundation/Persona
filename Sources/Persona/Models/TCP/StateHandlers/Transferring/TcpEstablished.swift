@@ -15,7 +15,22 @@ public class TcpEstablished: TcpStateHandler
     {
         let clientWindow = self.straw.clientWindow(size: tcp.windowSize)
         let packetLowerBound = SequenceNumber(tcp.sequenceNumber)
-        let packetUpperBound = packetLowerBound.add(Int(tcp.windowSize))
+
+        var packetUpperBound: SequenceNumber = packetLowerBound
+        if let payload
+        {
+            packetUpperBound = packetUpperBound.add(payload.count)
+        }
+
+        if tcp.syn
+        {
+            packetUpperBound = packetUpperBound.increment()
+        }
+
+        if tcp.fin
+        {
+            packetUpperBound = packetUpperBound.increment()
+        }
 
         // We can only receive data inside the TCP window.
         guard self.straw.inWindow(tcp) else
@@ -42,7 +57,13 @@ public class TcpEstablished: TcpStateHandler
          has been received.
          */
 
-        if let _ = tcp.payload
+        if tcp.ack
+        {
+            let acknowledgementNumber = SequenceNumber(tcp.acknowledgementNumber)
+            try self.straw.acknowledge(acknowledgementNumber)
+        }
+
+        if tcp.payload != nil
         {
 //            self.tcpLogger.debug("* Persona.processLocalPacket: tcp payload received on an established connection, buffering 🏆")
 //            self.tcpLogger.debug("* SEQ:\(SequenceNumber(tcp.sequenceNumber)) ACK:\(SequenceNumber(tcp.acknowledgementNumber))")
@@ -97,11 +118,6 @@ public class TcpEstablished: TcpStateHandler
                 self.logger.info("server-to-client payloads ACK")
                 return TcpStateTransition(newState: self, packetsToSend: packets)
             }
-        }
-
-        if tcp.ack
-        {
-            // FIXME: - adjust windowSize based on ACK
         }
 
         if tcp.rst
