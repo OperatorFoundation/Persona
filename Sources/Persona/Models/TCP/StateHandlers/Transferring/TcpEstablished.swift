@@ -63,6 +63,7 @@ public class TcpEstablished: TcpStateHandler
 
             // Write the payload to the tcpproxy subsystem
             try await self.pumpToUpstream(tcp)
+            let packets = try await self.pumpToDownstream()
 
 //            self.logger.debug("* Persona.processLocalPacket: payload upstream write complete\n")
 
@@ -143,7 +144,42 @@ public class TcpEstablished: TcpStateHandler
 
         try await downstreamStraw.clear(bytesSent: segment.data.count)
 
-        self.logger.info("TcpEstablished.pumpToUpstream --> tcpproxy - \(segment.data.count) bytes")
+        self.logger.info("TcpEstablished.pumpToUpstream: Persona --> tcpproxy - \(segment.data.count) bytes")
+    }
+
+    func pumpToDownstream() async throws -> [IPv4]
+    {
+        guard let upstreamStraw = self.upstreamStraw else
+        {
+            throw TcpEstablishedError.missingStraws
+        }
+
+        let data = try await self.upstream.read()
+        try await upstreamStraw.write(data)
+
+        self.logger.info("TcpEstablished.pumpToDownstream: Persona <-- tcpproxy - \(data.count) bytes")
+
+        var packets: [IPv4] = []
+        if await upstreamStraw.count() > 0
+        {
+            var lowerBound = await upstreamStraw.window.lowerBound
+            var maxUpperBound = await upstreamStraw.window.upperBound
+            var upperBound = min(lowerBound.add(1400), maxUpperBound)
+
+            while true
+            {
+                var window = SequenceNumberRange(lowerBound: lowerBound, upperBound: upperBound)
+                let packet = self.makeAck(window: window)
+                packets.append(packet)
+
+                if upperBound == maxUpperBound
+                {
+                    break
+                }
+            }
+
+            return packets
+        }
     }
 }
 

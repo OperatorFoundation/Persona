@@ -18,11 +18,13 @@ public actor TCPUpstreamStraw
     static public let maxBufferSize: UInt16 = UInt16.max
 
     // private let properties
-    let straw = StrawActor()
+    let bottomStraw = StrawActor()
+    let topStraw = StrawActor()
 
     // private var properties
     var lastAck: SequenceNumber? = nil
     var window: SequenceNumberRange
+    var highWaterMark: SequenceNumber
     var privateAckUpdated = false
     var privateAcknowledgementNumber: SequenceNumber
     var open = true
@@ -104,26 +106,20 @@ public actor TCPUpstreamStraw
         return await self.straw.isEmpty
     }
 
-    public func write(_ segment: InternetProtocols.TCP) async throws
+    public func write(_ payload: Data) async throws
     {
         guard self.open else
         {
             throw TCPUpstreamStrawError.strawClosed
         }
 
-        guard let payload = segment.payload else
-        {
-            return
-        }
-
-        // TODO: Handle out of sequence things
-        guard segment.window.lowerBound == self.window.lowerBound else
-        {
-            throw TCPUpstreamStrawError.misorderedSegment
-        }
-
         await self.straw.write(payload)
-        try self.window.increaseLowerBounds(by: payload.count)
+        try self.window.increaseUpperBounds(by: payload.count)
+    }
+
+    public func read(_ window: SequenceNumberRange) async throws -> SegmentData
+    {
+
     }
 
     public func read() async throws -> SegmentData
