@@ -63,14 +63,9 @@ public class TcpSynReceived: TcpStateHandler
             {
                 self.logger.info("duplicate SYN \(newSequenceNumber)")
 
-                // Roll back the sequence number so that we can retry sending a SYN-ACK
-                self.straw.decrementAcknowledgementNumber()
-
                 // Send a SYN-ACK
-                let (sequenceNumber, acknowledgementNumber, windowSize) = try await self.getState()
+                let (sequenceNumber, acknowledgementNumber, windowSize) = self.getState()
                 let synack = try self.makeSynAck(sequenceNumber: sequenceNumber, acknowledgementNumber: acknowledgementNumber, windowSize: windowSize)
-
-                self.straw.incrementSequenceNumber()
 
                 return TcpStateTransition(newState: self, packetsToSend: [synack])
             }
@@ -79,7 +74,7 @@ public class TcpSynReceived: TcpStateHandler
 //                self.logger.info("brand new SYN \(newSequenceNumber) \(oldSequenceNumber)")
 
                 // Send a RST
-                let (sequenceNumber, acknowledgementNumber, windowSize) = try await self.getState()
+                let (sequenceNumber, acknowledgementNumber, windowSize) = self.getState()
                 let rst = try self.makeRst(ipv4: ipv4, tcp: tcp, sequenceNumber: sequenceNumber, acknowledgementNumber: acknowledgementNumber, windowSize: windowSize)
 
                 let newState = TcpListen(self)
