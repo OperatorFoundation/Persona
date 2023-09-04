@@ -156,7 +156,7 @@ public class TcpEstablished: TcpStateHandler
 
         self.straw.increaseAcknowledgementNumber(payload.count)
 
-        self.logger.info("TcpEstablished.pumpClientToServer: Persona --> tcpproxy - \(payload.count) bytes")
+        self.logger.info("TcpEstablished.pumpClientToServer: Persona --> tcpproxy - \(payload.count) bytes (new ACK#\(self.straw.acknowledgementNumber))")
     }
 
     func pumpServerToClient(_ tcp: TCP) async throws -> [IPv4]
