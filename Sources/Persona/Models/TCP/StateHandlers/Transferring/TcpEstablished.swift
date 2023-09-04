@@ -63,7 +63,7 @@ public class TcpEstablished: TcpStateHandler
 
             if acknowledgementNumber != self.straw.sequenceNumber
             {
-                self.logger.info("TcpEstablished.processDownstreamPacket - clearing buffer up to \(acknowledgementNumber) (currently at \(self.straw.sequenceNumber):\(self.straw.count)")
+                self.logger.info("TcpEstablished.processDownstreamPacket - clearing buffer up to \(acknowledgementNumber) (currently at \(self.straw.sequenceNumber):\(self.straw.count))")
                 try self.straw.acknowledge(acknowledgementNumber)
                 self.logger.info("TcpEstablished.processDownstreamPacket - cleared buffer (now at \(self.straw.sequenceNumber):\(self.straw.count))")
             }
@@ -184,7 +184,7 @@ public class TcpEstablished: TcpStateHandler
     func pumpServerToClient(_ tcp: TCP) async throws -> [IPv4]
     {
         // Buffer data from the server until the client ACKs it.
-        let data = try await self.upstream.read()
+        let data = try await self.upstream.readWithLengthPrefix(prefixSizeInBits: 32)
 
         if data.count > 0
         {
