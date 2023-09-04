@@ -100,6 +100,13 @@ public class TcpEstablished: TcpStateHandler
 
         if tcp.rst
         {
+            /**
+             If the TCP is in one of the synchronized states (ESTABLISHED,
+             FIN-WAIT-1, FIN-WAIT-2, CLOSE-WAIT, CLOSING, LAST-ACK, TIME-WAIT), it
+             aborts the connection and informs its user.  We discuss this latter
+             case under "half-open" connections below.
+             */
+            
             // FIXME: - reset connection
         }
 

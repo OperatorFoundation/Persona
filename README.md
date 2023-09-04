@@ -39,7 +39,7 @@ script, you can connect to the Persona port and systemd will automatically launc
 ## Updating
 
 If you are working on developing Persona, there is an script called update.sh that will update to the latest
-versiona and restart the Persona daemon. Please not that this will not update dependencies, so use the usual
+versiona and restart the Persona daemon. Please note that this will not update dependencies, so use the usual
 "swift package update" to update dependencies if they have changed and then run update.sh afterwards.
 
 ## Pluggable Transport Support

@@ -128,6 +128,26 @@ public class TcpStateHandler
         
         return ack
     }
+    
+    func makeFin() async throws -> IPv4
+    {
+        guard let upstreamStraw = upstreamStraw else
+        {
+            throw TCPUpstreamStrawError.strawClosed
+        }
+        
+        // Our sequence number is taken from upstream.
+        let sequenceNumber = await upstreamStraw.sequenceNumber()
+
+        // We acknowledge bytes we have handled from downstream.
+        let acknowledgementNumber = await upstreamStraw.acknowledgementNumber()
+
+        // Our window size is how many more bytes we are willing to accept from downstream.
+        let windowSize = await upstreamStraw.windowSize()
+        let fin = try self.makePacket(sequenceNumber: sequenceNumber, acknowledgementNumber: acknowledgementNumber, windowSize: windowSize, fin: true)
+        
+        return fin
+    }
 
     func makePacket(sequenceNumber: SequenceNumber, acknowledgementNumber: SequenceNumber, windowSize: UInt16, syn: Bool = false, ack: Bool = false, fin: Bool = false, rst: Bool = false, payload: Data? = nil) throws -> IPv4
     {
