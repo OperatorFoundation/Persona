@@ -25,6 +25,7 @@ public class TcpEstablished: TcpStateHandler
             let (sequenceNumber, acknowledgementNumber, windowSize) = self.getState()
 
             // Send an ACK to let the client know that they are outside of the TCP window.
+            self.logger.info("Out of window ACK - SEQ#\(sequenceNumber), ACK#\(acknowledgementNumber)")
             let ack = try self.makePacket(sequenceNumber: sequenceNumber, acknowledgementNumber: acknowledgementNumber, windowSize: windowSize, ack: true)
             return TcpStateTransition(newState: self, packetsToSend: [ack])
         }
@@ -88,10 +89,12 @@ public class TcpEstablished: TcpStateHandler
             if packets.isEmpty
             {
                 let ack = try await makeAck()
+                self.logger.info("No server-to-client payloads ACK")
                 return TcpStateTransition(newState: self, packetsToSend: [ack])
             }
             else
             {
+                self.logger.info("server-to-client payloads ACK")
                 return TcpStateTransition(newState: self, packetsToSend: packets)
             }
         }
@@ -120,6 +123,7 @@ public class TcpEstablished: TcpStateHandler
             
             // Send ACK and move to CLOSE-WAIT state
             let ack = try await makeAck()
+            self.logger.info("FIN ACK")
             return TcpStateTransition(newState: TcpCloseWait(self), packetsToSend: [ack])
         }
 
