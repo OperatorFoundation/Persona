@@ -30,7 +30,7 @@ public class TcpSynReceived: TcpStateHandler
 //                self.tcpLogger.debug("TcpSynReceived: rejected packet because of RST")
 //            }
 
-            let (sequenceNumber, acknowledgementNumber, windowSize) = try await self.getState()
+            let (sequenceNumber, acknowledgementNumber, windowSize) = self.getState()
             return try await self.panicOnDownstream(ipv4: ipv4, tcp: tcp, payload: payload, sequenceNumber: sequenceNumber, acknowledgementNumber: acknowledgementNumber, windowSize: windowSize)
         }
 
@@ -45,7 +45,7 @@ public class TcpSynReceived: TcpStateHandler
 //                self.tcpLogger.debug("TcpSynReceived: rejected packet because of FIN")
 //            }
 
-            let (sequenceNumber, acknowledgementNumber, windowSize) = try await self.getState()
+            let (sequenceNumber, acknowledgementNumber, windowSize) = self.getState()
             return try await self.panicOnDownstream(ipv4: ipv4, tcp: tcp, payload: payload, sequenceNumber: sequenceNumber, acknowledgementNumber: acknowledgementNumber, windowSize: windowSize)
        }
 
@@ -101,7 +101,7 @@ public class TcpSynReceived: TcpStateHandler
 //            }
 
             // Roll back the sequence number so that we can retry sending a SYN-ACK
-            let (sequenceNumber, acknowledgementNumber, windowSize) = try await self.getState()
+            let (sequenceNumber, acknowledgementNumber, windowSize) = self.getState()
             let synAck = try self.makeSynAck(sequenceNumber: sequenceNumber, acknowledgementNumber: acknowledgementNumber.decrement(), windowSize: windowSize)
 
             return TcpStateTransition(newState: self, packetsToSend: [synAck])

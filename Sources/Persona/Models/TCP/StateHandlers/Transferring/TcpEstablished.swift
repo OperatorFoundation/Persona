@@ -154,7 +154,7 @@ public class TcpEstablished: TcpStateHandler
         // Fully write all incoming payloads from the client to the server so that we don't have to buffer them.
         try await self.upstream.writeWithLengthPrefix(payload, 32)
 
-        self.logger.info("TcpEstablished.pumpToUpstream: Persona --> tcpproxy - \(payload.count) bytes")
+        self.logger.info("TcpEstablished.pumpClientToServer: Persona --> tcpproxy - \(payload.count) bytes")
     }
 
     func pumpServerToClient(_ tcp: TCP) async throws -> [IPv4]
@@ -165,7 +165,7 @@ public class TcpEstablished: TcpStateHandler
         if data.count > 0
         {
             try self.straw.write(data)
-            self.logger.info("TcpEstablished.pumpToDownstream: Persona <-- tcpproxy - \(data.count) bytes")
+            self.logger.info("TcpEstablished.pumpServerToClient: Persona <-- tcpproxy - \(data.count) bytes")
         }
 
         guard !self.straw.isEmpty else
