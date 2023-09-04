@@ -230,7 +230,7 @@ class TcpProxy:
                 self.downstreamWrite.write(data)
                 self.downstreamWrite.flush()
 
-                self.log.write("client <- tcpproxy - %d bytes\n" % (len(bs)))
+                self.log.write("client <- tcpproxy - %d bytes\n" % (len(data)))
                 self.log.flush()
 
             except Exception as e:
