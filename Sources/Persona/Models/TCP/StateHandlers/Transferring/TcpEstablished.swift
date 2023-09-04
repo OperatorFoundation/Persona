@@ -13,28 +13,23 @@ public class TcpEstablished: TcpStateHandler
 {
     override public func processDownstreamPacket(ipv4: IPv4, tcp: TCP, payload: Data?) async throws -> TcpStateTransition
     {
-        guard let downstreamStraw = self.downstreamStraw else
-        {
-            throw TcpEstablishedError.missingStraws
-        }
-
-        let downstreamWindow = await downstreamStraw.window
+        let clientWindow = self.straw.clientWindow(size: tcp.windowSize)
         let packetLowerBound = SequenceNumber(tcp.sequenceNumber)
         let packetUpperBound = packetLowerBound.add(Int(tcp.windowSize))
 
         // We can only receive data inside the TCP window.
-        guard await downstreamStraw.inWindow(tcp) else
+        guard self.straw.inWindow(tcp) else
         {
-            self.logger.error("❌ \(downstreamWindow.lowerBound) <= \(packetLowerBound)..<\(packetUpperBound) <= \(downstreamWindow.upperBound)")
+            self.logger.error("❌ \(clientWindow.lowerBound) <= \(packetLowerBound)..<\(packetUpperBound) <= \(clientWindow.upperBound)")
 
-            let (sequenceNumber, acknowledgementNumber, windowSize) = try await self.getState()
+            let (sequenceNumber, acknowledgementNumber, windowSize) = self.getState()
 
             // Send an ACK to let the client know that they are outside of the TCP window.
             let ack = try self.makePacket(sequenceNumber: sequenceNumber, acknowledgementNumber: acknowledgementNumber, windowSize: windowSize, ack: true)
             return TcpStateTransition(newState: self, packetsToSend: [ack])
         }
 
-        self.logger.error("✅ \(downstreamWindow.lowerBound) <= \(packetLowerBound)..<\(packetUpperBound) <= \(downstreamWindow.upperBound)")
+        self.logger.error("✅ \(clientWindow.lowerBound) <= \(packetLowerBound)..<\(packetUpperBound) <= \(clientWindow.upperBound)")
 
 //        self.logger.debug("TcpEstablished.processDownstreamPacket")
         /*
@@ -62,8 +57,8 @@ public class TcpEstablished: TcpStateHandler
 //            }
 
             // Write the payload to the tcpproxy subsystem
-            try await self.pumpToUpstream(tcp)
-            let packets = try await self.pumpToDownstream()
+            try await self.pumpClientToServer(tcp)
+            let packets = try await self.pumpServerToClient(tcp)
 
 //            self.logger.debug("* Persona.processLocalPacket: payload upstream write complete\n")
 
@@ -89,8 +84,16 @@ public class TcpEstablished: TcpStateHandler
              This acknowledgment should be piggybacked on a segment being
              transmitted if possible without incurring undue delay.
              */
-            let ack = try await makeAck()
-            return TcpStateTransition(newState: self, packetsToSend: [ack])
+
+            if packets.isEmpty
+            {
+                let ack = try await makeAck()
+                return TcpStateTransition(newState: self, packetsToSend: [ack])
+            }
+            else
+            {
+                return TcpStateTransition(newState: self, packetsToSend: packets)
+            }
         }
 
         if tcp.ack
@@ -137,56 +140,59 @@ public class TcpEstablished: TcpStateHandler
         return TcpStateTransition(newState: self)
     }
 
-    func pumpToUpstream(_ tcp: TCP) async throws
+    func pumpClientToServer(_ tcp: TCP) async throws
     {
-        guard let downstreamStraw = self.downstreamStraw else
+        guard let payload = tcp.payload else
         {
-            throw TcpEstablishedError.missingStraws
+            return
         }
 
-        try await downstreamStraw.write(tcp)
+        // Fully write all incoming payloads from the client to the server so that we don't have to buffer them.
+        try await self.upstream.writeWithLengthPrefix(payload, 32)
 
-        let segment = try await downstreamStraw.read()
-        try await self.upstream.writeWithLengthPrefix(segment.data, 32)
-
-        try await downstreamStraw.clear(bytesSent: segment.data.count)
-
-        self.logger.info("TcpEstablished.pumpToUpstream: Persona --> tcpproxy - \(segment.data.count) bytes")
+        self.logger.info("TcpEstablished.pumpToUpstream: Persona --> tcpproxy - \(payload.count) bytes")
     }
 
-    func pumpToDownstream() async throws -> [IPv4]
+    func pumpServerToClient(_ tcp: TCP) async throws -> [IPv4]
     {
-        guard let upstreamStraw = self.upstreamStraw else
-        {
-            throw TcpEstablishedError.missingStraws
-        }
-
+        // Buffer data from the server until the client ACKs it.
         let data = try await self.upstream.read()
-        try await upstreamStraw.write(data)
 
-        self.logger.info("TcpEstablished.pumpToDownstream: Persona <-- tcpproxy - \(data.count) bytes")
-
-        var packets: [IPv4] = []
-        if await upstreamStraw.count() > 0
+        if data.count > 0
         {
-            var lowerBound = await upstreamStraw.window.lowerBound
-            var maxUpperBound = await upstreamStraw.window.upperBound
-            var upperBound = min(lowerBound.add(1400), maxUpperBound)
-
-            while true
-            {
-                var window = SequenceNumberRange(lowerBound: lowerBound, upperBound: upperBound)
-                let packet = self.makeAck(window: window)
-                packets.append(packet)
-
-                if upperBound == maxUpperBound
-                {
-                    break
-                }
-            }
-
-            return packets
+            try self.straw.write(data)
+            self.logger.info("TcpEstablished.pumpToDownstream: Persona <-- tcpproxy - \(data.count) bytes")
         }
+
+        guard !self.straw.isEmpty else
+        {
+            return []
+        }
+
+        // We're going to split the whole buffer into individual packets.
+        var packets: [IPv4] = []
+
+        // The maximum we can send is limited by both the client window size and how much data is in the buffer.
+        let sizeToSend = min(Int(tcp.windowSize), self.straw.count)
+
+        var totalPayloadSize = 0
+        var nextSequenceNumber = self.straw.sequenceNumber
+
+        // We're going to hit this limit exactly.
+        while totalPayloadSize < sizeToSend
+        {
+            // Each packet is limited is by the amount left to send and the MTU (which we guess).
+            let nextPacketSize = min(sizeToSend, 1400)
+
+            let window = SequenceNumberRange(lowerBound: nextSequenceNumber, size: UInt32(nextPacketSize))
+            let packet = try await self.makeAck(window: window)
+            packets.append(packet)
+
+            totalPayloadSize = totalPayloadSize + nextPacketSize
+            nextSequenceNumber = nextSequenceNumber.add(nextPacketSize)
+        }
+
+        return packets
     }
 }
 

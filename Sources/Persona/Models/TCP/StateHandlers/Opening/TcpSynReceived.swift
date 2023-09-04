@@ -13,11 +13,6 @@ public class TcpSynReceived: TcpStateHandler
 {
     override public func processDownstreamPacket(ipv4: IPv4, tcp: TCP, payload: Data?) async throws -> TcpStateTransition
     {
-        guard let downstreamStraw = self.downstreamStraw else
-        {
-            throw TcpEstablishedError.missingStraws
-        }
-
 //        self.logger.debug("TcpSynReceived.processDownstreamPacket: \(identity.localAddress.data.ipv4AddressString ?? "?.?.?.?"):\(identity.localPort) -> \(identity.remoteAddress.data.ipv4AddressString ?? "?.?.?.?"):\(identity.remotePort)")
 //        if identity.remotePort == 7 || identity.remotePort == 853
 //        {
@@ -59,7 +54,7 @@ public class TcpSynReceived: TcpStateHandler
         {
 //            self.logger.trace("-> TcpSynReceived.SYN: \(description(ipv4, tcp))")
 
-            let oldSequenceNumber = await downstreamStraw.sequenceNumber()
+            let oldSequenceNumber = self.straw.acknowledgementNumber
             let newSequenceNumber = SequenceNumber(tcp.sequenceNumber)
 
 //             self.logger.trace("old SEQ:\(oldSequenceNumber), new SEQ:\(newSequenceNumber)")
@@ -68,25 +63,14 @@ public class TcpSynReceived: TcpStateHandler
             {
                 self.logger.info("duplicate SYN \(newSequenceNumber)")
 
-                guard let upstreamStraw = self.upstreamStraw else
-                {
-                    throw TcpSynReceivedError.missingStraws
-                }
-
                 // Roll back the sequence number so that we can retry sending a SYN-ACK
-                await upstreamStraw.decrementSequenceNumber()
-                self.upstreamStraw = upstreamStraw
+                self.straw.decrementAcknowledgementNumber()
 
                 // Send a SYN-ACK
                 let (sequenceNumber, acknowledgementNumber, windowSize) = try await self.getState()
                 let synack = try self.makeSynAck(sequenceNumber: sequenceNumber, acknowledgementNumber: acknowledgementNumber, windowSize: windowSize)
 
-                guard let upstreamStraw = self.upstreamStraw else
-                {
-                    throw TcpSynReceivedError.missingStraws
-                }
-                await upstreamStraw.incrementSequenceNumber()
-                self.upstreamStraw = upstreamStraw
+                self.straw.incrementSequenceNumber()
 
                 return TcpStateTransition(newState: self, packetsToSend: [synack])
             }
@@ -121,24 +105,9 @@ public class TcpSynReceived: TcpStateHandler
 //                self.tcpLogger.debug("TcpSynReceived: staying in SYN-RECEIVED, resending SYN-ACK")
 //            }
 
-            guard let upstreamStraw = self.upstreamStraw else
-            {
-                throw TcpSynReceivedError.missingStraws
-            }
-
             // Roll back the sequence number so that we can retry sending a SYN-ACK
-            await upstreamStraw.decrementSequenceNumber()
-            self.upstreamStraw = upstreamStraw
-
             let (sequenceNumber, acknowledgementNumber, windowSize) = try await self.getState()
-            let synAck = try self.makeSynAck(sequenceNumber: sequenceNumber, acknowledgementNumber: acknowledgementNumber, windowSize: windowSize)
-
-            guard let upstreamStraw = self.upstreamStraw else
-            {
-                throw TcpSynReceivedError.missingStraws
-            }
-            await upstreamStraw.incrementSequenceNumber()
-            self.upstreamStraw = upstreamStraw
+            let synAck = try self.makeSynAck(sequenceNumber: sequenceNumber, acknowledgementNumber: acknowledgementNumber.decrement(), windowSize: windowSize)
 
             return TcpStateTransition(newState: self, packetsToSend: [synAck])
         }

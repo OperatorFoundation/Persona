@@ -30,9 +30,9 @@ public class TcpCloseWait: TcpStateHandler
         /// acknowledgment segment containing the current send-sequence number and an acknowledgment indicating the next sequence number expected
         /// to be received, and the connection remains in the same state.
         
-        guard try await acceptableSegment(upstreamStraw: self.upstreamStraw, tcp: tcp) else
+        guard self.straw.inWindow(tcp) else
         {
-            let seqNum = await upstreamStraw?.sequenceNumber()
+            let seqNum = self.straw.sequenceNumber
             self.logger.log(level: .debug, "TCPFinWait2 processDownstreamPacket received an ACK with acknowledgement number (\(SequenceNumber(tcp.acknowledgementNumber))) that does not match our last sequence number (\(String(describing: seqNum))). Re-sending previous ack")
             
             let ack = try await makeAck()

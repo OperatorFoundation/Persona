@@ -20,8 +20,7 @@ public class TcpStateHandler
     public let writeLogger: Puppy
 
     public var lastUsed: Date
-    public var upstreamStraw: TCPUpstreamStraw?
-    public var downstreamStraw: TCPDownstreamStraw?
+    public var straw: TCPStraw
     public var upstream: AsyncConnection
     public var open: Bool = true
 
@@ -36,8 +35,7 @@ public class TcpStateHandler
 
         self.lastUsed = Date()
 
-        self.downstreamStraw = nil
-        self.upstreamStraw = nil
+        self.straw = TCPStraw(sequenceNumber: isn(), acknowledgementNumber: SequenceNumber(0))
     }
 
     public init(_ oldState: TcpStateHandler)
@@ -50,8 +48,7 @@ public class TcpStateHandler
 
         self.lastUsed = oldState.lastUsed
 
-        self.downstreamStraw = oldState.downstreamStraw
-        self.upstreamStraw = oldState.upstreamStraw
+        self.straw = oldState.straw
     }
 
     public func processDownstreamPacket(ipv4: IPv4, tcp: TCP, payload: Data?) async throws -> TcpStateTransition
@@ -79,21 +76,16 @@ public class TcpStateHandler
         return self.panicOnUpstreamClose()
     }
 
-    func getState() async throws -> (sequenceNumber: SequenceNumber, acknowledgeNumber: SequenceNumber, windowSize: UInt16)
+    func getState() -> (sequenceNumber: SequenceNumber, acknowledgeNumber: SequenceNumber, windowSize: UInt16)
     {
-        guard let upstreamStraw = self.upstreamStraw, let downstreamStraw = self.downstreamStraw else
-        {
-            throw TcpStateHandlerError.missingStraws
-        }
-
         // Our sequence number is taken from upstream.
-        let sequenceNumber = await upstreamStraw.sequenceNumber()
+        let sequenceNumber = self.straw.sequenceNumber
 
         // We acknowledge bytes we have handled from downstream.
-        let acknowledgementNumber = await downstreamStraw.acknowledgementNumber()
+        let acknowledgementNumber = self.straw.acknowledgementNumber
 
         // Our window size is how many more bytes we are willing to accept from downstream.
-        let windowSize = await upstreamStraw.windowSize()
+        let windowSize = TCPStraw.serverWindowSize
 
         return (sequenceNumber, acknowledgementNumber, windowSize)
     }
@@ -105,45 +97,22 @@ public class TcpStateHandler
     
     func makeAck(window: SequenceNumberRange? = nil) async throws -> IPv4
     {
-        guard let upstreamStraw = upstreamStraw else
-        {
-            throw TCPUpstreamStrawError.strawClosed
-        }
-
-        var segment: SegmentData? = nil
         if let window
         {
-            segment = upstreamStraw.read(size: window)
+            let (_, acknowledgementNumber, windowSize) = self.getState()
+            let segment = try self.straw.read(window: window)
+            return try self.makePacket(sequenceNumber: segment.window.lowerBound, acknowledgementNumber: acknowledgementNumber, windowSize: windowSize, ack: true, payload: segment.data)
         }
-
-        // Our sequence number is taken from upstream.
-        let sequenceNumber = await upstreamStraw.sequenceNumber()
-
-        // We acknowledge bytes we have handled from downstream.
-        let acknowledgementNumber = await upstreamStraw.acknowledgementNumber()
-
-        // Our window size is how many more bytes we are willing to accept from downstream.
-        let windowSize = await upstreamStraw.windowSize()
-        let ack = try self.makePacket(sequenceNumber: sequenceNumber, acknowledgementNumber: acknowledgementNumber, windowSize: windowSize, ack: true, payload: segment.data)
-        
-        return ack
+        else
+        {
+            let (sequenceNumber, acknowledgementNumber, windowSize) = self.getState()
+            return try self.makePacket(sequenceNumber: sequenceNumber, acknowledgementNumber: acknowledgementNumber, windowSize: windowSize, ack: true, payload: nil)
+        }
     }
     
     func makeFin() async throws -> IPv4
     {
-        guard let upstreamStraw = upstreamStraw else
-        {
-            throw TCPUpstreamStrawError.strawClosed
-        }
-        
-        // Our sequence number is taken from upstream.
-        let sequenceNumber = await upstreamStraw.sequenceNumber()
-
-        // We acknowledge bytes we have handled from downstream.
-        let acknowledgementNumber = await upstreamStraw.acknowledgementNumber()
-
-        // Our window size is how many more bytes we are willing to accept from downstream.
-        let windowSize = await upstreamStraw.windowSize()
+        let (sequenceNumber, acknowledgementNumber, windowSize) = self.getState()
         let fin = try self.makePacket(sequenceNumber: sequenceNumber, acknowledgementNumber: acknowledgementNumber, windowSize: windowSize, fin: true)
         
         return fin

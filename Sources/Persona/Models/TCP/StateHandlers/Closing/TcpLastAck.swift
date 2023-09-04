@@ -25,9 +25,9 @@ public class TcpLastAck: TcpStateHandler
             return TcpStateTransition(newState: TcpClosed(self))
         }
         
-        guard try await acceptableSegment(upstreamStraw: self.upstreamStraw, tcp: tcp) else
+        guard self.straw.inWindow(tcp) else
         {
-            let seqNum = await upstreamStraw?.sequenceNumber()
+            let seqNum = self.straw.sequenceNumber
             self.logger.log(level: .debug, "TCPLastAck processDownstreamPacket received an ACK with acknowledgement number (\(SequenceNumber(tcp.acknowledgementNumber))) that does not match our last sequence number (\(String(describing: seqNum))). Re-sending previous ack")
             
             /// If the connection is in a synchronized state (ESTABLISHED, FIN-WAIT-1, FIN-WAIT-2, CLOSE-WAIT, CLOSING, LAST-ACK, TIME-WAIT),

@@ -75,17 +75,12 @@ public class TcpListen: TcpStateHandler
         let irs = SequenceNumber(tcp.sequenceNumber) // Initial received sequence number
         let downstreamSequenceNumber = irs.increment() // Include the SYN in the count
 
-        // Don't forget to actually send this acknowledgementNumber downstream, or else we'll be out of sync.
-        let downstreamStraw = TCPDownstreamStraw(segmentStart: downstreamSequenceNumber, acknowledgementNumber: downstreamSequenceNumber, windowSize: tcp.windowSize)
-
         // Generate a random upstream sequence number
         let upstreamSequenceNumber = isn()
 
         // Set the acknowledgement number to the sequence number instead of 0. This signifies that nothing has been acknowledged yet and the math works out better than special casing zero.
-        let upstreamStraw = TCPUpstreamStraw(segmentStart: upstreamSequenceNumber, acknowledgementNumber: upstreamSequenceNumber)
-
-        self.downstreamStraw = downstreamStraw
-        self.upstreamStraw = upstreamStraw
+        // Don't forget to actually send this acknowledgementNumber downstream, or else we'll be out of sync.
+        self.straw = TCPStraw(sequenceNumber: upstreamSequenceNumber, acknowledgementNumber: downstreamSequenceNumber)
 
 //        self.logger.debug("TcpListen.processDownstreamPacket: Packet accepted! Sending SYN-ACK and switching to SYN-RECEIVED state")
 //        self.logger.trace("-> TcpListen.SYN: \(ipv4.sourceAddress.ipv4AddressString ?? "?.?.?.?."):\(tcp.sourcePort) -> \(ipv4.destinationAddress.ipv4AddressString ?? "?.?.?.?.") - SYN:\(tcp.syn), SEQ#:\(SequenceNumber(tcp.sequenceNumber)), ACK#:\(SequenceNumber(tcp.acknowledgementNumber)), CHK:\(tcp.checksum).data.hex")
@@ -116,11 +111,7 @@ public class TcpListen: TcpStateHandler
 //            }
 
             // Count the SYN we sent
-            guard let upstreamStraw = self.upstreamStraw else
-            {
-                throw TcpListenError.missingStraws
-            }
-            await upstreamStraw.incrementSequenceNumber()
+            self.straw.incrementSequenceNumber()
 
             let synReceived = TcpSynReceived(self)
             return TcpStateTransition(newState: synReceived, packetsToSend: [synAck])
