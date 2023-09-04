@@ -157,6 +157,11 @@ public class TCPStraw
         self.sequenceNumber = self.sequenceNumber.increment()
     }
 
+    public func increaseAcknowledgementNumber(_ x: Int)
+    {
+        self.acknowledgementNumber = self.acknowledgementNumber.add(x)
+    }
+
     public func decrementAcknowledgementNumber()
     {
         self.acknowledgementNumber = self.acknowledgementNumber.decrement()

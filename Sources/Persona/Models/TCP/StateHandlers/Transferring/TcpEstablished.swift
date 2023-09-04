@@ -154,6 +154,8 @@ public class TcpEstablished: TcpStateHandler
         // Fully write all incoming payloads from the client to the server so that we don't have to buffer them.
         try await self.upstream.writeWithLengthPrefix(payload, 32)
 
+        self.straw.increaseAcknowledgementNumber(payload.count)
+
         self.logger.info("TcpEstablished.pumpClientToServer: Persona --> tcpproxy - \(payload.count) bytes")
     }
 
