@@ -39,14 +39,65 @@ public class TcpCloseWait: TcpStateHandler
             return TcpStateTransition(newState: self, packetsToSend: [ack])
         }
         
-        // TODO: Do internal closing business here
+        guard tcp.ack else
+        {
+            return TcpStateTransition(newState: self)
+        }
         
-        let fin = try await makeFin()
-        return TcpStateTransition(newState: TcpLastAck(self), packetsToSend: [fin])
-    }
+        var packets = try await pumpServerToClient(tcp)
 
-    public func processUpstreamData(data: Data) async throws
+        return TcpStateTransition(newState: TcpLastAck(self), packetsToSend: packets)
+    }
+    
+    func pumpServerToClient(_ tcp: TCP) async throws -> [IPv4]
     {
+        // Buffer data from the server until the client ACKs it.
+        let data = try await self.upstream.read()
+
+        if data.count > 0
+        {
+            try self.straw.write(data)
+            self.logger.info("TcpCloseWait.pumpServerToClient: Persona <-- tcpproxy - \(data.count) bytes")
+        }
+
+        if !self.straw.isEmpty
+        {
+            // We're going to split the whole buffer into individual packets.
+            var packets: [IPv4] = []
+
+            // The maximum we can send is limited by both the client window size and how much data is in the buffer.
+            let sizeToSend = min(Int(tcp.windowSize), self.straw.count)
+
+            var totalPayloadSize = 0
+            var nextSequenceNumber = self.straw.sequenceNumber
+
+            // We're going to hit this limit exactly.
+            while totalPayloadSize < sizeToSend
+            {
+                // Each packet is limited is by the amount left to send and the MTU (which we guess).
+                let nextPacketSize = min(sizeToSend - totalPayloadSize, 1400)
+
+                let window = SequenceNumberRange(lowerBound: nextSequenceNumber, size: UInt32(nextPacketSize))
+                let packet = try await self.makeAck(window: window)
+                packets.append(packet)
+
+                totalPayloadSize = totalPayloadSize + nextPacketSize
+                nextSequenceNumber = nextSequenceNumber.add(nextPacketSize)
+            }
+            
+            // CLOSE-WAIT should send a fin after the buffer has been sent along or alone if there is nothing in the buffer
+            let window = SequenceNumberRange(lowerBound: nextSequenceNumber, size: 1)
+            let fin = try await makeFin(window: window)
+            packets.append(fin)
+            
+            return packets
+        }
+        else
+        {
+            // CLOSE-WAIT should send a fin after the buffer has been sent along or alone if there is nothing in the buffer
+            let fin = try await makeFin()
+            return [fin]
+        }
     }
 }
 
