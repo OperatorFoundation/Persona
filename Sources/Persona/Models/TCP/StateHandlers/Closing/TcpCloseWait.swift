@@ -9,22 +9,40 @@ import Foundation
 
 import InternetProtocols
 
-// FIXME me - implement this state
+// CLOSE-WAIT means we have received a FIN from the client.
+// No more data will be arriving from the client.
+// We will keep checking on if there is more data from the server as
 public class TcpCloseWait: TcpStateHandler
 {
     override public func processDownstreamPacket(ipv4: IPv4, tcp: TCP, payload: Data?) async throws -> TcpStateTransition
     {
+        let clientWindow = self.straw.clientWindow(size: tcp.windowSize)
+        let packetLowerBound = SequenceNumber(tcp.sequenceNumber)
+
+        var packetUpperBound: SequenceNumber = packetLowerBound
+        if let payload
+        {
+            packetUpperBound = packetUpperBound.add(payload.count)
+        }
+
         /**
          If the TCP is in one of the synchronized states (ESTABLISHED,
          FIN-WAIT-1, FIN-WAIT-2, CLOSE-WAIT, CLOSING, LAST-ACK, TIME-WAIT), it
          aborts the connection and informs its user.  We discuss this latter
          case under "half-open" connections below.
          */
-        if tcp.rst
+        if tcp.syn || tcp.rst
         {
-            // FIXME: Abort the connection and inform the user
-            return TcpStateTransition(newState: TcpClosed(self))
+            packetUpperBound = packetUpperBound.increment()
+
+            let (sequenceNumber, acknowledgementNumber, windowSize) = self.getState()
+
+            let rst = try self.makeRst(ipv4: ipv4, tcp: tcp, sequenceNumber: sequenceNumber, acknowledgementNumber: acknowledgementNumber, windowSize: windowSize)
+
+            let closed = TcpClosed(self)
+            return TcpStateTransition(newState: closed, packetsToSend: [rst])
         }
+
         /// If the connection is in a synchronized state (ESTABLISHED, FIN-WAIT-1, FIN-WAIT-2, CLOSE-WAIT, CLOSING, LAST-ACK, TIME-WAIT),
         /// any unacceptable segment (out of window sequence number or unacceptable acknowledgment number) must elicit only an empty
         /// acknowledgment segment containing the current send-sequence number and an acknowledgment indicating the next sequence number expected
@@ -32,71 +50,45 @@ public class TcpCloseWait: TcpStateHandler
         
         guard self.straw.inWindow(tcp) else
         {
-            let seqNum = self.straw.sequenceNumber
-            self.logger.log(level: .debug, "TCPFinWait2 processDownstreamPacket received an ACK with acknowledgement number (\(SequenceNumber(tcp.acknowledgementNumber))) that does not match our last sequence number (\(String(describing: seqNum))). Re-sending previous ack")
-            
-            let ack = try await makeAck()
+            self.logger.error("❌ TcpCloseWait - \(clientWindow.lowerBound) <= \(packetLowerBound)..<\(packetUpperBound) <= \(clientWindow.upperBound)")
+
+            let ack = try await self.makeAck()
             return TcpStateTransition(newState: self, packetsToSend: [ack])
         }
-        
-        guard tcp.ack else
+
+        self.logger.error("✅ TcpCloseWait - \(clientWindow.lowerBound) <= \(packetLowerBound)..<\(packetUpperBound) <= \(clientWindow.upperBound)")
+
+        if tcp.ack
         {
-            return TcpStateTransition(newState: self)
-        }
-        
-        var packets = try await pumpServerToClient(tcp)
+            let acknowledgementNumber = SequenceNumber(tcp.acknowledgementNumber)
 
-        return TcpStateTransition(newState: TcpLastAck(self), packetsToSend: packets)
-    }
-    
-    func pumpServerToClient(_ tcp: TCP) async throws -> [IPv4]
-    {
-        // Buffer data from the server until the client ACKs it.
-        let data = try await self.upstream.read()
-
-        if data.count > 0
-        {
-            try self.straw.write(data)
-            self.logger.info("TcpCloseWait.pumpServerToClient: Persona <-- tcpproxy - \(data.count) bytes")
-        }
-
-        if !self.straw.isEmpty
-        {
-            // We're going to split the whole buffer into individual packets.
-            var packets: [IPv4] = []
-
-            // The maximum we can send is limited by both the client window size and how much data is in the buffer.
-            let sizeToSend = min(Int(tcp.windowSize), self.straw.count)
-
-            var totalPayloadSize = 0
-            var nextSequenceNumber = self.straw.sequenceNumber
-
-            // We're going to hit this limit exactly.
-            while totalPayloadSize < sizeToSend
+            if acknowledgementNumber != self.straw.sequenceNumber
             {
-                // Each packet is limited is by the amount left to send and the MTU (which we guess).
-                let nextPacketSize = min(sizeToSend - totalPayloadSize, 1400)
-
-                let window = SequenceNumberRange(lowerBound: nextSequenceNumber, size: UInt32(nextPacketSize))
-                let packet = try await self.makeAck(window: window)
-                packets.append(packet)
-
-                totalPayloadSize = totalPayloadSize + nextPacketSize
-                nextSequenceNumber = nextSequenceNumber.add(nextPacketSize)
+                try self.straw.acknowledge(acknowledgementNumber)
             }
-            
-            // CLOSE-WAIT should send a fin after the buffer has been sent along or alone if there is nothing in the buffer
-            let window = SequenceNumberRange(lowerBound: nextSequenceNumber, size: 1)
-            let fin = try await makeFin(window: window)
-            packets.append(fin)
-            
-            return packets
+        }
+
+        var serverIsStillOpen: Bool = await self.pumpServerToStraw(tcp)
+        var packets = try await self.pumpStrawToClient(tcp)
+
+        // There are two possible outcomes now:
+        // - server is open   - CLOSE-WAIT
+        // - server is closed - LAST-ACK
+        if serverIsStillOpen
+        {
+            // - server is open   - CLOSE-WAIT
+
+            return TcpStateTransition(newState: self, packetsToSend: packets)
         }
         else
         {
-            // CLOSE-WAIT should send a fin after the buffer has been sent along or alone if there is nothing in the buffer
+            // - server is closed - LAST-ACK
+
+            // Send FIN
             let fin = try await makeFin()
-            return [fin]
+            packets.append(fin)
+
+            return TcpStateTransition(newState: TcpLastAck(self), packetsToSend: packets)
         }
     }
 }

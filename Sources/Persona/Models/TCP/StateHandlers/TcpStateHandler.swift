@@ -90,6 +90,83 @@ public class TcpStateHandler
         return (sequenceNumber, acknowledgementNumber, windowSize)
     }
 
+    // Returns whether the server connection closed during write
+    func pumpClientToServer(_ tcp: TCP) async throws -> Bool
+    {
+        guard let payload = tcp.payload else
+        {
+            return true
+        }
+
+        // Fully write all incoming payloads from the client to the server so that we don't have to buffer them.
+        do
+        {
+            try await self.upstream.writeWithLengthPrefix(payload, 32)
+            self.straw.increaseAcknowledgementNumber(payload.count)
+            self.logger.info("TcpEstablished.pumpClientToServer: Persona --> tcpproxy - \(payload.count) bytes (new ACK#\(self.straw.acknowledgementNumber))")
+            return true
+        }
+        catch
+        {
+            return false
+        }
+    }
+
+    func pumpServerToStraw(_ tcp: TCP) async -> Bool
+    {
+        do
+        {
+            // Buffer data from the server until the client ACKs it.
+            let data = try await self.upstream.read()
+
+            if data.count > 0
+            {
+                try self.straw.write(data)
+                self.logger.info("TcpEstablished.pumpServerToClient: Persona <-- tcpproxy - \(data.count) bytes")
+            }
+
+            return true
+        }
+        catch
+        {
+            return false
+        }
+    }
+
+    func pumpStrawToClient(_ tcp: TCP) async throws -> [IPv4]
+    {
+        guard !self.straw.isEmpty else
+        {
+            return []
+        }
+
+        // We're going to split the whole buffer into individual packets.
+        var packets: [IPv4] = []
+
+        // The maximum we can send is limited by both the client window size and how much data is in the buffer.
+        let sizeToSend = min(Int(tcp.windowSize), self.straw.count)
+
+        var totalPayloadSize = 0
+        var nextSequenceNumber = self.straw.sequenceNumber
+
+        // We're going to hit this limit exactly.
+        while totalPayloadSize < sizeToSend
+        {
+            // Each packet is limited is by the amount left to send and the MTU (which we guess).
+            let nextPacketSize = min(sizeToSend - totalPayloadSize, 1400)
+
+            let window = SequenceNumberRange(lowerBound: nextSequenceNumber, size: UInt32(nextPacketSize))
+            let packet = try await self.makeAck(window: window)
+            packets.append(packet)
+
+            totalPayloadSize = totalPayloadSize + nextPacketSize
+            nextSequenceNumber = nextSequenceNumber.add(nextPacketSize)
+        }
+
+        return packets
+    }
+
+
     func makeRst(ipv4: IPv4, tcp: TCP, sequenceNumber: SequenceNumber, acknowledgementNumber: SequenceNumber, windowSize: UInt16) throws -> IPv4
     {
         return try self.makePacket(sequenceNumber: sequenceNumber, acknowledgementNumber: acknowledgementNumber, windowSize: windowSize, rst: true)

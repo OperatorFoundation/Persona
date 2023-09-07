@@ -96,7 +96,7 @@ public class TcpListen: TcpStateHandler
         do
         {
             // Our sequence number is taken from upstream.
-            let (sequenceNumber, acknowledgementNumber, windowSize) = try await self.getState()
+            let (sequenceNumber, acknowledgementNumber, windowSize) = self.getState()
 
             let synAck = try self.makeSynAck(sequenceNumber: sequenceNumber, acknowledgementNumber: acknowledgementNumber, windowSize: windowSize)
 //            self.logger.debug("TcpListen.processDownstreamPacket: made a SYN-ACK")
