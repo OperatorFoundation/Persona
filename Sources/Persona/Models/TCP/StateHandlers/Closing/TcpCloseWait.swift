@@ -68,28 +68,19 @@ public class TcpCloseWait: TcpStateHandler
             }
         }
 
-        var serverIsStillOpen: Bool = await self.pumpServerToStraw(tcp)
+        let serverIsStillOpen: Bool = await self.pumpServerToStraw(tcp)
         var packets = try await self.pumpStrawToClient(tcp)
 
-        // There are two possible outcomes now:
-        // - server is open   - CLOSE-WAIT
-        // - server is closed - LAST-ACK
         if serverIsStillOpen
         {
-            // - server is open   - CLOSE-WAIT
-
-            return TcpStateTransition(newState: self, packetsToSend: packets)
+            try await self.upstream.close()
         }
-        else
-        {
-            // - server is closed - LAST-ACK
 
-            // Send FIN
-            let fin = try await makeFin()
-            packets.append(fin)
+        // Send FIN
+        let fin = try await makeFin()
+        packets.append(fin)
 
-            return TcpStateTransition(newState: TcpLastAck(self), packetsToSend: packets)
-        }
+        return TcpStateTransition(newState: TcpLastAck(self), packetsToSend: packets)
     }
 }
 
