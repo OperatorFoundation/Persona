@@ -104,6 +104,8 @@ class TcpProxy:
         self.host = ''
         self.port = 0
 
+        self.connect()
+
         while self.running:
             self.pump_upstream()
             self.pump_downstream()
@@ -114,7 +116,7 @@ class TcpProxy:
         self.upstream.close()
         sys.exit(0)
 
-    def pump_downstream(self):
+    def connect(self):
 
         address = self.downstreamReadConnection.readsize(6)
 
@@ -147,6 +149,7 @@ class TcpProxy:
         self.downstreamWrite.write(b'\xF1')  # signal successful connection
         self.downstreamWrite.flush()
 
+    def pump_downstream(self):
         try:
 
             length_bytes = self.downstreamReadConnection.readsize(4)
