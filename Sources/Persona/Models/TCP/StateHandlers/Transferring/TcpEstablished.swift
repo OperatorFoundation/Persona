@@ -59,18 +59,22 @@ public class TcpEstablished: TcpStateHandler
         }
 
         var serverIsStillOpen: Bool = true
-        if tcp.payload != nil
+        if let payload = tcp.payload
         {
+            self.logger.debug("\(payload.count) new bytes from the client")
             serverIsStillOpen = try await self.pumpClientToServer(tcp)
         }
 
         if serverIsStillOpen
         {
+            self.logger.debug("fetching content from the server")
             serverIsStillOpen = await self.pumpServerToStraw(tcp)
         }
 
+        self.logger.debug("creating packets for the client")
         var packets = try await self.pumpStrawToClient(tcp)
 
+        self.logger.debug("checking for closing conditions")
         // There are three possible outcomes now:
         // - server is open, FIN      - CLOSE-WAIT
         // - server is open, no FIN   - ESTABLISHED
