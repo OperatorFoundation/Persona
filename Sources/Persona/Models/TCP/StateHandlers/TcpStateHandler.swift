@@ -124,6 +124,10 @@ public class TcpStateHandler
                 try self.straw.write(data)
                 self.logger.info("TcpEstablished.pumpServerToClient: Persona <-- tcpproxy - \(data.count) bytes")
             }
+            else
+            {
+                self.logger.info("TcpEstablished.pumpServerToClient: Persona <-- tcpproxy - no data")
+            }
 
             return true
         }
