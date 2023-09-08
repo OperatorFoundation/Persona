@@ -222,8 +222,8 @@ class TcpProxy:
 
                 bs = lengthBytes + data
 
-               self.log.write("client <- tcpproxy - writing %d bytes\n" % (len(bs)))
-               self.log.flush()
+                self.log.write("client <- tcpproxy - writing %d bytes\n" % (len(bs)))
+                self.log.flush()
 
                 self.downstreamWrite.write(bs)
                 self.downstreamWrite.flush()
