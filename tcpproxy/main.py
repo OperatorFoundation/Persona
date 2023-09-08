@@ -71,7 +71,11 @@ class SocketConnection:
 
     def readmaxsize(self, max_size):
         try:
-            return self.network.recv(max_size, socket.MSG_DONTWAIT)
+            result = self.network.recv(max_size, socket.MSG_DONTWAIT)
+            if result is None:
+                return b''
+            else:
+                return result
         except socket.error as e:
             err = e.args[0]
             if err == errno.EAGAIN or err == errno.EWOULDBLOCK:
