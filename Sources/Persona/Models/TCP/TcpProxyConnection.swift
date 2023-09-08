@@ -20,7 +20,7 @@ public class TcpProxyConnection
     // We need one connection to the tcpproxy subsystem for each source address/port pair.
     static var connections: [TcpIdentity: TcpProxyConnection] = [:]
 
-    static public func getConnection(identity: TcpIdentity, downstream: AsyncConnection, ipv4: IPv4, tcp: TCP, payload: Data?, logger: Logger, tcpLogger: Puppy, writeLogger: Puppy) async throws -> TcpProxyConnection
+    static public func getConnection(identity: TcpIdentity, downstream: AsyncConnection, ipv4: IPv4, tcp: TCP, payload: Data?, logger: Logger, tcpLogger: Puppy, writeLogger: Puppy) async throws -> (TcpProxyConnection, Bool)
     {
         if let connection = Self.connections[identity]
         {
@@ -30,7 +30,7 @@ public class TcpProxyConnection
 //                tcpLogger.debug("TcpProxyConnection.processDownstreamPacket: existing - \(ipv4.sourceAddress.ipv4AddressString ?? "not an IPv4 address"):\(tcp.sourcePort) -> \(ipv4.destinationAddress.ipv4AddressString ?? "not an IPv4 address"):\(tcp.destinationPort)")
 //            }
 
-            return connection
+            return (connection, true)
         }
         else
         {
@@ -65,7 +65,7 @@ public class TcpProxyConnection
 
             let connection = try await TcpProxyConnection(identity: identity, downstream: downstream, ipv4: ipv4, tcp: tcp, payload: payload, logger: logger, tcpLogger: tcpLogger, writeLogger: writeLogger)
             Self.connections[identity] = connection
-            return connection
+            return (connection, false)
         }
     }
 
