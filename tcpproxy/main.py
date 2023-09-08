@@ -71,7 +71,7 @@ class SocketConnection:
         return self.straw.readSize(size)
 
     def readMaxSize(self, maxSize):
-        result = self.network.recv(maxSize)
+        result = self.network.recv(maxSize, socket.MSG_DONTWAIT)
         return result
 
 
