@@ -1,5 +1,5 @@
 #!/usr/bin/python3
-import binascii
+import errno
 import os
 import socket
 import sys
@@ -19,7 +19,7 @@ class Straw:
         self.buffer = self.buffer + data
         self.count = len(self.buffer)
 
-    def readSize(self, size):
+    def readsize(self, size):
         if len(self.buffer) < size:
             raise StrawException()
 
@@ -42,18 +42,18 @@ class SystemdConnection:
         self.network = network
         self.straw = Straw()
 
-    def readSize(self, size):
+    def readsize(self, size):
         while self.straw.count < size:
             remaining = size - self.straw.count
             next_bytes = self.network.read(remaining)
             self.straw.write(next_bytes)
 
-        return self.straw.readSize(size)
+        return self.straw.readsize(size)
 
-    def readMaxSize(self, maxSize):
-        result = self.network.read(maxSize)
+    def readmaxsize(self, max_size):
+        result = self.network.read(max_size)
         while result == 0:
-            result = self.network.read(maxSize)
+            result = self.network.read(max_size)
         return result
 
 
@@ -62,17 +62,21 @@ class SocketConnection:
         self.network = network
         self.straw = Straw()
 
-    def readSize(self, size):
+    def readsize(self, size):
         while self.straw.count < size:
             remaining = size - self.straw.count
             next_bytes = self.network.recv(remaining)
             self.straw.write(next_bytes)
 
-        return self.straw.readSize(size)
+        return self.straw.readsize(size)
 
-    def readMaxSize(self, maxSize):
-        result = self.network.recv(maxSize, socket.MSG_DONTWAIT)
-        return result
+    def readmaxsize(self, max_size):
+        try:
+            return self.network.recv(max_size, socket.MSG_DONTWAIT)
+        except socket.error as e:
+            err = e.args[0]
+            if err == errno.EAGAIN or err == errno.EWOULDBLOCK:
+                return b''
 
 
 class TcpProxy:
@@ -95,9 +99,9 @@ class TcpProxy:
         self.host = ''
         self.port = 0
 
-        self.upstreamThread = threading.Thread(target=self.pumpUpstream)
+        self.upstreamThread = threading.Thread(target=self.pump_upstream)
 
-        self.pumpDownstream()
+        self.pump_downstream()
 
         self.log.write("closing and exiting")
         self.log.flush()
@@ -105,41 +109,19 @@ class TcpProxy:
         self.upstream.close()
         sys.exit(0)
 
-    def pumpDownstream(self):
-#        self.log.write("pumpDownstream started\n")
-#        self.log.flush()
+    def pump_downstream(self):
 
-#        self.log.write("reading downstream host and port\n")
-#        self.log.flush()
-
-        address = self.downstreamReadConnection.readSize(6)
-
-#        self.log.write("read downstream host and port: %d - %s\n" % (len(address), binascii.hexlify(address)))
-#        self.log.flush()
+        address = self.downstreamReadConnection.readsize(6)
 
         try:
-            hostBytes = address[0:4]
+            host_bytes = address[0:4]
+            port_bytes = address[4:6]
 
-#            self.log.write("hostBytes: %d - %s\n" % (len(hostBytes), binascii.hexlify(hostBytes)))
-#            self.log.flush()
-
-            portBytes = address[4:6]
-
-#            self.log.write("portBytes: %d - %s\n" % (len(portBytes), binascii.hexlify(portBytes)))
-#            self.log.flush()
-
-            host = "%d.%d.%d.%d" % (hostBytes[0], hostBytes[1], hostBytes[2], hostBytes[3])
-
-#            self.log.write("host: %s\n" % str(host))
-#            self.log.flush()
-
-            port = int.from_bytes(portBytes, "big")
+            host = "%d.%d.%d.%d" % (host_bytes[0], host_bytes[1], host_bytes[2], host_bytes[3])
+            port = int.from_bytes(port_bytes, "big")
 
             self.host = host
             self.port = port
-
-#            self.log.write("port: %d\n" % port)
-#            self.log.flush()
 
             self.log.write("connecting to %s:%d\n" % (host, port))
             self.log.flush()
@@ -164,29 +146,13 @@ class TcpProxy:
 
         while self.running:
             try:
-#                self.log.write("reading downstream payload length\n")
-#                self.log.flush()
 
-                lengthBytes = self.downstreamReadConnection.readSize(4)
-
-#                self.log.write("read downstream payload bytes: %d - %s\n" % (len(lengthBytes), binascii.hexlify(lengthBytes)))
-#                self.log.flush()
-
-                length = int.from_bytes(lengthBytes, "big")
-
-#                self.log.write("length: %d" % length)
-#                self.log.flush()
-
-#                self.log.write("reading %d bytes\n" % length)
-#                self.log.flush()
-
-                payload = self.downstreamReadConnection.readSize(length)
+                length_bytes = self.downstreamReadConnection.readsize(4)
+                length = int.from_bytes(length_bytes, "big")
+                payload = self.downstreamReadConnection.readsize(length)
 
                 self.log.write("persona -> tcpproxy - %d bytes\n" % (len(payload)))
                 self.log.flush()
-
-#                self.log.write("writing %d bytes to %s:%d\n" % (len(payload), host, port))
-#                self.log.flush()
 
                 self.upstream.sendall(payload)
 
@@ -200,16 +166,12 @@ class TcpProxy:
                 self.upstream.close()
                 sys.exit(0)
 
-    def pumpUpstream(self):
-#        self.log.write("pumpUpstream started\n")
-#        self.log.flush()
+    def pump_upstream(self):
 
         while self.running:
             try:
-#                self.log.write("reading from upstream\n")
-#                self.log.flush()
 
-                data = self.upstreamConnection.readMaxSize(2048)
+                data = self.upstreamConnection.readmaxsize(2048)
 
                 if not data:
                     self.log.write("bad upstream read, closing\n")
@@ -223,9 +185,9 @@ class TcpProxy:
                 self.log.flush()
 
                 length = len(data)
-                lengthBytes = length.to_bytes(4, "big")
+                length_bytes = length.to_bytes(4, "big")
 
-                bs = lengthBytes + data
+                bs = length_bytes + data
 
                 self.log.write("client <- tcpproxy - writing %d bytes\n" % (len(bs)))
                 self.log.flush()
