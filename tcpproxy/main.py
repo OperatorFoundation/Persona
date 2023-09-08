@@ -3,7 +3,6 @@ import errno
 import os
 import socket
 import sys
-import threading
 
 
 class StrawException(Exception):
@@ -99,9 +98,9 @@ class TcpProxy:
         self.host = ''
         self.port = 0
 
-        self.upstreamThread = threading.Thread(target=self.pump_upstream)
-
-        self.pump_downstream()
+        while self.running:
+            self.pump_upstream()
+            self.pump_downstream()
 
         self.log.write("closing and exiting")
         self.log.flush()
@@ -142,63 +141,55 @@ class TcpProxy:
         self.downstreamWrite.write(b'\xF1')  # signal successful connection
         self.downstreamWrite.flush()
 
-        self.upstreamThread.start()
+        try:
 
-        while self.running:
-            try:
+            length_bytes = self.downstreamReadConnection.readsize(4)
+            length = int.from_bytes(length_bytes, "big")
+            payload = self.downstreamReadConnection.readsize(length)
 
-                length_bytes = self.downstreamReadConnection.readsize(4)
-                length = int.from_bytes(length_bytes, "big")
-                payload = self.downstreamReadConnection.readsize(length)
+            self.log.write("persona -> tcpproxy - %d bytes\n" % (len(payload)))
+            self.log.flush()
 
-                self.log.write("persona -> tcpproxy - %d bytes\n" % (len(payload)))
-                self.log.flush()
+            self.upstream.sendall(payload)
 
-                self.upstream.sendall(payload)
+            self.log.write("tcpproxy -> %s:%d - %d bytes\n" % (self.host, self.port, len(payload)))
+            self.log.flush()
+        except Exception as e:
+            self.log.write("exception in pumpDownstream: %s" % (str(e)))
+            self.log.flush()
 
-                self.log.write("tcpproxy -> %s:%d - %d bytes\n" % (self.host, self.port, len(payload)))
-                self.log.flush()
-            except Exception as e:
-                self.log.write("exception in pumpDownstream: %s" % (str(e)))
-                self.log.flush()
-
-                self.running = False
-                self.upstream.close()
-                sys.exit(0)
+            self.running = False
 
     def pump_upstream(self):
 
-        while self.running:
-            try:
+        try:
+            data = self.upstreamConnection.readmaxsize(2048)
 
-                data = self.upstreamConnection.readmaxsize(2048)
+            self.log.write("tcpproxy <- %s:%d - %d\n" % (self.host, self.port, len(data)))
+            self.log.flush()
 
-                self.log.write("tcpproxy <- %s:%d - %d\n" % (self.host, self.port, len(data)))
-                self.log.flush()
+            length = len(data)
+            length_bytes = length.to_bytes(4, "big")
 
-                length = len(data)
-                length_bytes = length.to_bytes(4, "big")
+            bs = length_bytes + data
 
-                bs = length_bytes + data
+            self.log.write("client <- tcpproxy - writing %d bytes\n" % (len(bs)))
+            self.log.flush()
 
-                self.log.write("client <- tcpproxy - writing %d bytes\n" % (len(bs)))
-                self.log.flush()
+            self.downstreamWrite.write(bs)
+            self.downstreamWrite.flush()
 
-                self.downstreamWrite.write(bs)
-                self.downstreamWrite.flush()
+            self.log.write("client <- tcpproxy - %d bytes\n" % (len(data)))
+            self.log.flush()
 
-                self.log.write("client <- tcpproxy - %d bytes\n" % (len(data)))
-                self.log.flush()
+        except Exception as e:
+            self.log.write("exception in pumpUpstream\n")
+            self.log.flush()
 
-            except Exception as e:
-                self.log.write("exception in pumpUpstream\n")
-                self.log.flush()
+            self.log.write("%s\n" % (str(e)))
+            self.log.flush()
 
-                self.log.write("%s\n" % (str(e)))
-                self.log.flush()
-
-                self.running = False
-                return
+            self.running = False
 
 
 if __name__ == '__main__':
