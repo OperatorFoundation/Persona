@@ -173,14 +173,6 @@ class TcpProxy:
 
                 data = self.upstreamConnection.readmaxsize(2048)
 
-                if not data:
-                    self.log.write("bad upstream read, closing\n")
-                    self.log.flush()
-
-                    self.running = False
-                    self.upstream.close()
-                    sys.exit(0)
-
                 self.log.write("tcpproxy <- %s:%d - %d\n" % (self.host, self.port, len(data)))
                 self.log.flush()
 
