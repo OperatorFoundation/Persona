@@ -197,7 +197,8 @@ class TcpProxy:
                 self.log.flush()
 
                 self.running = False
-                return
+                self.upstream.close()
+                sys.exit(0)
 
     def pumpUpstream(self):
 #        self.log.write("pumpUpstream started\n")
@@ -215,7 +216,8 @@ class TcpProxy:
                     self.log.flush()
 
                     self.running = False
-                    return
+                    self.upstream.close()
+                    sys.exit(0)
 
                 self.log.write("tcpproxy <- %s:%d - %d\n" % (self.host, self.port, len(data)))
                 self.log.flush()
