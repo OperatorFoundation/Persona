@@ -99,6 +99,9 @@ class TcpProxy:
 
         self.pumpDownstream()
 
+        self.log.write("closing and exiting")
+        self.log.flush()
+
         self.upstream.close()
         sys.exit(0)
 
