@@ -259,8 +259,8 @@ public class TcpProxyConnection
         let tcpSequenceNumber = SequenceNumber(tcp.sequenceNumber)
         let tcpAcknowledgementNumber = SequenceNumber(tcp.acknowledgementNumber)
         let (sequenceNumber, acknowledgementNumber, _) = self.state.getState()
-        let sequenceDifference = sequenceNumber - tcpSequenceNumber
-        let acknowledgementDifference = tcpAcknowledgementNumber - acknowledgementNumber
+        let sequenceDifference = sequenceNumber - acknowledgementNumber
+        let acknowledgementDifference = tcpAcknowledgementNumber - sequenceNumber
         self.logger.debug("TcpProxyConnection.processDownstreamPacket - SEQ#:\(tcpSequenceNumber) (\(sequenceDifference) difference), ACK#:\(tcpAcknowledgementNumber) (\(acknowledgementDifference) difference)")
 
 //        self.logger.debug("TcpProxyConnection.processDownstreamPacket[\(self.state)] - \(description(ipv4, tcp))")
