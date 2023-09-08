@@ -179,7 +179,7 @@ class TcpProxy:
 
                 payload = self.downstreamReadConnection.readSize(length)
 
-                self.log.write("persona -> udpproxy - %d bytes\n" % (len(payload)))
+                self.log.write("persona -> tcpproxy - %d bytes\n" % (len(payload)))
                 self.log.flush()
 
 #                self.log.write("writing %d bytes to %s:%d\n" % (len(payload), host, port))
