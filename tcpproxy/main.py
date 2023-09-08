@@ -80,6 +80,8 @@ class SocketConnection:
             err = e.args[0]
             if err == errno.EAGAIN or err == errno.EWOULDBLOCK:
                 return b''
+            else:
+                raise e
 
 
 class TcpProxy:
