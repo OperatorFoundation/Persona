@@ -72,8 +72,6 @@ class SocketConnection:
 
     def readMaxSize(self, maxSize):
         result = self.network.recv(maxSize)
-        while len(result) == 0:
-            result = self.network.recv(maxSize)
         return result
 
 
@@ -209,7 +207,7 @@ class TcpProxy:
 
                 data = self.upstreamConnection.readMaxSize(2048)
 
-                if not data or len(data) == 0:
+                if not data:
                     self.log.write("bad upstream read, closing\n")
                     self.log.flush()
 
@@ -219,15 +217,15 @@ class TcpProxy:
                 self.log.write("tcpproxy <- %s:%d - %d\n" % (self.host, self.port, len(data)))
                 self.log.flush()
 
-                # length = len(data)
-                # lengthBytes = length.to_bytes(4, "big")
-                #
-                # bs = lengthBytes + data
+                length = len(data)
+                lengthBytes = length.to_bytes(4, "big")
 
-#                self.log.write("client <- tcpproxy - writing %d bytes\n" % (len(bs)))
-#                self.log.flush()
+                bs = lengthBytes + data
 
-                self.downstreamWrite.write(data)
+               self.log.write("client <- tcpproxy - writing %d bytes\n" % (len(bs)))
+               self.log.flush()
+
+                self.downstreamWrite.write(bs)
                 self.downstreamWrite.flush()
 
                 self.log.write("client <- tcpproxy - %d bytes\n" % (len(data)))

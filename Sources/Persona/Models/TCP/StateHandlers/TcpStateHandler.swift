@@ -117,7 +117,7 @@ public class TcpStateHandler
         do
         {
             // Buffer data from the server until the client ACKs it.
-            let data = try await self.upstream.read()
+            let data = try await self.upstream.readWithLengthPrefix(prefixSizeInBits: 32)
 
             if data.count > 0
             {
