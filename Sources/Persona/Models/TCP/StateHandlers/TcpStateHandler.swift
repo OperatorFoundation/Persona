@@ -134,7 +134,7 @@ public class TcpStateHandler
 
             try await self.upstream.writeWithLengthPrefix(Data(), 32)
 
-            self.logger.debug("TcpStateHandler.pumpOnlyServerToStraw - writing")
+            self.logger.debug("TcpStateHandler.pumpOnlyServerToStraw - reading")
 
             let data = try await self.upstream.readWithLengthPrefix(prefixSizeInBits: 32)
 
