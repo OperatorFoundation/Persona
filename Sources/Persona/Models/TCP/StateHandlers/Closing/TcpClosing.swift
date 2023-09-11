@@ -40,7 +40,11 @@ public class TcpClosing: TcpStateHandler
         
         guard tcp.ack else
         {
-            // TODO: Log this
+            let acknowledgementNumber = SequenceNumber(tcp.acknowledgementNumber)
+            self.logger.debug("TcpClosing.processDownstreamPacket - received an ACK")
+            self.logger.debug(" acknowledgement number: \(acknowledgementNumber)")
+            self.logger.debug(" straw.sequenceNumber: \(self.straw.sequenceNumber)")
+            
             return TcpStateTransition(newState: self)
         }
         

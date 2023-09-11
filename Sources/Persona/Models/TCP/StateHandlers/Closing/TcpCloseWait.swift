@@ -33,14 +33,7 @@ public class TcpCloseWait: TcpStateHandler
          */
         if tcp.syn || tcp.rst
         {
-            packetUpperBound = packetUpperBound.increment()
-
-            let (sequenceNumber, acknowledgementNumber, windowSize) = self.getState()
-
-            let rst = try self.makeRst(ipv4: ipv4, tcp: tcp, sequenceNumber: sequenceNumber, acknowledgementNumber: acknowledgementNumber, windowSize: windowSize)
-
-            let closed = TcpClosed(self)
-            return TcpStateTransition(newState: closed, packetsToSend: [rst])
+            return try await handleRstSynchronizedState(ipv4: ipv4, tcp: tcp)
         }
 
         /// If the connection is in a synchronized state (ESTABLISHED, FIN-WAIT-1, FIN-WAIT-2, CLOSE-WAIT, CLOSING, LAST-ACK, TIME-WAIT),

@@ -44,7 +44,11 @@ public class TcpFinWait2: TcpStateHandler
         
         guard tcp.fin else
         {
-            // TODO: Log this
+            let acknowledgementNumber = SequenceNumber(tcp.acknowledgementNumber)
+            self.logger.debug("TcpFinWait2.processDownstreamPacket - received a packet other than FIN or RST")
+            self.logger.debug(" acknowledgement number: \(acknowledgementNumber)")
+            self.logger.debug(" straw.sequenceNumber: \(self.straw.sequenceNumber)")
+            
             return TcpStateTransition(newState: self)
         }
 
