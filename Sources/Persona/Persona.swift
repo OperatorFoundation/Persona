@@ -8,6 +8,7 @@ import FileLogging
 import Logging
 import Foundation
 
+import Chord
 import Gardener
 import InternetProtocols
 import Puppy
@@ -20,7 +21,7 @@ public class Persona
 
     let connection: AsyncConnection
     let logger: Logger
-    let pumpTimer: Timer
+    var pumpTimer: Timer? = nil
 
     var tcpLogger = Puppy()
     var udpLogger = Puppy()
@@ -35,7 +36,8 @@ public class Persona
         // First we set up the logging. There are several loggers that log different specific events that are helpful for debugging.
         // The location of the log files assumes that you have Persona checked out in the home directory of the root user.
         let mainLogURL = URL(fileURLWithPath: "/root/Persona/Persona.log")
-        self.logger = try FileLogging.logger(label: "Persona", localFile: mainLogURL)
+        let logger = try FileLogging.logger(label: "Persona", localFile: mainLogURL)
+        self.logger = logger
 
         let logFileURL = File.homeDirectory().appendingPathComponent("Persona/PersonaTcpLog.log", isDirectory: false)
         let logFileURL2 = File.homeDirectory().appendingPathComponent("Persona/PersonaUdpLog.log", isDirectory: false)
@@ -112,19 +114,23 @@ public class Persona
         let tcpProxy = TcpProxy(client: self.connection, logger: self.logger, tcpLogger: self.tcpLogger, writeLogger: self.clientWriteLog)
         self.tcpProxy = tcpProxy
 
+        self.logger.debug("setting timer")
         self.pumpTimer = Timer(timeInterval: 1, repeats: true)
         {
             timer in
 
-            print("Persona.pump - pumpTimer triggered")
+            logger.debug("Persona.pump - pumpTimer triggered")
 
             Task
             {
-                print("Persona.pump - pumpTimer triggered, inside Task, calling tcpProxy.pump")
+                logger.debug("Persona.pump - pumpTimer triggered, inside Task, calling tcpProxy.pump")
+
                 await tcpProxy.pump()
-                print("Persona.pump - pumpTimer triggered, inside Task, calling tcpProxy.pump completed")
+
+                logger.debug("Persona.pump - pumpTimer triggered, inside Task, calling tcpProxy.pump completed")
             }
         }
+        self.logger.debug("did set timer")
     }
 
     // Start the Persona processing loop. Please note that each client gets its own Persona instance.
