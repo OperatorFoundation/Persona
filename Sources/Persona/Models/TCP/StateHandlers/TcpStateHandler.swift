@@ -183,12 +183,23 @@ public class TcpStateHandler
         return packets
     }
     
-    /// If the TCP is in one of the synchronized states (ESTABLISHED, FIN-WAIT-1, FIN-WAIT-2, CLOSE-WAIT, CLOSING, LAST-ACK, TIME-WAIT),
-    /// it aborts the connection and informs its user.
+    /// In all states except SYN-SENT, all reset (RST) segments are validated by checking their SEQ-fields.
+    /// A reset is valid if its sequence number is in the window.
+    ///
+    /// The receiver of a RST first validates it, then changes state.
     func handleRstSynchronizedState(ipv4: IPv4, tcp: TCP) async throws -> TcpStateTransition
     {
         let packetLowerBound = SequenceNumber(tcp.sequenceNumber)
-        var packetUpperBound = packetLowerBound        
+        var packetUpperBound = packetLowerBound
+        
+        guard self.straw.inWindow(tcp) else
+        {
+            self.logger.error("❌ handleRstSynchronizedState - sequenceNumber (\(packetLowerBound)) not in window")
+
+            let ack = try await self.makeAck()
+            return TcpStateTransition(newState: self, packetsToSend: [ack])
+        }
+        
         packetUpperBound = packetUpperBound.increment()
 
         let (sequenceNumber, acknowledgementNumber, windowSize) = self.getState()
