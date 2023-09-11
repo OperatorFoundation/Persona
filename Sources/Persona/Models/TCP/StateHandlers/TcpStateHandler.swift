@@ -120,6 +120,7 @@ public class TcpStateHandler
         }
         catch
         {
+            self.logger.error("Error in pumpOnlyClientToServer: \(error)")
             return false
         }
     }
@@ -154,6 +155,7 @@ public class TcpStateHandler
         }
         catch
         {
+            self.logger.error("Error in pumpOnlyServerToStraw: \(error)")
             return false
         }
     }
@@ -198,6 +200,7 @@ public class TcpStateHandler
         }
         catch
         {
+            self.logger.error("Error in pumpBothClientToServerAndServerToStraw: \(error)")
             return false
         }
     }
