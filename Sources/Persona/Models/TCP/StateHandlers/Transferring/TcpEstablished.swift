@@ -62,13 +62,12 @@ public class TcpEstablished: TcpStateHandler
         if let payload = tcp.payload
         {
             self.logger.debug("\(payload.count) new bytes from the client")
-            serverIsStillOpen = try await self.pumpClientToServer(tcp)
+            serverIsStillOpen = try await self.pumpBothClientToServerAndServerToStraw(tcp)
         }
-
-        if serverIsStillOpen
+        else
         {
             self.logger.debug("fetching content from the server")
-            serverIsStillOpen = await self.pumpServerToStraw()
+            serverIsStillOpen = try await self.pumpOnlyServerToStraw()
         }
 
         self.logger.debug("creating packets for the client")
@@ -133,7 +132,7 @@ public class TcpEstablished: TcpStateHandler
     override func pump() async throws -> TcpStateTransition
     {
         self.logger.debug("TcpEstablished.pump - fetching content from the server")
-        let serverIsStillOpen: Bool = await self.pumpServerToStraw()
+        let serverIsStillOpen: Bool = try await self.pumpOnlyServerToStraw()
 
         self.logger.debug("TcpEstablished.pump - creating packets for the client")
         var packets = try await self.pumpStrawToClient()
