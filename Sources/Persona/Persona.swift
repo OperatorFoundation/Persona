@@ -115,7 +115,7 @@ public class Persona
         self.tcpProxy = tcpProxy
 
         self.logger.debug("setting timer")
-        self.pumpTimer = Timer(timeInterval: 1, repeats: true)
+        self.pumpTimer = Timer.scheduledTimer(withTimeInterval: 1, repeats: true)
         {
             timer in
 

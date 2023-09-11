@@ -20,7 +20,7 @@ public class TcpFinWait2: TcpStateHandler
     {
         let clientWindow = self.straw.clientWindow(size: tcp.windowSize)
         let packetLowerBound = SequenceNumber(tcp.sequenceNumber)
-        var packetUpperBound = packetLowerBound
+        let packetUpperBound = packetLowerBound
         
         /// If the TCP is in one of the synchronized states (ESTABLISHED, FIN-WAIT-1, FIN-WAIT-2, CLOSE-WAIT, CLOSING, LAST-ACK, TIME-WAIT),
         /// it aborts the connection and informs its user.
