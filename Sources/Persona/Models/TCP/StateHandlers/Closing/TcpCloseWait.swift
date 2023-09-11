@@ -68,7 +68,7 @@ public class TcpCloseWait: TcpStateHandler
             }
         }
 
-        let serverIsStillOpen: Bool = await self.pumpServerToStraw(tcp)
+        let serverIsStillOpen: Bool = await self.pumpServerToStraw()
         var packets = try await self.pumpStrawToClient(tcp)
 
         if serverIsStillOpen

@@ -68,7 +68,7 @@ public class TcpEstablished: TcpStateHandler
         if serverIsStillOpen
         {
             self.logger.debug("fetching content from the server")
-            serverIsStillOpen = await self.pumpServerToStraw(tcp)
+            serverIsStillOpen = await self.pumpServerToStraw()
         }
 
         self.logger.debug("creating packets for the client")
@@ -127,6 +127,36 @@ public class TcpEstablished: TcpStateHandler
 
                 return TcpStateTransition(newState:TcpFinWait1(self), packetsToSend: packets)
             }
+        }
+    }
+
+    override func pump() async throws -> TcpStateTransition
+    {
+        self.logger.debug("TcpEstablished.pump - fetching content from the server")
+        let serverIsStillOpen: Bool = await self.pumpServerToStraw()
+
+        self.logger.debug("TcpEstablished.pump - creating packets for the client")
+        var packets = try await self.pumpStrawToClient()
+
+        if serverIsStillOpen
+        {
+            if packets.isEmpty
+            {
+                let ack = try await makeAck()
+                packets.append(ack)
+            }
+
+            return TcpStateTransition(newState: self, packetsToSend: packets)
+        }
+        else
+        {
+            if packets.isEmpty
+            {
+                let ack = try await makeAck()
+                packets.append(ack)
+            }
+
+            return TcpStateTransition(newState: TcpClosing(self), packetsToSend: packets)
         }
     }
 }

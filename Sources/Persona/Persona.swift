@@ -20,6 +20,7 @@ public class Persona
 
     let connection: AsyncConnection
     let logger: Logger
+    let pumpTimer: Timer
 
     var tcpLogger = Puppy()
     var udpLogger = Puppy()
@@ -108,7 +109,18 @@ public class Persona
         self.udpProxy = try await UdpProxy(client: self.connection, logger: logger, udpLogger: udpLogger, writeLogger: clientWriteLog)
 
         // Run Persona's TCP proxying control logic
-        self.tcpProxy = TcpProxy(client: self.connection, logger: self.logger, tcpLogger: self.tcpLogger, writeLogger: self.clientWriteLog)
+        let tcpProxy = TcpProxy(client: self.connection, logger: self.logger, tcpLogger: self.tcpLogger, writeLogger: self.clientWriteLog)
+        self.tcpProxy = tcpProxy
+
+        self.pumpTimer = Timer(timeInterval: 1, repeats: true)
+        {
+            timer in
+
+            Task
+            {
+                await tcpProxy.pump()
+            }
+        }
     }
 
     // Start the Persona processing loop. Please note that each client gets its own Persona instance.

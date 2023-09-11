@@ -90,6 +90,11 @@ public class TcpStateHandler
         return (sequenceNumber, acknowledgementNumber, windowSize)
     }
 
+    func pump() async throws -> TcpStateTransition
+    {
+        return TcpStateTransition(newState: self)
+    }
+
     // Returns whether the server connection closed during write
     func pumpClientToServer(_ tcp: TCP) async throws -> Bool
     {
@@ -112,7 +117,7 @@ public class TcpStateHandler
         }
     }
 
-    func pumpServerToStraw(_ tcp: TCP) async -> Bool
+    func pumpServerToStraw() async -> Bool
     {
         do
         {
@@ -137,7 +142,7 @@ public class TcpStateHandler
         }
     }
 
-    func pumpStrawToClient(_ tcp: TCP) async throws -> [IPv4]
+    func pumpStrawToClient(_ tcp: TCP? = nil) async throws -> [IPv4]
     {
         guard !self.straw.isEmpty else
         {
@@ -148,7 +153,15 @@ public class TcpStateHandler
         var packets: [IPv4] = []
 
         // The maximum we can send is limited by both the client window size and how much data is in the buffer.
-        let sizeToSend = min(Int(tcp.windowSize), self.straw.count)
+        let sizeToSend: Int
+        if let tcp
+        {
+            sizeToSend = min(Int(tcp.windowSize), self.straw.count)
+        }
+        else
+        {
+            sizeToSend = self.straw.count
+        }
 
         var totalPayloadSize = 0
         var nextSequenceNumber = self.straw.sequenceNumber
@@ -169,7 +182,6 @@ public class TcpStateHandler
 
         return packets
     }
-
 
     func makeRst(ipv4: IPv4, tcp: TCP, sequenceNumber: SequenceNumber, acknowledgementNumber: SequenceNumber, windowSize: UInt16) throws -> IPv4
     {

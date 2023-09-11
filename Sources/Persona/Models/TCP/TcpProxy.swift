@@ -35,12 +35,6 @@ public actor TcpProxy
     // An IPVv4-TCP packet has been received from the client. Check that we know how to handle it and then send it to the tcpproxy subsystem.
     public func processDownstreamPacket(ipv4: IPv4, tcp: TCP, payload: Data?) async throws
     {
-//        self.logger.debug("TcpProxy.processDownstreamPacket: \(ipv4.sourceAddress.ipv4AddressString ?? "not an IPv4 address"):\(tcp.sourcePort) -> \(ipv4.destinationAddress.ipv4AddressString ?? "not an IPv4 address"):\(tcp.destinationPort)")
-//        if tcp.destinationPort == 7 || tcp.destinationPort == 853
-//        {
-//            self.tcpLogger.debug("TcpProxy.processDownstreamPacket: \(ipv4.sourceAddress.ipv4AddressString ?? "not an IPv4 address"):\(tcp.sourcePort) -> \(ipv4.destinationAddress.ipv4AddressString ?? "not an IPv4 address"):\(tcp.destinationPort)")
-//        }
-
         // We need one udpproxy subsystem for each source address/port pair.
         // This is so we know how to route incoming traffic back to the client.
         let identity = try TcpIdentity(ipv4: ipv4, tcp: tcp)
@@ -49,6 +43,23 @@ public actor TcpProxy
         {
             // Only process packets on preestablished connections. If it's a new connetion, it will process the packet internally in the constructor.
             try await connection.processDownstreamPacket(ipv4: ipv4, tcp: tcp, payload: payload)
+        }
+    }
+
+    public func pump() async
+    {
+        for connection in TcpProxyConnection.getConnections()
+        {
+            do
+            {
+                try await connection.pump()
+            }
+            catch
+            {
+                self.logger.error("Error pumping connection \(error)")
+
+                continue
+            }
         }
     }
 }

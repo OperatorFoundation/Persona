@@ -14,7 +14,7 @@ import Puppy
 import SwiftHexTools
 import TransmissionAsync
 
-public class TcpProxyConnection
+public actor TcpProxyConnection
 {
     // These static properties and functions handle caching connections to the tcpproxy subsystem.
     // We need one connection to the tcpproxy subsystem for each source address/port pair.
@@ -81,6 +81,11 @@ public class TcpProxyConnection
 //        }
 
         self.connections.removeValue(forKey: identity)
+    }
+
+    static public func getConnections() -> [TcpProxyConnection]
+    {
+        return [TcpProxyConnection](self.connections.values)
     }
     // End of static section
 
@@ -319,6 +324,33 @@ public class TcpProxyConnection
 //        }
 
 //        try await self.pumpUpstreamStrawToUpstream()
+    }
+
+    public func pump() async throws
+    {
+        let transition = try await self.state.pump()
+        for packet in transition.packetsToSend
+        {
+            let outPacket = Packet(ipv4Bytes: packet.data, timestamp: Date())
+            if let outTcp = outPacket.tcp
+            {
+                self.logger.debug("<- \(description(packet, outTcp))")
+            }
+
+            try await self.sendPacket(packet)
+        }
+
+        self.state = transition.newState
+
+        guard self.state.open else
+        {
+            self.logger.debug("TcpProxyConnection.pump - connection was closed")
+
+            try! await self.upstream.close()
+            Self.removeConnection(identity: self.identity)
+
+            throw TcpProxyConnectionError.tcpClosed
+        }
     }
 
     func sendPacket(_ ipv4: IPv4) async throws
