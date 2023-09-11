@@ -116,9 +116,13 @@ public class Persona
         {
             timer in
 
+            print("Persona.pump - pumpTimer triggered")
+
             Task
             {
+                print("Persona.pump - pumpTimer triggered, inside Task, calling tcpProxy.pump")
                 await tcpProxy.pump()
+                print("Persona.pump - pumpTimer triggered, inside Task, calling tcpProxy.pump completed")
             }
         }
     }
