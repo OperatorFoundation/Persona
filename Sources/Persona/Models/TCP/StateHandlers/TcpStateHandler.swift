@@ -96,7 +96,63 @@ public class TcpStateHandler
     }
 
     // Returns whether the server connection closed during write
-    func pumpClientToServer(_ tcp: TCP) async throws -> Bool
+    func pumpOnlyClientToServer(_ tcp: TCP) async throws -> Bool
+    {
+        guard let payload = tcp.payload else
+        {
+            return true
+        }
+
+        // Fully write all incoming payloads from the client to the server so that we don't have to buffer them.
+        do
+        {
+            try await self.upstream.writeWithLengthPrefix(payload, 32)
+            self.straw.increaseAcknowledgementNumber(payload.count)
+
+            let data = try await self.upstream.readWithLengthPrefix(prefixSizeInBits: 32)
+            if data.isEmpty
+            {
+                self.logger.error("Server gave us data that we did not want, discarding \(data.count) bytes")
+            }
+
+            self.logger.info("TcpEstablished.pumpClientToServer: Persona --> tcpproxy - \(payload.count) bytes (new ACK#\(self.straw.acknowledgementNumber))")
+            return true
+        }
+        catch
+        {
+            return false
+        }
+    }
+
+    // Returns whether the server connection closed during write
+    func pumpOnlyServerToStraw() async throws -> Bool
+    {
+        do
+        {
+            // Buffer data from the server until the client ACKs it.
+            try await self.upstream.writeWithLengthPrefix(Data(), 32)
+            let data = try await self.upstream.readWithLengthPrefix(prefixSizeInBits: 32)
+
+            if data.count > 0
+            {
+                try self.straw.write(data)
+                self.logger.info("TcpEstablished.pumpServerToClient: Persona <-- tcpproxy - \(data.count) bytes")
+            }
+            else
+            {
+                self.logger.info("TcpEstablished.pumpServerToClient: Persona <-- tcpproxy - no data")
+            }
+
+            return true
+        }
+        catch
+        {
+            return false
+        }
+    }
+
+    // Returns whether the server connection closed during write
+    func pumpBothClientToServerAndServerToStraw(_ tcp: TCP) async throws -> Bool
     {
         guard let payload = tcp.payload else
         {
@@ -109,20 +165,16 @@ public class TcpStateHandler
             try await self.upstream.writeWithLengthPrefix(payload, 32)
             self.straw.increaseAcknowledgementNumber(payload.count)
             self.logger.info("TcpEstablished.pumpClientToServer: Persona --> tcpproxy - \(payload.count) bytes (new ACK#\(self.straw.acknowledgementNumber))")
-            return true
         }
         catch
         {
+            // Return early if the connection is closed, no need to try reading from a closed connection
             return false
         }
-    }
 
-    func pumpServerToStraw() async -> Bool
-    {
         do
         {
             // Buffer data from the server until the client ACKs it.
-            try await self.upstream.writeWithLengthPrefix(Data(), 32)
             let data = try await self.upstream.readWithLengthPrefix(prefixSizeInBits: 32)
 
             if data.count > 0
