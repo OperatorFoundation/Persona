@@ -200,7 +200,7 @@ public actor TcpProxyConnection
             let outPacket = Packet(ipv4Bytes: packet.data, timestamp: Date())
             if let outTcp = outPacket.tcp
             {
-                self.logger.debug("<- \(description(packet, outTcp))")
+                self.logger.debug("! <- \(description(packet, outTcp))")
             }
 
             try await self.sendPacket(packet)
@@ -279,7 +279,7 @@ public actor TcpProxyConnection
             let outPacket = Packet(ipv4Bytes: packet.data, timestamp: Date())
             if let outTcp = outPacket.tcp
             {
-                self.logger.debug("<- \(description(packet, outTcp))")
+                self.logger.debug("@ <- \(description(packet, outTcp))")
             }
 
             try await self.sendPacket(packet)
@@ -334,7 +334,7 @@ public actor TcpProxyConnection
             let outPacket = Packet(ipv4Bytes: packet.data, timestamp: Date())
             if let outTcp = outPacket.tcp
             {
-                self.logger.debug("<- \(description(packet, outTcp))")
+                self.logger.debug("$ <- \(description(packet, outTcp))")
             }
 
             try await self.sendPacket(packet)
@@ -344,7 +344,7 @@ public actor TcpProxyConnection
 
         guard self.state.open else
         {
-            self.logger.debug("TcpProxyConnection.pump - connection was closed")
+            self.logger.debug("TcpProxyConnection.pump - connection was closed \(self.identity)")
 
             try! await self.upstream.close()
             Self.removeConnection(identity: self.identity)

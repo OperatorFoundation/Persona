@@ -131,7 +131,7 @@ public class TcpEstablished: TcpStateHandler
 
     override func pump() async throws -> TcpStateTransition
     {
-        self.logger.debug("TcpEstablished.pump - fetching content from the server")
+        self.logger.debug("TcpEstablished.pump - fetching content from the server \(self.identity)")
         let serverIsStillOpen: Bool = try await self.pumpOnlyServerToStraw()
 
         self.logger.debug("TcpEstablished.pump - creating packets for the client")
