@@ -136,9 +136,6 @@ public class Persona
 
                     try await self.handleMessage(message)
 
-                    // After we finish handling the new packet, check in on existing connections to see if any of them need to be moved forward.
-                    await self.tcpProxy.pump()
-
 //                    self.logger.info("Persona.run - handleMessage was successful: \(message).")
                 }
                 catch
