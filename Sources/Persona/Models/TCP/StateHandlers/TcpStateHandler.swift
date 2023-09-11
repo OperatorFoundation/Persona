@@ -182,6 +182,21 @@ public class TcpStateHandler
 
         return packets
     }
+    
+    /// If the TCP is in one of the synchronized states (ESTABLISHED, FIN-WAIT-1, FIN-WAIT-2, CLOSE-WAIT, CLOSING, LAST-ACK, TIME-WAIT),
+    /// it aborts the connection and informs its user.
+    func handleRstSynchronizedState(ipv4: IPv4, tcp: TCP) async throws -> TcpStateTransition
+    {
+        let packetLowerBound = SequenceNumber(tcp.sequenceNumber)
+        var packetUpperBound = packetLowerBound        
+        packetUpperBound = packetUpperBound.increment()
+
+        let (sequenceNumber, acknowledgementNumber, windowSize) = self.getState()
+        let rst = try self.makeRst(ipv4: ipv4, tcp: tcp, sequenceNumber: sequenceNumber, acknowledgementNumber: acknowledgementNumber, windowSize: windowSize)
+        let closed = TcpClosed(self)
+        
+        return TcpStateTransition(newState: closed, packetsToSend: [rst])
+    }
 
     func makeRst(ipv4: IPv4, tcp: TCP, sequenceNumber: SequenceNumber, acknowledgementNumber: SequenceNumber, windowSize: UInt16) throws -> IPv4
     {

@@ -26,16 +26,15 @@ public class TcpFinWait1: TcpStateHandler
 {
     override public func processDownstreamPacket(ipv4: IPv4, tcp: TCP, payload: Data?) async throws -> TcpStateTransition
     {
-        /**
-         If the TCP is in one of the synchronized states (ESTABLISHED,
-         FIN-WAIT-1, FIN-WAIT-2, CLOSE-WAIT, CLOSING, LAST-ACK, TIME-WAIT), it
-         aborts the connection and informs its user.  We discuss this latter
-         case under "half-open" connections below.
-         */
+        let clientWindow = self.straw.clientWindow(size: tcp.windowSize)
+        let packetLowerBound = SequenceNumber(tcp.sequenceNumber)
+        var packetUpperBound = packetLowerBound
+        
+        /// If the TCP is in one of the synchronized states (ESTABLISHED, FIN-WAIT-1, FIN-WAIT-2, CLOSE-WAIT, CLOSING, LAST-ACK, TIME-WAIT),
+        /// it aborts the connection and informs its user.
         if tcp.rst
         {
-            // FIXME: Abort the connection and inform the user
-            return TcpStateTransition(newState: TcpClosed(self))
+            return try await handleRstSynchronizedState(ipv4: ipv4, tcp: tcp)
         }
         
         /// If the connection is in a synchronized state (ESTABLISHED, FIN-WAIT-1, FIN-WAIT-2, CLOSE-WAIT, CLOSING, LAST-ACK, TIME-WAIT),
@@ -45,10 +44,9 @@ public class TcpFinWait1: TcpStateHandler
         
         guard self.straw.inWindow(tcp) else
         {
-            let seqNum = self.straw.sequenceNumber
-            self.logger.log(level: .debug, "TCPFinWait1 processDownstreamPacket received an ACK with acknowledgement number (\(SequenceNumber(tcp.acknowledgementNumber))) that does not match our last sequence number (\(String(describing: seqNum))). Re-sending previous ack")
-            
-            let ack = try await makeAck()
+            self.logger.error("❌ TcpFinWait1 - \(clientWindow.lowerBound) <= \(packetLowerBound)..<\(packetUpperBound) <= \(clientWindow.upperBound)")
+
+            let ack = try await self.makeAck()
             return TcpStateTransition(newState: self, packetsToSend: [ack])
         }
         
