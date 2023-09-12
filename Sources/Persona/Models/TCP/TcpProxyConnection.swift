@@ -280,15 +280,15 @@ public actor TcpProxyConnection
                 // Close Wait prep here
                 let closeWaitTransition = try await transition.newState.pump()
                 packetsToSend = transition.packetsToSend + closeWaitTransition.packetsToSend
+                self.logger.debug("@ \(self.state) => \(transition.newState) => \(closeWaitTransition.newState), \(packetsToSend.count) packets to send")
                 self.state = closeWaitTransition.newState
                 
             default:
                 // Nothing to do here
                 packetsToSend = transition.packetsToSend
+                self.logger.debug("@ \(self.state) => \(transition.newState), \(packetsToSend.count) packets to send")
                 self.state = transition.newState
         }
-
-        self.logger.debug("@ \(self.state) => \(transition.newState), \(packetsToSend.count) packets to send")
         
         for packet in transition.packetsToSend
         {
