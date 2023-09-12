@@ -45,7 +45,7 @@ public actor TcpProxy
             try await connection.processDownstreamPacket(ipv4: ipv4, tcp: tcp, payload: payload)
         }
 
-//        await self.pump(connection)
+        await self.pump(connection)
     }
 
     // On every packet received, check on the OTHER connections.
@@ -64,7 +64,7 @@ public actor TcpProxy
 
             do
             {
-                try await connection.pump()
+//                try await connection.pump()
             }
             catch
             {
