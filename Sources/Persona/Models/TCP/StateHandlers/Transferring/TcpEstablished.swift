@@ -22,7 +22,7 @@ public class TcpEstablished: TcpStateHandler
             packetUpperBound = packetUpperBound.add(payload.count)
         }
 
-        if tcp.syn || tcp.rst
+        if tcp.syn
         {
             packetUpperBound = packetUpperBound.increment()
 
@@ -32,6 +32,11 @@ public class TcpEstablished: TcpStateHandler
 
             let closed = TcpClosed(self)
             return TcpStateTransition(newState: closed, packetsToSend: [rst])
+        }
+        
+        if tcp.rst
+        {
+            return try await handleRstSynchronizedState(ipv4: ipv4, tcp: tcp)
         }
 
         guard self.straw.inWindow(tcp) else

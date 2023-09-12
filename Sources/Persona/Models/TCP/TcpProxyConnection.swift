@@ -271,8 +271,24 @@ public actor TcpProxyConnection
 //        self.logger.debug("TcpProxyConnection.processDownstreamPacket[\(self.state)] - \(description(ipv4, tcp))")
         let transition = try await self.state.processDownstreamPacket(ipv4: ipv4, tcp: tcp, payload: nil)
 //        self.logger.debug("TcpProxyConnection.processDownstreamPacket - returned from current TCP state processDownstreamPacket()")
+        
+        var packetsToSend: [IPv4]
+        
+        switch transition.newState
+        {
+            case is TcpCloseWait:
+                // Close Wait prep here
+                let closeWaitTransition = try await transition.newState.pump()
+                packetsToSend = transition.packetsToSend + closeWaitTransition.packetsToSend
+                self.state = closeWaitTransition.newState
+                
+            default:
+                // Nothing to do here
+                packetsToSend = transition.packetsToSend
+                self.state = transition.newState
+        }
 
-        self.logger.debug("@ \(self.state) => \(transition.newState), \(transition.packetsToSend.count) packets to send")
+        self.logger.debug("@ \(self.state) => \(transition.newState), \(packetsToSend.count) packets to send")
         
         for packet in transition.packetsToSend
         {
@@ -284,17 +300,6 @@ public actor TcpProxyConnection
 
             try await self.sendPacket(packet)
         }
-        
-//        self.logger.debug("TcpProxyConnection - processDownstreamPacket: sent \(transition.packetsToSend.count) packets.")
-//        let oldState = self.state
-        self.state = transition.newState
-//        self.logger.debug("TcpProxyConnection - processDownstreamPacket: transitioned to a new state - \(self.state)")
-
-//        logger.debug("TcpProxyConnection.processDownstreamPacket: \(oldState) => \(self.state), \(transition.packetsToSend.count) packets sent downstream")
-//        if identity.remotePort == 7 || identity.remotePort == 853
-//        {
-//            tcpLogger.debug("TcpProxyConnection.init: \(oldState) => \(self.state), \(transition.packetsToSend.count) packets sent downstream")
-//        }
 
         guard self.state.open else
         {
