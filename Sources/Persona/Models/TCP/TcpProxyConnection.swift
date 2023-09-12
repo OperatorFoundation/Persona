@@ -347,15 +347,16 @@ public actor TcpProxyConnection
 
         self.state = transition.newState
 
-        guard self.state.open else
-        {
-            self.logger.debug("TcpProxyConnection.pump - connection was closed \(self.identity)")
-
-            try! await self.upstream.close()
-            Self.removeConnection(identity: self.identity)
-
-            throw TcpProxyConnectionError.tcpClosed
-        }
+        // FIXME - re-enable this code after debugging pump() problems
+//        guard self.state.open else
+//        {
+//            self.logger.debug("TcpProxyConnection.pump - connection was closed \(self.identity)")
+//
+//            try! await self.upstream.close()
+//            Self.removeConnection(identity: self.identity)
+//
+//            throw TcpProxyConnectionError.tcpClosed
+//        }
     }
 
     func sendPacket(_ ipv4: IPv4) async throws

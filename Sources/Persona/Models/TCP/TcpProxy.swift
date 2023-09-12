@@ -64,7 +64,7 @@ public actor TcpProxy
 
             do
             {
-//                try await connection.pump()
+                try await connection.pump()
             }
             catch
             {
