@@ -290,7 +290,7 @@ public actor TcpProxyConnection
                 self.state = transition.newState
         }
         
-        for packet in transition.packetsToSend
+        for packet in packetsToSend
         {
             let outPacket = Packet(ipv4Bytes: packet.data, timestamp: Date())
             if let outTcp = outPacket.tcp
