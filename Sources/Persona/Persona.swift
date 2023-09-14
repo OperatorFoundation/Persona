@@ -158,7 +158,9 @@ public class Persona
     {
         // Attempt to parse the data we received from the downstream client as an IPv4 packet.
         // Note that we only support IPv4 packets and we only support TCP and UDP packets.
-        let packet = Packet(ipv4Bytes: data, timestamp: Date(), debugPrints: true)
+        print("parsing a packet")
+        let packet = Packet(ipv4Bytes: data, timestamp: Date())
+        print("parsed a packet")
 
         if let ipv4 = packet.ipv4, let tcp = packet.tcp
         {
