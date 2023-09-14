@@ -309,9 +309,7 @@ public actor TcpProxyConnection
 
     public func pump() async throws
     {
-        self.logger.trace("TcpProxyConnection.pump() starting - \(self.identity)")
         let transition = try await self.state.pump()
-        self.logger.trace("TcpProxyConnection.pump() done - \(self.identity)")
 
         for packet in transition.packetsToSend
         {
@@ -329,7 +327,7 @@ public actor TcpProxyConnection
         // FIXME - re-enable this code after debugging pump() problems
         guard self.state.open else
         {
-            self.logger.debug("TcpProxyConnection.pump - connection was closed \(self.identity)")
+            self.logger.debug("TcpProxyConnection.pump - connection was closed")
 
             do
             {
