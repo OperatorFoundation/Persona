@@ -185,13 +185,13 @@ class TcpProxy:
 
             bs = length_bytes + data
 
-            self.log.write("client <- tcpproxy - writing %d bytes\n" % (len(bs)))
+            self.log.write("persona <- tcpproxy - writing %d bytes\n" % (len(data)))
             self.log.flush()
 
             self.downstreamWrite.write(bs)
             self.downstreamWrite.flush()
 
-            self.log.write("client <- tcpproxy - %d bytes\n" % (len(data)))
+            self.log.write("persona <- tcpproxy - wrote %d bytes\n" % (len(data)))
             self.log.flush()
 
         except Exception as e:
