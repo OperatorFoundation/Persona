@@ -131,7 +131,7 @@ public class TcpStateHandler
         do
         {
             // Buffer data from the server until the client ACKs it.
-            self.logger.debug("TcpStateHandler.pumpOnlyServerToStraw - writing")
+            self.logger.debug("TcpStateHandler.pumpOnlyServerToStraw - writing 0 bytes")
 
             try await self.upstream.writeWithLengthPrefix(Data(), 32)
 
@@ -139,7 +139,7 @@ public class TcpStateHandler
 
             let data = try await self.upstream.readWithLengthPrefix(prefixSizeInBits: 32)
 
-            self.logger.debug("TcpStateHandler.pumpOnlyServerToStraw - finished")
+            self.logger.debug("TcpStateHandler.pumpOnlyServerToStraw - finished, read \(data.count) bytes")
 
             if data.count > 0
             {
