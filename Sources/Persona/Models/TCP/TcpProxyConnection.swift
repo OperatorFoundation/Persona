@@ -333,7 +333,10 @@ public actor TcpProxyConnection
 
     public func pump() async throws
     {
+        self.logger.trace("TcpProxyConnection.pump() starting - \(self.identity)")
         let transition = try await self.state.pump()
+        self.logger.trace("TcpProxyConnection.pump() done - \(self.identity)")
+
         for packet in transition.packetsToSend
         {
             let outPacket = Packet(ipv4Bytes: packet.data, timestamp: Date())

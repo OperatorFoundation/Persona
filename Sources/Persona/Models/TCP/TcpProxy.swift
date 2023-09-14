@@ -64,7 +64,9 @@ public actor TcpProxy
 
             do
             {
+                self.logger.trace("TcpProxy.pump starting - \(newIdentity)")
                 try await connection.pump()
+                self.logger.trace("TcpProxy.pump done - \(newIdentity)")
             }
             catch
             {
