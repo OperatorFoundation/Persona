@@ -140,7 +140,9 @@ public class TcpStateHandler
             self.logger.debug("TcpStateHandler.pumpOnlyServerToStraw - reading")
             print("reading from tcpproxy")
 
-            let data = try await self.upstream.readWithLengthPrefix(prefixSizeInBits: 32)
+            // FIXME - this is just for testing, please remove
+//            let data = try await self.upstream.readWithLengthPrefix(prefixSizeInBits: 32)
+            let data = Data()
 
             self.logger.debug("TcpStateHandler.pumpOnlyServerToStraw - finished, read \(data.count) bytes")
             print("read from tcpproxy")
