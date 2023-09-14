@@ -88,6 +88,7 @@ public class TcpEstablished: TcpStateHandler
         {
             if tcp.fin
             {
+                self.logger.debug("TcpEstablished - open, FIN")
                 // - server is open, FIN      - CLOSE-WAIT
 
                 self.straw.increaseAcknowledgementNumber(1)
@@ -98,6 +99,7 @@ public class TcpEstablished: TcpStateHandler
             }
             else
             {
+                self.logger.debug("TcpEstablished - open, no FIN")
                 // - server is open, no FIN   - ESTABLISHED
                 if packets.isEmpty
                 {
@@ -112,6 +114,7 @@ public class TcpEstablished: TcpStateHandler
         {
             if tcp.fin
             {
+                self.logger.debug("TcpEstablished - closed, FIN")
                 // - server is closed, FIN    - CLOSING
 
                 self.straw.increaseAcknowledgementNumber(1)
@@ -122,6 +125,7 @@ public class TcpEstablished: TcpStateHandler
             }
             else
             {
+                self.logger.debug("TcpEstablished - closed, no FIN")
                 // - server is closed, no FIN - FIN-WAIT-1
                 if packets.isEmpty
                 {
