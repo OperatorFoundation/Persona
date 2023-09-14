@@ -225,38 +225,6 @@ public actor TcpProxyConnection
 
             throw TcpProxyConnectionError.tcpClosed
         }
-
-//        Asynchronizer.async
-//        {
-//            while self.state.open
-//            {
-//                dp
-//                {
-//                    try await self.pumpUpstreamToUpstreamStraw()
-//                }
-//                catch
-//                {
-//                    self.logger.error("Error in pumpUpstreamToUpstreamStraw")
-//                }
-//            }
-//        }
-
-//
-//        Task
-//        {
-//            while self.state.open
-//            {
-//                try await self.pumpDownstream()
-//            }
-//        }
-
-        // FIXME: Don't call this in a loop
-//        Task
-//        {
-//            while self.open {
-//                self.pumpAck()
-//            }
-//        }
     }
 
     public func processDownstreamPacket(ipv4: IPv4, tcp: TCP, payload: Data?) async throws
