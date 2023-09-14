@@ -211,6 +211,8 @@ public class TcpStateHandler
 
     func pumpStrawToClient(_ tcp: TCP? = nil) async throws -> [IPv4]
     {
+        self.logger.trace("TcpStateHandler.pumpStrawToClient()")
+
         guard !self.straw.isEmpty else
         {
             return []
