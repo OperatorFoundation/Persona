@@ -64,7 +64,15 @@ public actor TcpProxy
 
             do
             {
-                try await connection.pump()
+                switch await connection.state
+                {
+                    // FIXME - add more cases
+                    case is TcpEstablished:
+                        try await connection.pump()
+
+                    default:
+                        continue
+                }
             }
             catch
             {
