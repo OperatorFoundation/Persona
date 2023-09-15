@@ -64,15 +64,11 @@ public class TcpStateHandler
 
     public func processUpstreamData(data: Data) throws -> TcpStateTransition
     {
-        self.logger.debug("TcpStateHandler.processUpstreamData")
-
         return self.panicOnUpstream(data: data)
     }
 
     public func processUpstreamClose() throws -> TcpStateTransition
     {
-        self.logger.debug("TcpStateHandler.processUpstreamClose")
-
         return self.panicOnUpstreamClose()
     }
 
@@ -131,17 +127,9 @@ public class TcpStateHandler
         do
         {
             // Buffer data from the server until the client ACKs it.
-            self.logger.debug("TcpStateHandler.pumpOnlyServerToStraw - writing 0 bytes")
-
             try await self.upstream.writeWithLengthPrefix(Data(), 32)
 
-            self.logger.debug("TcpStateHandler.pumpOnlyServerToStraw - reading")
-
-            // FIXME - this is just for testing, please remove
-//            let data = try await self.upstream.readWithLengthPrefix(prefixSizeInBits: 32)
-            let data = Data()
-
-            self.logger.debug("TcpStateHandler.pumpOnlyServerToStraw - finished, read \(data.count) bytes")
+            let data = try await self.upstream.readWithLengthPrefix(prefixSizeInBits: 32)
 
             if data.count > 0
             {
@@ -209,8 +197,6 @@ public class TcpStateHandler
 
     func pumpStrawToClient(_ tcp: TCP? = nil) async throws -> [IPv4]
     {
-        self.logger.trace("TcpStateHandler.pumpStrawToClient()")
-
         guard !self.straw.isEmpty else
         {
             return []

@@ -45,9 +45,7 @@ public actor TcpProxy
             try await connection.processDownstreamPacket(ipv4: ipv4, tcp: tcp, payload: payload)
         }
 
-        self.logger.trace("TcpProxy.processDownstreamPacket - starting pump...")
         await self.pump(connection)
-        self.logger.trace("TcpProxy.processDownstreamPacket - finished pump.")
     }
 
     // On every packet received, check on the OTHER connections.
