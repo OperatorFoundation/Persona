@@ -134,11 +134,11 @@ public class TcpStateHandler
             if data.count > 0
             {
                 try self.straw.write(data)
-                self.logger.info("TcpEstablished.pumpOnlyServerToStraw: Persona <-- tcpproxy - \(data.count) bytes")
+                self.logger.info("TcpStateHandler.pumpOnlyServerToStraw: Persona <-- tcpproxy - \(data.count) bytes")
             }
             else
             {
-                self.logger.info("TcpEstablished.pumpOnlyServerToStraw: Persona <-- tcpproxy - no data")
+                self.logger.info("TcpStateHandler.pumpOnlyServerToStraw: Persona <-- tcpproxy - no data")
             }
 
             return true

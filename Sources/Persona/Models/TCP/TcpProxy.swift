@@ -70,6 +70,9 @@ public actor TcpProxy
                     case is TcpEstablished:
                         try await connection.pump()
 
+                    case is TcpCloseWait:
+                        try await connection.pump()
+
                     default:
                         continue
                 }
