@@ -126,7 +126,7 @@ public actor TcpProxyConnection
 
 //        self.logger.trace("TcpProxyConnection.init - connecting to tcpproxy subsystem")
 
-        self.upstream = try await AsyncTcpSocketConnection("127.0.0.1", 1232, self.logger, verbose: true)
+        self.upstream = try await AsyncTcpSocketConnection("127.0.0.1", 1232, self.logger, verbose: false)
 
 //        self.logger.trace("TcpProxyConnection.init - connected to tcpproxy subsystem")
 
