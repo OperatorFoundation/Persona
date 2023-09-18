@@ -249,24 +249,6 @@ public actor TcpProxyConnection
 //        self.logger.debug("TcpProxyConnection.processDownstreamPacket[\(self.state)] - \(description(ipv4, tcp))")
         let transition = try await self.state.processDownstreamPacket(ipv4: ipv4, tcp: tcp, payload: nil)
 //        self.logger.debug("TcpProxyConnection.processDownstreamPacket - returned from current TCP state processDownstreamPacket()")
-
-        // Record whether we are about to send our first FIN
-        var sendingFirstFin: Bool
-        switch self.state
-        {
-            case is TcpCloseWait:
-                sendingFirstFin = false
-
-            default:
-                switch transition.newState
-                {
-                    case is TcpCloseWait:
-                        sendingFirstFin = true
-
-                    default:
-                        sendingFirstFin = false
-                }
-        }
         
         var packetsToSend: [IPv4]
         
@@ -336,12 +318,6 @@ public actor TcpProxyConnection
             }
 
             try await self.sendPacket(packet)
-        }
-
-        // Now that we have sent the FIN packet, increment the sequence number to include the FIN.
-        if sendingFirstFin
-        {
-            self.state.straw.incrementSequenceNumber()
         }
 
         guard self.state.open else

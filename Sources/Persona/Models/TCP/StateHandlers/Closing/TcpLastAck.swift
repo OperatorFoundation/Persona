@@ -47,8 +47,14 @@ public class TcpLastAck: TcpStateHandler
             return TcpStateTransition(newState: self)
         }
 
+        // The incoming packet during LastAck should be one more than what we use on outgoing packets.
+        // This is because we already sent a FIN, which incremented the sequence number by 1.
+        // However, in LastAck we ONLY send rebroadcasts of the FIN.
+        // These use the previous sequence number, because they are rebroadcasts.
+        // So rather than incrementing the SEQ# each time we send and then rolling it back each time we rebroadcast,
+        // we will just leave it and check that the incoming ACK# is our recorded SEQ# + 1.
         let (sequenceNumber, _, _) = self.getState()
-        guard SequenceNumber(tcp.acknowledgementNumber) == sequenceNumber else
+        guard SequenceNumber(tcp.acknowledgementNumber) == sequenceNumber.increment() else
         {
             let fin = try await self.makeFin()
 
