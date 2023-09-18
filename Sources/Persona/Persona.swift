@@ -168,7 +168,12 @@ public class Persona
             self.stats.tcp += 1
 
             self.logger.info("🪀 -> TCP: \(description(ipv4, tcp))")
-            self.tcpLogger.info("🪀 -> TCP: \(description(ipv4, tcp))")
+
+            if tcp.destinationPort == 7
+            {
+                self.tcpLogger.info("🪀 -> TCP: \(description(ipv4, tcp))")
+            }
+
             self.packetLogger.info("🪀 -> TCP: \(description(ipv4, tcp))")
 
             // Process TCP packets

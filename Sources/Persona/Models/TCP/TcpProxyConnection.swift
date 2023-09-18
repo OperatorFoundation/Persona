@@ -195,6 +195,11 @@ public actor TcpProxyConnection
 
         self.logger.debug("! \(self.state) => \(transition.newState), \(transition.packetsToSend.count) packets to send")
 
+        if tcp.destinationPort == 7
+        {
+            self.tcpLogger.debug("! \(self.state) => \(transition.newState), \(transition.packetsToSend.count) packets to send")
+        }
+
         for packet in transition.packetsToSend
         {
             let outPacket = Packet(ipv4Bytes: packet.data, timestamp: Date())
