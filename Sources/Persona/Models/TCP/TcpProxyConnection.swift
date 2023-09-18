@@ -201,6 +201,11 @@ public actor TcpProxyConnection
             if let outTcp = outPacket.tcp
             {
                 self.logger.debug("! <- \(description(packet, outTcp))")
+
+                if outTcp.sourcePort == 7
+                {
+                    self.tcpLogger.debug("! <- \(description(packet, outTcp))")
+                }
             }
 
             try await self.sendPacket(packet)
@@ -318,6 +323,11 @@ public actor TcpProxyConnection
             if let outTcp = outPacket.tcp
             {
                 self.logger.debug("@ <- \(description(packet, outTcp))")
+
+                if outTcp.sourcePort == 7
+                {
+                    self.tcpLogger.debug("@ <- \(description(packet, outTcp))")
+                }
             }
 
             try await self.sendPacket(packet)
@@ -362,6 +372,11 @@ public actor TcpProxyConnection
             if let outTcp = outPacket.tcp
             {
                 self.logger.debug("$ <- \(description(packet, outTcp))")
+
+                if outTcp.sourcePort == 7
+                {
+                    self.tcpLogger.debug("$ <- \(description(packet, outTcp))")
+                }
             }
 
             try await self.sendPacket(packet)
