@@ -219,8 +219,9 @@ public class TcpStateHandler
         var totalPayloadSize = 0
         var nextSequenceNumber = self.straw.sequenceNumber
 
-        // We're going to hit this limit exactly.
-        while totalPayloadSize < sizeToSend
+        // We're trying to hit this limit exactly, but if we send to many packets at once they'll get discarded.
+        // So try our best, but limit it to 3 packets max.
+        while totalPayloadSize < sizeToSend, packets.count <= 3
         {
             // Each packet is limited is by the amount left to send and the MTU (which we guess).
             let nextPacketSize = min(sizeToSend - totalPayloadSize, 1400)
