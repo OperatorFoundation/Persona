@@ -239,6 +239,24 @@ public actor TcpProxyConnection
 //        self.logger.debug("TcpProxyConnection.processDownstreamPacket[\(self.state)] - \(description(ipv4, tcp))")
         let transition = try await self.state.processDownstreamPacket(ipv4: ipv4, tcp: tcp, payload: nil)
 //        self.logger.debug("TcpProxyConnection.processDownstreamPacket - returned from current TCP state processDownstreamPacket()")
+
+        // Record whether we are about to send our first FIN
+        var sendingFirstFin: Bool
+        switch self.state
+        {
+            case is TcpCloseWait:
+                sendingFirstFin = false
+
+            default:
+                switch transition.newState
+                {
+                    case is TcpCloseWait:
+                        sendingFirstFin = true
+
+                    default:
+                        sendingFirstFin = false
+                }
+        }
         
         var packetsToSend: [IPv4]
         
@@ -250,11 +268,11 @@ public actor TcpProxyConnection
                 
                 if transition.packetsToSend.count > 0
                 {
-                    var lastPacketIPv4 = transition.packetsToSend[transition.packetsToSend.endIndex - 1]
+                    let lastPacketIPv4 = transition.packetsToSend[transition.packetsToSend.endIndex - 1]
                     
                     let lastPacket = Packet(ipv4Bytes: lastPacketIPv4.data, timestamp: Date())
                     
-                    if var lastPacketTCP = lastPacket.tcp
+                    if let lastPacketTCP = lastPacket.tcp
                     {
                         if let newLastPacketTCP = try TCP(sourcePort: lastPacketTCP.sourcePort, destinationPort: lastPacketTCP.destinationPort, sequenceNumber: SequenceNumber(lastPacketTCP.sequenceNumber), acknowledgementNumber: SequenceNumber(lastPacketTCP.acknowledgementNumber), syn: lastPacketTCP.syn, ack: lastPacketTCP.ack, fin: true, rst: lastPacketTCP.rst, windowSize: lastPacketTCP.windowSize, payload: lastPacketTCP.payload, ipv4: lastPacketIPv4)
                         {
@@ -303,6 +321,12 @@ public actor TcpProxyConnection
             }
 
             try await self.sendPacket(packet)
+        }
+
+        // Now that we have sent the FIN packet, increment the sequence number to include the FIN.
+        if sendingFirstFin
+        {
+            self.state.straw.incrementSequenceNumber()
         }
 
         guard self.state.open else
