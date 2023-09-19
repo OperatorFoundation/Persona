@@ -90,7 +90,7 @@ public class UdpProxyConnection
         try await self.upstream.writeWithLengthPrefix(payload, 32)
     }
 
-    func readUpstream() async throws -> (IPv4, UDP)?
+    func readUpstream() async throws -> (IPv4, UDP, Data)?
     {
         // udpproxy gives us (4-byte address, 2-byte port, and 4-byte length prefix + payload)
         let hostBytes = try await self.upstream.readSize(4)
@@ -100,7 +100,7 @@ public class UdpProxyConnection
     }
 
     // Here we process the raw data we got from the udpproxy subsystem. If it checks out, we send it downstream.
-    func processUpstreamData(_ hostBytes: Data, _ portBytes: Data, _ payload: Data) async throws -> (IPv4, UDP)?
+    func processUpstreamData(_ hostBytes: Data, _ portBytes: Data, _ payload: Data) async throws -> (IPv4, UDP, Data)?
     {
         guard let sourceAddress = IPv4Address(data: hostBytes) else
         {
@@ -128,10 +128,10 @@ public class UdpProxyConnection
             return nil
         }
 
-        return (ipv4, udp)
+        return (ipv4, udp, payload)
     }
 
-    public func pump() async throws -> (IPv4, UDP)?
+    public func pump() async throws -> (IPv4, UDP, Data)?
     {
         self.logger.trace("pumping UDP")
 

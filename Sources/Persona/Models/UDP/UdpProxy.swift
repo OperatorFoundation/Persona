@@ -51,7 +51,9 @@ public class UdpProxy
 
         if let result = try await upstream.readUpstream()
         {
-            let (resultIPv4, resultUDP) = result
+            let (resultIPv4, resultUDP, resultPayload) = result
+
+            self.logger.info("🏓 UDP: @ <- \(resultIPv4.sourceAddress.ipv4AddressString ?? "not an ipv4 address"):\(resultUDP.sourcePort) -> \(resultIPv4.destinationAddress.ipv4AddressString ?? "not an ipv4 address"):\(resultUDP.destinationPort) - \(resultPayload.count) byte payload")
 
             // We have a valid UDP packet, so we send it downstream to the client.
             // The client expects raw IPv4 packets prefixed with a 4-byte length.
@@ -85,7 +87,9 @@ public class UdpProxy
             {
                 if let result = try await connection.pump()
                 {
-                    let (resultIPv4, resultUDP) = result
+                    let (resultIPv4, resultUDP, resultPayload) = result
+
+                    self.logger.info("🏓 UDP: $ <- \(resultIPv4.sourceAddress.ipv4AddressString ?? "not an ipv4 address"):\(resultUDP.sourcePort) -> \(resultIPv4.destinationAddress.ipv4AddressString ?? "not an ipv4 address"):\(resultUDP.destinationPort) - \(resultPayload.count) byte payload")
 
                     // We have a valid UDP packet, so we send it downstream to the client.
                     // The client expects raw IPv4 packets prefixed with a 4-byte length.
