@@ -43,7 +43,7 @@ class SystemdConnection:
 
         bs = length_bytes + data
 
-        self.downstreamWrite.write(bs)
+        self.write(bs)
 
     def close(self):
         try:
