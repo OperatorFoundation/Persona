@@ -48,6 +48,7 @@ public class UdpProxy
         let identity = try UdpIdentity(ipv4: ipv4, udp: udp)
         let upstream = try await UdpProxyConnection.getConnection(identity: identity, downstream: self.client, logger: self.logger, udpLogger: self.udpLogger, writeLogger: self.writeLogger)
         try await upstream.writeUpstream(ipv4: ipv4, udp: udp, payload: payload)
+        try await upstream.readUpstream()
         upstream.checkForCleanup()
     }
 

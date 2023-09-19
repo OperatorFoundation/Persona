@@ -90,7 +90,6 @@ public class UdpProxyConnection
         try await self.upstream.writeWithLengthPrefix(payload, 32)
     }
 
-    // This runs in a loop in its own task. We can received UDP packets from the udpproxy subsystem at any time.
     func readUpstream() async throws
     {
         // udpproxy gives us (4-byte address, 2-byte port, and 4-byte length prefix + payload)
@@ -143,6 +142,8 @@ public class UdpProxyConnection
 
     public func pump() async throws
     {
+        self.logger.trace("pumping UDP")
+
         try await self.upstream.write(Data(array: [0, 0, 0, 0]))
         try await self.upstream.write(Data(array: [0, 0]))
         try await self.upstream.writeWithLengthPrefix(Data(), 32)
