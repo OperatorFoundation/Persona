@@ -155,7 +155,7 @@ public class UdpProxyConnection
         let now = Date()
         let elapsed = now.timeIntervalSince(self.lastUsed)
 
-        self.logger.trace("UdpProxyConnection.checkForCleanup \(now) - \(self.lastUsed) = \(elapsed)/\(UdpProxy.udpTimeout)...")
+        self.logger.trace("UdpProxyConnection.checkForCleanup \(now.timeIntervalSince1970) - \(self.lastUsed.timeIntervalSince1970) = \(elapsed)/\(UdpProxy.udpTimeout)...")
 
         if elapsed > UdpProxy.udpTimeout
         {
