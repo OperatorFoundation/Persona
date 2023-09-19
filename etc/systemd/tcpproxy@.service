@@ -4,4 +4,4 @@
 Description = TCP proxy server service
 
 [Service]
-ExecStart=/root/Persona/tcpproxy/main.py
+ExecStart=/root/Persona/proxies/tcpproxy.py

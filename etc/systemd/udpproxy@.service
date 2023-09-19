@@ -4,4 +4,4 @@
 Description = UDP proxy server service
 
 [Service]
-ExecStart=/root/Persona/udpproxy/main.py
+ExecStart=/root/Persona/proxies/udpproxy.py

@@ -1,3 +1,4 @@
+proxies/__pycache__
 *.pid
 dataDatabase
 .idea

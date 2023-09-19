@@ -48,6 +48,33 @@ public class UdpProxy
         let identity = try UdpIdentity(ipv4: ipv4, udp: udp)
         let upstream = try await UdpProxyConnection.getConnection(identity: identity, downstream: self.client, logger: self.logger, udpLogger: self.udpLogger, writeLogger: self.writeLogger)
         try await upstream.writeUpstream(ipv4: ipv4, udp: udp, payload: payload)
+        upstream.checkForCleanup()
+    }
+
+    public func pump(_ skipConnection: UdpProxyConnection) async throws
+    {
+        let skipIdentity = skipConnection.identity
+
+        for connection in UdpProxyConnection.getConnections()
+        {
+            let newIdentity = connection.identity
+
+            if newIdentity == skipIdentity
+            {
+                continue
+            }
+
+            do
+            {
+                try await connection.pump()
+            }
+            catch
+            {
+                self.logger.error("Error pumping UDP connection \(error)")
+
+                continue
+            }
+        }
     }
 }
 
