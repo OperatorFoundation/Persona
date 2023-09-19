@@ -8,13 +8,16 @@ class UdpConnection:
         (self.host, self.port) = self.network.getsockname()
 
     def read(self):
-        result = self.network.recvfrom(2048, socket.MSG_DONTWAIT)
-        if result:
-            (data, addr) = result
+        try:
+            (data, addr) = self.network.recvfrom(2048, socket.MSG_DONTWAIT)
             (host, port) = addr
             return host, port, data
-        else:
-            return b'\x00\x00\x00\x00', 0, b''
+        except socket.error as e:
+            err = e.args[0]
+            if err == errno.EAGAIN or err == errno.EWOULDBLOCK:
+                return b'\x00\x00\x00\x00', 0, b''
+            else:
+                raise e
 
     def write(self, host, port, data):
         try:
