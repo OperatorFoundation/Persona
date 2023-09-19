@@ -1,3 +1,5 @@
+import errno
+import socket
 from straw import Straw
 
 class TcpConnection:
@@ -33,7 +35,6 @@ class TcpConnection:
     def write(self, data):
         try:
             self.network.sendall(data)
-            self.network.flush()
         except socket.error as e:
             err = e.args[0]
             if err == errno.EAGAIN or err == errno.EWOULDBLOCK:

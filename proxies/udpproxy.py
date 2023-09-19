@@ -16,7 +16,6 @@ class UdpProxy:
         self.downstream = SystemdConnection()
 
         self.log.write("sockname: %s:%d\n" % (self.upstream.host, self.upstream.port))
-        self.log.flush()
 
         while self.running:
             self.pump_upstream()
@@ -45,7 +44,7 @@ class UdpProxy:
 
             self.log.write("persona -> udpproxy - %s:%d - %d bytes\n" % (host, port, len(payload)))
 
-            self.upstream.sendto(payload, (host, port))
+            self.upstream.write(host, port, payload)
 
             self.log.write("udpproxy -> %s:%d - %d bytes\n" % (host, port, len(payload)))
         except Exception as e:
@@ -59,8 +58,7 @@ class UdpProxy:
 
     def pump_downstream(self):
         try:
-            data, addr = self.upstream.recvfrom(2048)
-            (host, port) = addr
+            host, port, data = self.upstream.read()
 
             self.log.write("udpproxy <- %s:%d - %d bytes\n" % (host, port, len(data)))
 
@@ -71,7 +69,7 @@ class UdpProxy:
             self.downstream.write(portBytes)
             self.downstream.writewithlengthprefix(data)
 
-            self.log.write("persona <- udpproxy - %d bytes\n" % (len(dataa)))
+            self.log.write("persona <- udpproxy - %d bytes\n" % (len(data)))
         except Exception as e:
             self.log.write("exception in pumpUpstream\n")
             self.log.write("%s\n" % (str(e)))

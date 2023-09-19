@@ -1,3 +1,6 @@
+import os
+from straw import Straw
+
 class SystemdConnection:
     def __init__(self):
         self.straw = Straw()
@@ -8,21 +11,21 @@ class SystemdConnection:
     def readsize(self, size):
         while self.straw.count < size:
             remaining = size - self.straw.count
-            next_bytes = self.network.read(remaining)
+            next_bytes = self.downstreamRead.read(remaining)
             self.straw.write(next_bytes)
 
         return self.straw.readsize(size)
 
     def readmaxsize(self, max_size):
-        result = self.network.read(max_size)
+        result = self.downstreamRead.read(max_size)
         while result == 0:
-            result = self.network.read(max_size)
+            result = self.downstreamRead.read(max_size)
         return result
 
     def readwithlengthprefix(self):
-        length_bytes = self.network.readsize(4)
+        length_bytes = self.readsize(4)
         length = int.from_bytes(length_bytes, "big")
-        payload = self.network.readsize(length)
+        payload = self.readsize(length)
         return payload
 
     def write(self, data):
@@ -35,7 +38,7 @@ class SystemdConnection:
 
         bs = length_bytes + data
 
-        self.network.write(bs)
+        self.downstreamWrite.write(bs)
 
     def close(self):
         try:

@@ -14,6 +14,9 @@ class TcpProxy:
         self.downstream = SystemdConnection()
         self.upstream = TcpConnection()
 
+        self.host = b''
+        self.port = 0
+
         self.connect()
 
         while self.running:
@@ -33,20 +36,17 @@ class TcpProxy:
             host_bytes = address[0:4]
             port_bytes = address[4:6]
 
-            host = "%d.%d.%d.%d" % (host_bytes[0], host_bytes[1], host_bytes[2], host_bytes[3])
-            port = int.from_bytes(port_bytes, "big")
+            self.host = "%d.%d.%d.%d" % (host_bytes[0], host_bytes[1], host_bytes[2], host_bytes[3])
+            self.port = int.from_bytes(port_bytes, "big")
 
-            self.log.write("connecting to %s:%d\n" % (host, port))
+            self.log.write("connecting to %s:%d\n" % (self.host, self.port))
 
-            self.upstream.connect(host, port)
+            self.upstream.connect(self.host, self.port)
         except Exception as e:
             try:
                 self.log.write("Could not connect: %s" % str(e))
-                self.log.flush()
 
-                self.downstreamWrite.write(b'\xF0')  # signal failure to connect
-                self.downstreamWrite.flush()
-
+                self.downstream.write(b'\xF0')  # signal failure to connect
                 self.downstream.close()
             finally:
                 sys.exit(0)
@@ -54,8 +54,7 @@ class TcpProxy:
         try:
             self.log.write("connected\n")
 
-            self.downstreamWrite.write(b'\xF1')  # signal successful connection
-            self.downstreamWrite.flush()
+            self.downstream.write(b'\xF1')  # signal successful connection
         except:
             try:
                 self.upstream.close()
@@ -84,7 +83,7 @@ class TcpProxy:
 
     def pump_upstream(self):
         try:
-            data = self.upstreamConnection.readmaxsize(2048)
+            data = self.upstream.readmaxsize(2048)
             if data is None:
                 self.log.write("No Data")
 

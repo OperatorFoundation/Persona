@@ -1,5 +1,5 @@
+import errno
 import socket
-
 
 class UdpConnection:
     def __init__(self):
@@ -10,7 +10,7 @@ class UdpConnection:
     def read(self):
         data, addr = self.network.recvfrom(2048)
         (host, port) = addr
-        return (host, port, data)
+        return host, port, data
 
     def write(self, host, port, data):
         try:
