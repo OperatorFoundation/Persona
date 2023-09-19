@@ -70,6 +70,8 @@ public class UdpProxy
         {
             self.logger.debug("UDP read upstream failed")
         }
+
+        try await self.pump(upstream)
     }
 
     public func pump(_ skipConnection: UdpProxyConnection) async throws
