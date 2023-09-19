@@ -106,8 +106,6 @@ public class UdpProxy
                     }
                     self.writeLogger.info("\(resultIPv4.data.count) - \(resultIPv4.data.hex)")
                 }
-
-                connection.checkForCleanup()
             }
             catch
             {
