@@ -37,7 +37,7 @@ class UdpProxy:
             payload = self.downstream.readwithlengthprefix()
 
             if len(payload) == 0:
-                self.log.write("persona -> udpproxy - %s:%d - 0 bytes\n" % (host, port))
+                self.log.write("persona -> udpproxy - 0 bytes\n")
                 return
 
             host = "%d.%d.%d.%d" % (hostBytes[0], hostBytes[1], hostBytes[2], hostBytes[3])
