@@ -263,6 +263,7 @@ public class TcpStateHandler
 
     func close() async throws
     {
+        self.logger.trace("TcpStateHandler.close()")
         try await self.upstream.write(TcpProxyMessage.close.data)
 
         do
