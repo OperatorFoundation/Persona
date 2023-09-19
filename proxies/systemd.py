@@ -2,7 +2,9 @@ import os
 from straw import Straw
 
 class SystemdConnection:
-    def __init__(self):
+    def __init__(self, log):
+        self.log = log
+
         self.straw = Straw()
 
         self.downstreamRead = os.fdopen(3, 'rb')
@@ -29,6 +31,7 @@ class SystemdConnection:
         return payload
 
     def write(self, data):
+        self.log.write("writing downstream %d bytes" % len(data))
         self.downstreamWrite.write(data)
         self.downstreamWrite.flush()
 

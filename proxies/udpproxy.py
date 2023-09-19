@@ -13,7 +13,7 @@ class UdpProxy:
         self.log.write("udpproxy started\n")
 
         self.upstream = UdpConnection()
-        self.downstream = SystemdConnection()
+        self.downstream = SystemdConnection(self.log)
 
         self.log.write("sockname: %s:%d\n" % (self.upstream.host, self.upstream.port))
 
@@ -65,11 +65,11 @@ class UdpProxy:
             hostBytes = socket.inet_aton(host)
             portBytes = port.to_bytes(2, "big")
 
-            self.log.write("write hostBytes")
+            self.log.write("write hostBytes\n")
             self.downstream.write(hostBytes)
-            self.log.write("write portBytes")
+            self.log.write("write portBytes\n")
             self.downstream.write(portBytes)
-            self.log.write("write with length prefix %d" % len(data))
+            self.log.write("write with length prefix %d\n" % len(data))
             self.downstream.writewithlengthprefix(data)
 
             self.log.write("persona <- udpproxy - %d bytes\n" % (len(data)))
