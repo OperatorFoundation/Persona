@@ -334,7 +334,7 @@ public actor TcpProxyConnection
             }
             catch
             {
-                self.logger.error("TcpProxyConnection.processDownstreamPacket - Tried to close connection that was already closed")
+                self.logger.error("TcpProxyConnection.processDownstreamPacket - Tried to close connection that was already closed \(error)")
             }
 
             Self.removeConnection(identity: self.identity)
