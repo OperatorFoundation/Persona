@@ -64,13 +64,13 @@ public class TcpEstablished: TcpStateHandler
         }
 
         var serverIsStillOpen: Bool = true
-        if let payload = tcp.payload
+        if tcp.payload == nil
         {
-            serverIsStillOpen = try await self.pumpBothClientToServerAndServerToStraw(tcp)
+            serverIsStillOpen = try await self.pumpOnlyServerToStraw()
         }
         else
         {
-            serverIsStillOpen = try await self.pumpOnlyServerToStraw()
+            serverIsStillOpen = try await self.pumpBothClientToServerAndServerToStraw(tcp)
         }
 
         var packets = try await self.pumpStrawToClient(tcp)

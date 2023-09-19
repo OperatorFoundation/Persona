@@ -330,7 +330,7 @@ public actor TcpProxyConnection
 
             do
             {
-                try await self.upstream.close()
+                try await self.state.close()
             }
             catch
             {
@@ -365,14 +365,13 @@ public actor TcpProxyConnection
 
         self.state = transition.newState
 
-        // FIXME - re-enable this code after debugging pump() problems
         guard self.state.open else
         {
             self.logger.debug("TcpProxyConnection.pump - connection was closed")
 
             do
             {
-                try await self.upstream.close()
+                try await self.state.close()
             }
             catch
             {

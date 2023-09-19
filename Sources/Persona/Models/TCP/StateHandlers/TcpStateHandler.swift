@@ -12,6 +12,29 @@ import InternetProtocols
 import Puppy
 import TransmissionAsync
 
+public enum TcpProxyMessage: UInt8
+{
+    case upstreamOnly   = 1
+    case downstreamOnly = 2
+    case bidirectional  = 3
+    case close          = 4
+
+    public init?(data: Data)
+    {
+        guard data.count == 1 else
+        {
+            return nil
+        }
+
+        self.init(rawValue: data[0])
+    }
+
+    public var data: Data
+    {
+        return Data(array: [self.rawValue])
+    }
+}
+
 public class TcpStateHandler
 {
     public let identity: TcpIdentity
@@ -102,6 +125,7 @@ public class TcpStateHandler
         // Fully write all incoming payloads from the client to the server so that we don't have to buffer them.
         do
         {
+            try await self.upstream.write(TcpProxyMessage.upstreamOnly.data)
             try await self.upstream.writeWithLengthPrefix(payload, 32)
             self.straw.increaseAcknowledgementNumber(payload.count)
 
@@ -126,8 +150,7 @@ public class TcpStateHandler
     {
         do
         {
-            // Buffer data from the server until the client ACKs it.
-            try await self.upstream.writeWithLengthPrefix(Data(), 32)
+            try await self.upstream.write(TcpProxyMessage.downstreamOnly.data)
 
             let data = try await self.upstream.readWithLengthPrefix(prefixSizeInBits: 32)
 
@@ -161,6 +184,7 @@ public class TcpStateHandler
         // Fully write all incoming payloads from the client to the server so that we don't have to buffer them.
         do
         {
+            try await self.upstream.write(TcpProxyMessage.bidirectional.data)
             try await self.upstream.writeWithLengthPrefix(payload, 32)
             self.straw.increaseAcknowledgementNumber(payload.count)
             self.logger.info("TcpEstablished.pumpClientToServer: Persona --> tcpproxy - \(payload.count) bytes (new ACK#\(self.straw.acknowledgementNumber))")
@@ -236,7 +260,13 @@ public class TcpStateHandler
 
         return packets
     }
-    
+
+    func close() async throws
+    {
+        try await self.upstream.write(TcpProxyMessage.close.data)
+        try await self.upstream.close()
+    }
+
     /// In all states except SYN-SENT, all reset (RST) segments are validated by checking their SEQ-fields.
     /// A reset is valid if its sequence number is in the window.
     ///

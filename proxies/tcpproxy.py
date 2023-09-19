@@ -1,8 +1,23 @@
 #!/usr/bin/python3
+import binascii
 import sys
+from enum import Enum
 from logging import Logger
 from tcp import TcpConnection
 from systemd import SystemdConnection
+
+class TcpProxyMessage(Enum):
+    upstreamOnly   = 1
+    downstreamOnly = 2
+    bidirectional  = 3
+    close          = 4
+
+    @classmethod
+    def new(self, data):
+        return TcpProxyMessage(data[0])
+
+    def data(self):
+        return bytes(chr(self.value))
 
 class TcpProxy:
     def __init__(self):
@@ -21,7 +36,6 @@ class TcpProxy:
 
         while self.running:
             self.pump_upstream()
-            self.pump_downstream()
 
         self.log.write("closing and exiting")
 
@@ -64,13 +78,26 @@ class TcpProxy:
 
     def pump_downstream(self):
         try:
-            payload = self.downstream.readwithlengthprefix()
+            messageBytes = self.downstream.readsize(1)
+            message = TcpProxyMessage.new(messageBytes)
 
-            self.log.write("persona -> tcpproxy - %d bytes\n" % (len(payload)))
+            if message == TcpProxyMessage.upstreamOnly or message == TcpProxyMessage.bidirectional:
+                payload = self.downstream.readwithlengthprefix()
 
-            self.upstream.write(payload)
+                self.log.write("persona -> tcpproxy - %d bytes\n" % (len(payload)))
 
-            self.log.write("tcpproxy -> %s:%d - %d bytes\n" % (self.host, self.port, len(payload)))
+                self.upstream.write(payload)
+
+                self.log.write("tcpproxy -> %s:%d - %d bytes\n" % (self.host, self.port, len(payload)))
+
+            if message == TcpProxyMessage.downstreamOnly or message == TcpProxyMessage.bidirectional:
+                self.pump_downstream()
+
+            if message == TcpProxyMessage.close:
+                self.log.write("Close message received, exiting")
+                self.upstream.close()
+                self.downstream.close()
+                sys.exit(0)
         except Exception as e:
             try:
                 self.log.write("exception in pumpDownstream: %s" % (str(e)))
