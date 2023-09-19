@@ -70,8 +70,6 @@ public class UdpProxy
         {
             self.logger.debug("UDP read upstream failed")
         }
-
-        upstream.checkForCleanup()
     }
 
     public func pump(_ skipConnection: UdpProxyConnection) async throws
@@ -106,6 +104,8 @@ public class UdpProxy
                     }
                     self.writeLogger.info("\(resultIPv4.data.count) - \(resultIPv4.data.hex)")
                 }
+
+                connection.checkForCleanup()
             }
             catch
             {
