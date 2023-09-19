@@ -15,7 +15,7 @@ class UdpConnection:
         except socket.error as e:
             err = e.args[0]
             if err == errno.EAGAIN or err == errno.EWOULDBLOCK:
-                return b'\x00\x00\x00\x00', 0, b''
+                return "0.0.0.0", 0, b''
             else:
                 raise e
 
