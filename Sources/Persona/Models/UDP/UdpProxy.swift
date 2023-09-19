@@ -66,6 +66,10 @@ public class UdpProxy
             }
             self.writeLogger.info("\(resultIPv4.data.count) - \(resultIPv4.data.hex)")
         }
+        else
+        {
+            self.logger.debug("UDP read upstream failed")
+        }
 
         upstream.checkForCleanup()
     }

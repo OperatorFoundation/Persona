@@ -92,10 +92,14 @@ public class UdpProxyConnection
 
     func readUpstream() async throws -> (IPv4, UDP, Data)?
     {
+        self.logger.trace("UdpProxyConnection.readUpstream()")
+
         // udpproxy gives us (4-byte address, 2-byte port, and 4-byte length prefix + payload)
         let hostBytes = try await self.upstream.readSize(4)
         let portBytes = try await self.upstream.readSize(2)
         let payload = try await self.upstream.readWithLengthPrefix(prefixSizeInBits: 32)
+
+        self.logger.trace("UdpProxyConnection.readUpstream() ended")
         return try await self.processUpstreamData(hostBytes, portBytes, payload)
     }
 
