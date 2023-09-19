@@ -11,7 +11,7 @@ class TcpProxy:
         self.log = Logger('/root/Persona/tcpproxy.log')
         self.log.write("🏀 tcpproxy started 🏀\n")
 
-        self.downstream = SystemdConnection()
+        self.downstream = SystemdConnection(self.log)
         self.upstream = TcpConnection()
 
         self.host = b''
