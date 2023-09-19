@@ -145,17 +145,26 @@ public class UdpProxyConnection
         try await self.upstream.write(Data(array: [0, 0]))
         try await self.upstream.writeWithLengthPrefix(Data(), 32)
 
-        return try await self.readUpstream()
+        if let result = try await self.readUpstream()
+        {
+            self.lastUsed = Date() // now
+            return result
+        }
+        else
+        {
+            return nil
+        }
     }
 
     // Check if the UDP proxy has timed out.
     // UDP connections never explictly close, so we time them out instead.
     func checkForCleanup()
     {
-        let now = Date()
-        let elapsed = now.timeIntervalSince(self.lastUsed)
+        let now = Date().timeIntervalSince1970
+        let then = self.lastUsed.timeIntervalSince1970
+        let elapsed = now - then
 
-        self.logger.trace("UdpProxyConnection.checkForCleanup \(now.timeIntervalSince1970) - \(self.lastUsed.timeIntervalSince1970) = \(elapsed)/\(UdpProxy.udpTimeout)...")
+        self.logger.trace("UdpProxyConnection.checkForCleanup \(now) - \(then) = \(elapsed)/\(UdpProxy.udpTimeout)...")
 
         if elapsed > UdpProxy.udpTimeout
         {
