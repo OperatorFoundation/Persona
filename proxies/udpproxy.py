@@ -44,7 +44,7 @@ class UdpProxy:
                     self.log.write('received close signal, exiting')
                     self.upstream.close()
                     self.downstream.close()
-                    sys.exit(1)
+                    sys.exit(0)
                 else:
                     self.log.write("persona -> udpproxy - 0 bytes\n")
                     return
