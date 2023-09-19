@@ -53,8 +53,6 @@ public class UdpProxyConnection
 
     public var lastUsed: Date
 
-    var running: Bool = true
-
     public init(identity: UdpIdentity, downstream: AsyncConnection, logger: Logger, udpLogger: Puppy, writeLogger: Puppy) async throws
     {
         self.identity = identity
@@ -162,7 +160,7 @@ public class UdpProxyConnection
 
     // Check if the UDP proxy has timed out.
     // UDP connections never explictly close, so we time them out instead.
-    func checkForCleanup()
+    func checkForCleanup() async throws
     {
         let now = Date().timeIntervalSince1970
         let then = self.lastUsed.timeIntervalSince1970
@@ -175,8 +173,8 @@ public class UdpProxyConnection
             self.logger.trace("UdpProxyConnection.checkForCleanup closing connection for \(self.identity.localAddress.string):\(self.identity.localPort)")
             self.udpLogger.trace("UdpProxyConnection.checkForCleanup closing connection for \(self.identity.localAddress.string):\(self.identity.localPort)")
 
+            try await self.upstream.close()
             UdpProxyConnection.removeConnection(identity: self.identity)
-            self.running = false
         }
     }
 }
