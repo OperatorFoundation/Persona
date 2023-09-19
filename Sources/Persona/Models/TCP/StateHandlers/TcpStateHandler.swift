@@ -264,7 +264,16 @@ public class TcpStateHandler
     func close() async throws
     {
         try await self.upstream.write(TcpProxyMessage.close.data)
-        try await self.upstream.close()
+
+        do
+        {
+            // This will probably throw since upstream will already have closed.
+            try await self.upstream.close()
+        }
+        catch
+        {
+            return
+        }
     }
 
     /// In all states except SYN-SENT, all reset (RST) segments are validated by checking their SEQ-fields.
