@@ -92,7 +92,6 @@ public class UdpProxyConnection
 
     func readUpstream() async throws -> (IPv4, UDP, Data)?
     {
-
         // udpproxy gives us (4-byte address, 2-byte port, and 4-byte length prefix + payload)
         self.logger.trace("UdpProxyConnection.readUpstream() - read 4")
         let hostBytes = try await self.upstream.readSize(4)
@@ -116,6 +115,11 @@ public class UdpProxyConnection
         guard let sourcePort = portBytes.maybeNetworkUint16 else
         {
             throw UdpProxyError.dataConversionFailed
+        }
+
+        guard payload.count > 0 else
+        {
+            return nil
         }
 
         // Here we do NAT translation on the UDP layer, adding the stored destination port.
