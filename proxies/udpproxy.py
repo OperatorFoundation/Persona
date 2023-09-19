@@ -65,8 +65,11 @@ class UdpProxy:
             hostBytes = socket.inet_aton(host)
             portBytes = port.to_bytes(2, "big")
 
+            self.log.write("write hostBytes")
             self.downstream.write(hostBytes)
+            self.log.write("write portBytes")
             self.downstream.write(portBytes)
+            self.log.write("write with length prefix %d" % len(data))
             self.downstream.writewithlengthprefix(data)
 
             self.log.write("persona <- udpproxy - %d bytes\n" % (len(data)))
