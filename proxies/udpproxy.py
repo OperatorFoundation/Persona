@@ -36,12 +36,18 @@ class UdpProxy:
 
             payload = self.downstream.readwithlengthprefix()
 
-            if len(payload) == 0:
-                self.log.write("persona -> udpproxy - 0 bytes\n")
-                return
-
             host = "%d.%d.%d.%d" % (hostBytes[0], hostBytes[1], hostBytes[2], hostBytes[3])
             port = int.from_bytes(portBytes, "big")
+
+            if len(payload) == 0:
+                if port == 1:
+                    self.log.write('received close signal, exiting')
+                    self.upstream.close()
+                    self.downstream.close()
+                    sys.exit(1)
+                else:
+                    self.log.write("persona -> udpproxy - 0 bytes\n")
+                    return
 
             self.log.write("persona -> udpproxy - %s:%d - %d bytes\n" % (host, port, len(payload)))
 
@@ -55,7 +61,7 @@ class UdpProxy:
                 self.upstream.close()
                 self.downstream.close()
             finally:
-                sys.exit(1)
+                sys.exit(2)
 
     def pump_downstream(self):
         try:
@@ -83,7 +89,7 @@ class UdpProxy:
                 self.upstream.close()
                 self.downstream.close()
             finally:
-                sys.exit(2)
+                sys.exit(3)
 
 if __name__ == '__main__':
     proxy = UdpProxy()

@@ -173,6 +173,11 @@ public class UdpProxyConnection
             self.logger.trace("UdpProxyConnection.checkForCleanup closing connection for \(self.identity.localAddress.string):\(self.identity.localPort)")
             self.udpLogger.trace("UdpProxyConnection.checkForCleanup closing connection for \(self.identity.localAddress.string):\(self.identity.localPort)")
 
+            // Send close signal
+            try await self.upstream.write(Data(array: [0, 0, 0, 0]))
+            try await self.upstream.write(Data(array: [0, 1]))
+            try await self.upstream.writeWithLengthPrefix(Data(), 32)
+
             try await self.upstream.close()
             UdpProxyConnection.removeConnection(identity: self.identity)
         }
