@@ -19,7 +19,7 @@ import TransmissionAsync
 public class UdpProxy
 {
     // UDP connections never explictly close, so we time them out eventually.
-    static public let udpTimeout: TimeInterval = 1 * 60 // 1 minute, in seconds
+    static public let udpTimeout: TimeInterval = 5 // 5 seconds
 
     let client: AsyncConnection
     let logger: Logger
