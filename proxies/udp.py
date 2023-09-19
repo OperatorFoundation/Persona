@@ -8,9 +8,13 @@ class UdpConnection:
         (self.host, self.port) = self.network.getsockname()
 
     def read(self):
-        data, addr = self.network.recvfrom(2048)
-        (host, port) = addr
-        return host, port, data
+        result = self.network.recvfrom(2048, socket.MSG_DONTWAIT)
+        if result:
+            (data, addr) = result
+            (host, port) = addr
+            return host, port, data
+        else:
+            return b'\x00\x00\x00\x00', 0, b''
 
     def write(self, host, port, data):
         try:
