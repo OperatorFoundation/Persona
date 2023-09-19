@@ -5,7 +5,7 @@ class UdpConnection:
     def __init__(self):
         self.network = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         self.network.bind(('0.0.0.0', 0))
-        (self.host, self.port) = self.upstream.getsockname()
+        (self.host, self.port) = self.network.getsockname()
 
     def read(self):
         data, addr = self.network.recvfrom(2048)
