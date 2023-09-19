@@ -31,11 +31,13 @@ class SystemdConnection:
         return payload
 
     def write(self, data):
-        self.log.write("writing downstream %d bytes" % len(data))
+        self.log.write("writing downstream %d bytes\n" % len(data))
         self.downstreamWrite.write(data)
         self.downstreamWrite.flush()
 
     def writewithlengthprefix(self, data):
+        self.log.write("writewithlengthprefix(%d bytes)\n" % len(data))
+
         length = len(data)
         length_bytes = length.to_bytes(4, "big")
 
