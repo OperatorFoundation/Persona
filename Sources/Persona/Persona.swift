@@ -126,7 +126,17 @@ public class Persona
                 // Persona expects the client to send raw IPv4 packets prefixed with a 4-byte length
                 // All responses will also be raw IPv4 packets prefixed with a 4-byte length
                 self.logger.info("Persona.run - reading from client")
-                let message = try await self.connection.readWithLengthPrefix(prefixSizeInBits: 32)
+
+                let pendingConnectionsCount = TcpProxyConnection.getConnections().count + UdpProxyConnection.getConnections().count
+                let message: Data
+                if pendingConnectionsCount == 0
+                {
+                    message = try await self.connection.readWithLengthPrefix(prefixSizeInBits: 32)
+                }
+                else
+                {
+                    message = try await self.connection.readWithLengthPrefixNonblocking(prefixSizeInBits: 32)
+                }
 
                 do
                 {
@@ -138,6 +148,18 @@ public class Persona
                 catch
                 {
                     self.logger.error("Persona.run - failed to handle message: \(message): \(error). Moving on to next message.")
+                }
+            }
+            catch(AsyncTcpSocketConnectionError.noData)
+            {
+                do
+                {
+                    await self.tcpProxy.pump()
+                    try await self.udpProxy.pump()
+                }
+                catch
+                {
+                    self.logger.error("Persona.run (noData) - failed to pump: \(error). Try reading from the client again.")
                 }
             }
             catch

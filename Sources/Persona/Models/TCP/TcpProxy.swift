@@ -49,17 +49,20 @@ public actor TcpProxy
     }
 
     // On every packet received, check on the OTHER connections.
-    public func pump(_ skipConnection: TcpProxyConnection) async
+    public func pump(_ skipConnection: TcpProxyConnection? = nil) async
     {
-        let skipIdentity = skipConnection.identity
-
         for connection in TcpProxyConnection.getConnections()
         {
             let newIdentity = connection.identity
 
-            if newIdentity == skipIdentity
+            if let skipConnection
             {
-                continue
+                let skipIdentity = skipConnection.identity
+
+                if newIdentity == skipIdentity
+                {
+                    continue
+                }
             }
 
             do

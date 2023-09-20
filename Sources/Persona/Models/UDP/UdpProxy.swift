@@ -74,17 +74,20 @@ public class UdpProxy
         try await self.pump(upstream)
     }
 
-    public func pump(_ skipConnection: UdpProxyConnection) async throws
+    public func pump(_ skipConnection: UdpProxyConnection? = nil) async throws
     {
-        let skipIdentity = skipConnection.identity
-
         for connection in UdpProxyConnection.getConnections()
         {
             let newIdentity = connection.identity
 
-            if newIdentity == skipIdentity
+            if let skipConnection
             {
-                continue
+                let skipIdentity = skipConnection.identity
+
+                if newIdentity == skipIdentity
+                {
+                    continue
+                }
             }
 
             do
