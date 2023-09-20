@@ -93,7 +93,7 @@ class TcpProxy:
                 self.log.write("tcpproxy -> %s:%d - %d bytes\n" % (self.host, self.port, len(payload)))
 
             if message == TcpProxyMessage.downstreamOnly or message == TcpProxyMessage.bidirectional:
-                self.pump_downstream()
+                self.pump_upstream()
 
             if message == TcpProxyMessage.close:
                 self.log.write("Close message received, exiting")
@@ -111,6 +111,7 @@ class TcpProxy:
                 sys.exit(2)
 
     def pump_upstream(self):
+
         try:
             data = self.upstream.readmaxsize(2048)
             if data is None:
