@@ -35,7 +35,8 @@ public class Persona
         // First we set up the logging. There are several loggers that log different specific events that are helpful for debugging.
         // The location of the log files assumes that you have Persona checked out in the home directory of the root user.
         let mainLogURL = URL(fileURLWithPath: "/root/Persona/Persona.log")
-        let logger = try FileLogging.logger(label: "Persona", localFile: mainLogURL)
+        var logger = try FileLogging.logger(label: "Persona", localFile: mainLogURL)
+        logger.logLevel = .critical
         self.logger = logger
 
         let logFileURL = File.homeDirectory().appendingPathComponent("Persona/PersonaTcpLog.log", isDirectory: false)
@@ -97,9 +98,9 @@ public class Persona
 
         let now = Date()
         self.logger.info("🏀 Persona Start \(now) 🏀") // General log for debugging with probably too much information to follow
-        self.packetLogger.debug("🏀 PersonaPacketLogger Start \(now)🏀") // Logs of only events related to packets
-        self.tcpLogger.debug("🏀 PersonaTCPLogger Start \(now)🏀") // Log of only events related to TCP packets that are part of the client TCP test
-        self.udpLogger.debug("🏀 PersonaUDPLogger Start \(now)🏀") // Log of only events related to UDP packets that are part of the client UDP test
+        self.packetLogger.info("🏀 PersonaPacketLogger Start \(now)🏀") // Logs of only events related to packets
+        self.tcpLogger.info("🏀 PersonaTCPLogger Start \(now)🏀") // Log of only events related to TCP packets that are part of the client TCP test
+        self.udpLogger.info("🏀 PersonaUDPLogger Start \(now)🏀") // Log of only events related to UDP packets that are part of the client UDP test
         self.clientWriteLog.info("🏀 PersonaClientWriteLogger Start \(now)🏀") // Log of only writes to the client
 
         // Connect to systemd input and output streams
@@ -131,7 +132,7 @@ public class Persona
                 }
                 catch
                 {
-                    self.logger.info("Persona.run - failed to handle message: \(message): \(error). Moving on to next message.")
+                    self.logger.error("Persona.run - failed to handle message: \(message): \(error). Moving on to next message.")
                 }
             }
             catch
@@ -167,14 +168,14 @@ public class Persona
             self.stats.ipv4 += 1
             self.stats.tcp += 1
 
-            self.logger.info("🪀 -> TCP: \(description(ipv4, tcp))")
+            self.logger.debug("🪀 -> TCP: \(description(ipv4, tcp))")
 
             if tcp.destinationPort == 7
             {
-                self.tcpLogger.info("🪀 -> TCP: \(description(ipv4, tcp))")
+                self.tcpLogger.debug("🪀 -> TCP: \(description(ipv4, tcp))")
             }
 
-            self.packetLogger.info("🪀 -> TCP: \(description(ipv4, tcp))")
+            self.packetLogger.debug("🪀 -> TCP: \(description(ipv4, tcp))")
 
             // Process TCP packets
             try await self.tcpProxy.processDownstreamPacket(ipv4: ipv4, tcp: tcp, payload: tcp.payload)
@@ -188,16 +189,16 @@ public class Persona
 
             if let payload = udp.payload
             {
-                self.logger.info("🏓 UDP: \(ipv4.sourceAddress.ipv4AddressString ?? "not an ipv4 address"):\(udp.sourcePort) -> \(ipv4.destinationAddress.ipv4AddressString ?? "not an ipv4 address"):\(udp.destinationPort) - \(payload.count) byte payload")
-                self.packetLogger.info("🏓 UDP: \(ipv4.sourceAddress.ipv4AddressString ?? "not an ipv4 address"):\(udp.sourcePort) -> \(ipv4.destinationAddress.ipv4AddressString ?? "not an ipv4 address"):\(udp.destinationPort) - \(payload.count) byte payload")
+                self.logger.debug("🏓 UDP: \(ipv4.sourceAddress.ipv4AddressString ?? "not an ipv4 address"):\(udp.sourcePort) -> \(ipv4.destinationAddress.ipv4AddressString ?? "not an ipv4 address"):\(udp.destinationPort) - \(payload.count) byte payload")
+                self.packetLogger.debug("🏓 UDP: \(ipv4.sourceAddress.ipv4AddressString ?? "not an ipv4 address"):\(udp.sourcePort) -> \(ipv4.destinationAddress.ipv4AddressString ?? "not an ipv4 address"):\(udp.destinationPort) - \(payload.count) byte payload")
 
                 // Process only UDP packets with payloads
                 try await self.udpProxy.processDownstreamPacket(ipv4: ipv4, udp: udp, payload: payload)
             }
             else
             {
-                self.logger.info("🏓 UDP: \(ipv4.sourceAddress.ipv4AddressString ?? "not an ipv4 address"):\(udp.sourcePort) -> \(ipv4.destinationAddress.ipv4AddressString ?? "not an ipv4 address"):\(udp.destinationPort) - no payload")
-                self.packetLogger.info("🏓 UDP: \(ipv4.sourceAddress.ipv4AddressString ?? "not an ipv4 address"):\(udp.sourcePort) -> \(ipv4.destinationAddress.ipv4AddressString ?? "not an ipv4 address"):\(udp.destinationPort) - no payload")
+                self.logger.debug("🏓 UDP: \(ipv4.sourceAddress.ipv4AddressString ?? "not an ipv4 address"):\(udp.sourcePort) -> \(ipv4.destinationAddress.ipv4AddressString ?? "not an ipv4 address"):\(udp.destinationPort) - no payload")
+                self.packetLogger.debug("🏓 UDP: \(ipv4.sourceAddress.ipv4AddressString ?? "not an ipv4 address"):\(udp.sourcePort) -> \(ipv4.destinationAddress.ipv4AddressString ?? "not an ipv4 address"):\(udp.destinationPort) - no payload")
 
                 // Reject UDP packets without payloads
                 throw PersonaError.emptyPayload

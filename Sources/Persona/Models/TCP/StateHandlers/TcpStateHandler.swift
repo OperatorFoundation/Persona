@@ -135,7 +135,7 @@ public class TcpStateHandler
                 self.logger.error("Server gave us data that we did not want, discarding \(data.count) bytes")
             }
 
-            self.logger.info("TcpEstablished.pumpClientToServer: Persona --> tcpproxy - \(payload.count) bytes (new ACK#\(self.straw.acknowledgementNumber))")
+            self.logger.debug("TcpEstablished.pumpClientToServer: Persona --> tcpproxy - \(payload.count) bytes (new ACK#\(self.straw.acknowledgementNumber))")
             return true
         }
         catch
@@ -157,11 +157,11 @@ public class TcpStateHandler
             if data.count > 0
             {
                 try self.straw.write(data)
-                self.logger.info("TcpStateHandler.pumpOnlyServerToStraw: Persona <-- tcpproxy - \(data.count) bytes")
+                self.logger.debug("TcpStateHandler.pumpOnlyServerToStraw: Persona <-- tcpproxy - \(data.count) bytes")
             }
             else
             {
-                self.logger.info("TcpStateHandler.pumpOnlyServerToStraw: Persona <-- tcpproxy - no data")
+                self.logger.debug("TcpStateHandler.pumpOnlyServerToStraw: Persona <-- tcpproxy - no data")
             }
 
             return true
@@ -187,7 +187,7 @@ public class TcpStateHandler
             try await self.upstream.write(TcpProxyMessage.bidirectional.data)
             try await self.upstream.writeWithLengthPrefix(payload, 32)
             self.straw.increaseAcknowledgementNumber(payload.count)
-            self.logger.info("TcpEstablished.pumpClientToServer: Persona --> tcpproxy - \(payload.count) bytes (new ACK#\(self.straw.acknowledgementNumber))")
+            self.logger.debug("TcpEstablished.pumpClientToServer: Persona --> tcpproxy - \(payload.count) bytes (new ACK#\(self.straw.acknowledgementNumber))")
         }
         catch
         {
@@ -203,11 +203,11 @@ public class TcpStateHandler
             if data.count > 0
             {
                 try self.straw.write(data)
-                self.logger.info("TcpEstablished.pumpBothClientToServerAndServerToStraw: Persona <-- tcpproxy - \(data.count) bytes")
+                self.logger.debug("TcpEstablished.pumpBothClientToServerAndServerToStraw: Persona <-- tcpproxy - \(data.count) bytes")
             }
             else
             {
-                self.logger.info("TcpEstablished.pumpBothClientToServerAndServerToStraw: Persona <-- tcpproxy - no data")
+                self.logger.debug("TcpEstablished.pumpBothClientToServerAndServerToStraw: Persona <-- tcpproxy - no data")
             }
 
             return true
@@ -314,7 +314,7 @@ public class TcpStateHandler
         {
             let (_, acknowledgementNumber, windowSize) = self.getState()
 
-//            self.logger.info("TcpStateHandler.makeAck: \(window.lowerBound)..\(window.upperBound):\(window.size) - \(self.straw.sequenceNumber)..\(self.straw.sequenceNumber.add(window.size)):\(self.straw.count)")
+//            self.logger.debug("TcpStateHandler.makeAck: \(window.lowerBound)..\(window.upperBound):\(window.size) - \(self.straw.sequenceNumber)..\(self.straw.sequenceNumber.add(window.size)):\(self.straw.count)")
 
             let segment = try self.straw.read(window: window)
             return try self.makePacket(sequenceNumber: segment.window.lowerBound, acknowledgementNumber: acknowledgementNumber, windowSize: windowSize, ack: true, payload: segment.data)
@@ -332,7 +332,7 @@ public class TcpStateHandler
         {
             let (_, acknowledgementNumber, windowSize) = self.getState()
 
-//            self.logger.info("TcpStateHandler.makeFin: \(window.lowerBound)..\(window.upperBound):\(window.size) - \(self.straw.sequenceNumber)..\(self.straw.sequenceNumber.add(window.size)):\(self.straw.count)")
+//            self.logger.debug("TcpStateHandler.makeFin: \(window.lowerBound)..\(window.upperBound):\(window.size) - \(self.straw.sequenceNumber)..\(self.straw.sequenceNumber.add(window.size)):\(self.straw.count)")
 
             let segment = try self.straw.read(window: window)
             return try self.makePacket(sequenceNumber: segment.window.lowerBound, acknowledgementNumber: acknowledgementNumber, windowSize: windowSize, fin: true)
