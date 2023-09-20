@@ -81,7 +81,7 @@ class TcpProxy:
             messageBytes = self.downstream.readsize(1)
             message = TcpProxyMessage.new(messageBytes)
 
-            print("persona -> ", message.name)
+            print("persona -%s-> " % message.name)
 
             if message == TcpProxyMessage.upstreamOnly or message == TcpProxyMessage.bidirectional:
                 payload = self.downstream.readwithlengthprefix()
