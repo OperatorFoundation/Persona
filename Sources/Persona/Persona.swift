@@ -43,25 +43,25 @@ public class Persona
         let logFileURL3 = File.homeDirectory().appendingPathComponent("Persona/PersonaPacketLog.log", isDirectory: false)
         let logFileURL4 = File.homeDirectory().appendingPathComponent("Persona/PersonaClientWriteLog.log", isDirectory: false)
 
-//        if File.exists(logFileURL.path)
-//        {
-//            let _ = File.delete(atPath: logFileURL.path)
-//        }
-//
-//        if File.exists(logFileURL2.path)
-//        {
-//            let _ = File.delete(atPath: logFileURL2.path)
-//        }
-//
-//        if File.exists(logFileURL3.path)
-//        {
-//            let _ = File.delete(atPath: logFileURL3.path)
-//        }
-//
-//        if File.exists(logFileURL4.path)
-//        {
-//            let _ = File.delete(atPath: logFileURL4.path)
-//        }
+        if File.exists(logFileURL.path)
+        {
+            let _ = File.delete(atPath: logFileURL.path)
+        }
+
+        if File.exists(logFileURL2.path)
+        {
+            let _ = File.delete(atPath: logFileURL2.path)
+        }
+
+        if File.exists(logFileURL3.path)
+        {
+            let _ = File.delete(atPath: logFileURL3.path)
+        }
+
+        if File.exists(logFileURL4.path)
+        {
+            let _ = File.delete(atPath: logFileURL4.path)
+        }
 
         if let file = try? FileLogger("PersonaTCPLogger",
                                       logLevel: .debug,
@@ -110,8 +110,7 @@ public class Persona
         self.udpProxy = try await UdpProxy(client: self.connection, logger: logger, udpLogger: udpLogger, writeLogger: clientWriteLog)
 
         // Run Persona's TCP proxying control logic
-        let tcpProxy = TcpProxy(client: self.connection, logger: self.logger, tcpLogger: self.tcpLogger, writeLogger: self.clientWriteLog)
-        self.tcpProxy = tcpProxy
+        self.tcpProxy = TcpProxy(client: self.connection, logger: self.logger, tcpLogger: self.tcpLogger, writeLogger: self.clientWriteLog)
     }
 
     // Start the Persona processing loop. Please note that each client gets its own Persona instance.
@@ -123,20 +122,12 @@ public class Persona
             {
                 // Persona expects the client to send raw IPv4 packets prefixed with a 4-byte length
                 // All responses will also be raw IPv4 packets prefixed with a 4-byte length
-//                self.logger.info("Persona.run - reading from client...")
-
                 let message = try await self.connection.readWithLengthPrefix(prefixSizeInBits: 32)
 
-//                self.logger.info("Persona.run - reading from client succeeded - read a message of size \(message.count)")
-                
                 do
                 {
-//                    self.logger.info("Persona.run - calling handleMessage: \(message).")
                     // Process the packet that we received from the downstream client
-
                     try await self.handleMessage(message)
-
-//                    self.logger.info("Persona.run - handleMessage was successful: \(message).")
                 }
                 catch
                 {
@@ -148,9 +139,18 @@ public class Persona
                 self.logger.error("Persona.run: reading from client failed: \(error) | \(error.localizedDescription)")
                 self.logger.error("Persona.run: assuming client connection closed, exiting Persona.")
 
-                return
+                for udpConnection in UdpProxyConnection.getConnections()
+                {
+                    try? await udpConnection.close()
+                }
+
+                for tcpConnection in TcpProxyConnection.getConnections()
+                {
+                    try? await tcpConnection.close()
+                }
+
+                exit(0)
             }
-            
         }
     }
 

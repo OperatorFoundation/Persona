@@ -158,6 +158,16 @@ public class UdpProxyConnection
         }
     }
 
+    public func close() async throws
+    {
+        try await self.upstream.write(Data(array: [0, 0, 0, 0]))
+        try await self.upstream.write(Data(array: [0, 1]))
+        try await self.upstream.writeWithLengthPrefix(Data(), 32)
+
+        try await self.upstream.close()
+        UdpProxyConnection.removeConnection(identity: self.identity)
+    }
+
     // Check if the UDP proxy has timed out.
     // UDP connections never explictly close, so we time them out instead.
     func checkForCleanup() async throws
@@ -174,12 +184,7 @@ public class UdpProxyConnection
             self.udpLogger.trace("UdpProxyConnection.checkForCleanup closing connection for \(self.identity.localAddress.string):\(self.identity.localPort)")
 
             // Send close signal
-            try await self.upstream.write(Data(array: [0, 0, 0, 0]))
-            try await self.upstream.write(Data(array: [0, 1]))
-            try await self.upstream.writeWithLengthPrefix(Data(), 32)
-
-            try await self.upstream.close()
-            UdpProxyConnection.removeConnection(identity: self.identity)
+            try await self.close()
         }
     }
 }

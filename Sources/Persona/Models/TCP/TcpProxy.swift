@@ -57,10 +57,10 @@ public actor TcpProxy
         {
             let newIdentity = connection.identity
 
-//            if newIdentity == skipIdentity
-//            {
-//                continue
-//            }
+            if newIdentity == skipIdentity
+            {
+                continue
+            }
 
             do
             {

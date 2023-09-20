@@ -384,6 +384,12 @@ public actor TcpProxyConnection
         }
     }
 
+    func close() async throws
+    {
+        try await self.state.close()
+        Self.removeConnection(identity: self.identity)
+    }
+
     func sendPacket(_ ipv4: IPv4) async throws
     {
 //        self.logger.info("TcpProxyConnection.sendPacket - \(ipv4.data.count) bytes")
