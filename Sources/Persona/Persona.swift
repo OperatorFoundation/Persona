@@ -125,16 +125,16 @@ public class Persona
             {
                 // Persona expects the client to send raw IPv4 packets prefixed with a 4-byte length
                 // All responses will also be raw IPv4 packets prefixed with a 4-byte length
-                self.logger.info("Persona.run - reading from client")
-
                 let pendingConnectionsCount = TcpProxyConnection.getConnections().count + UdpProxyConnection.getConnections().count
                 let message: Data
                 if pendingConnectionsCount == 0
                 {
+                    self.logger.info("Persona.run - reading from client, blocking")
                     message = try await self.connection.readWithLengthPrefix(prefixSizeInBits: 32)
                 }
                 else
                 {
+                    self.logger.info("Persona.run - reading from client, nonblocking")
                     message = try await self.connection.readWithLengthPrefixNonblocking(prefixSizeInBits: 32)
                 }
 
