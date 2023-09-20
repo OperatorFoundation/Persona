@@ -86,7 +86,7 @@ class TcpProxy:
             if message == TcpProxyMessage.upstreamOnly or message == TcpProxyMessage.bidirectional:
                 payload = self.downstream.readwithlengthprefix()
 
-                self.log.write("persona -> tcpproxy - %d bytes\n" % (len(payload)))
+                self.log.write("Persona -> tcpproxy - %d bytes\n" % (len(payload)))
 
                 self.upstream.write(payload)
 
