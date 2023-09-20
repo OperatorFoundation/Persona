@@ -119,18 +119,21 @@ public class Persona
     {
         while true
         {
-            self.logger.info("main loop")
+            self.logger.info("Persona.run - main loop")
 
             do
             {
                 // Persona expects the client to send raw IPv4 packets prefixed with a 4-byte length
                 // All responses will also be raw IPv4 packets prefixed with a 4-byte length
+                self.logger.info("Persona.run - reading from client")
                 let message = try await self.connection.readWithLengthPrefix(prefixSizeInBits: 32)
 
                 do
                 {
                     // Process the packet that we received from the downstream client
+                    self.logger.info("Persona.run - handling message")
                     try await self.handleMessage(message)
+                    self.logger.info("Persona.run - done")
                 }
                 catch
                 {
