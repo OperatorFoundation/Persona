@@ -35,7 +35,7 @@ class TcpProxy:
         self.connect()
 
         while self.running:
-            self.pump_upstream()
+            self.pump_downstream()
 
         self.log.write("closing and exiting")
 

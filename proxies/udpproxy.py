@@ -18,8 +18,8 @@ class UdpProxy:
         self.log.write("sockname: %s:%d\n" % (self.upstream.host, self.upstream.port))
 
         while self.running:
-            self.pump_upstream()
             self.pump_downstream()
+            self.pump_upstream()
 
         self.log.write("closing and exiting")
 
@@ -29,7 +29,7 @@ class UdpProxy:
 
     # The format to talk to service is a 4 byte length, following by that many bytes.
     # Included in those bytes are a 4 byte host, a 2 byte port, and the then variable length payload.
-    def pump_upstream(self):
+    def pump_downstream(self):
         try:
             hostBytes = self.downstream.readsize(4)
             portBytes = self.downstream.readsize(2)
@@ -63,7 +63,7 @@ class UdpProxy:
             finally:
                 sys.exit(2)
 
-    def pump_downstream(self):
+    def pump_upstream(self):
         try:
             host, port, data = self.upstream.read()
 
