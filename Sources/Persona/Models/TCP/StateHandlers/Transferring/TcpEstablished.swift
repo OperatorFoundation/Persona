@@ -137,7 +137,15 @@ public class TcpEstablished: TcpStateHandler
 
     override func pump() async throws -> TcpStateTransition
     {
-        let serverIsStillOpen: Bool = try await self.pumpOnlyServerToStraw()
+        let serverIsStillOpen: Bool
+        if self.straw.isEmpty
+        {
+            serverIsStillOpen = try await self.pumpOnlyServerToStraw()
+        }
+        else
+        {
+            serverIsStillOpen = true
+        }
 
         var packets = try await self.pumpStrawToClient()
 
