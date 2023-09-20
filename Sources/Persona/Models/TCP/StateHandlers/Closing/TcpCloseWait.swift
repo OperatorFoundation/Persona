@@ -25,7 +25,7 @@ public class TcpCloseWait: TcpStateHandler
         if serverIsStillOpen
         {
             self.logger.debug("TcpCloseWait - server is still open, closing the upstream connection.")
-            try await self.upstream.close()
+            try await self.close()
         }
 
         // Send FIN
