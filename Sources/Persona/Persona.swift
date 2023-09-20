@@ -119,6 +119,8 @@ public class Persona
     {
         while true
         {
+            self.logger.info("main loop")
+
             do
             {
                 // Persona expects the client to send raw IPv4 packets prefixed with a 4-byte length
