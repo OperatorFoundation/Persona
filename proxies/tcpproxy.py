@@ -80,7 +80,17 @@ class TcpProxy:
         try:
             messageBytes = self.downstream.readsize(1)
             message = TcpProxyMessage.new(messageBytes)
+        except Exception as e:
+            try:
+                self.log.write("exception in pumpDownstream: %s" % (str(e)))
 
+                self.running = False
+
+                self.upstream.close()
+            finally:
+                sys.exit(2)
+
+        try:
             self.log.write("persona -%s-> \n" % message.name)
 
             if message == TcpProxyMessage.upstreamOnly or message == TcpProxyMessage.bidirectional:
@@ -102,39 +112,27 @@ class TcpProxy:
                 sys.exit(0)
         except Exception as e:
             try:
+                if message == TcpProxyMessage.bidirectional:
+                    self.downstream.writewithlengthprefix(b'')
+
                 self.log.write("exception in pumpDownstream: %s" % (str(e)))
 
                 self.running = False
 
                 self.upstream.close()
             finally:
-                sys.exit(2)
+                sys.exit(3)
 
     def pump_upstream(self):
+        data = self.upstream.readmaxsize(2048)
+        if data is None:
+            self.log.write("No Data")
 
-        try:
-            data = self.upstream.readmaxsize(2048)
-            if data is None:
-                self.log.write("No Data")
+        self.log.write("tcpproxy <- %s:%d - %d\n" % (self.host, self.port, len(data)))
 
-            self.log.write("tcpproxy <- %s:%d - %d\n" % (self.host, self.port, len(data)))
+        self.downstream.writewithlengthprefix(data)
 
-            self.downstream.writewithlengthprefix(data)
-
-            self.log.write("persona <- tcpproxy - %d bytes\n" % (len(data)))
-
-        except Exception as e:
-            try:
-                self.log.write("exception in pumpUpstream\n")
-
-                self.log.write("%s\n" % (str(e)))
-
-                self.running = False
-
-                self.upstream.close()
-                self.downstream.close()
-            finally:
-                sys.exit(3)
+        self.log.write("persona <- tcpproxy - %d bytes\n" % (len(data)))
 
 if __name__ == '__main__':
     proxy = TcpProxy()
