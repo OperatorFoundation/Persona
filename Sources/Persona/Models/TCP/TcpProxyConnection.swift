@@ -19,6 +19,7 @@ public actor TcpProxyConnection
     // These static properties and functions handle caching connections to the tcpproxy subsystem.
     // We need one connection to the tcpproxy subsystem for each source address/port pair.
     static var connections: [TcpIdentity: TcpProxyConnection] = [:]
+    static var queue: [TcpIdentity] = []
 
     static public func getConnection(identity: TcpIdentity, downstream: AsyncConnection, ipv4: IPv4, tcp: TCP, payload: Data?, logger: Logger, tcpLogger: Puppy, writeLogger: Puppy) async throws -> (TcpProxyConnection, Bool)
     {
@@ -65,6 +66,7 @@ public actor TcpProxyConnection
 
             let connection = try await TcpProxyConnection(identity: identity, downstream: downstream, ipv4: ipv4, tcp: tcp, payload: payload, logger: logger, tcpLogger: tcpLogger, writeLogger: writeLogger)
             Self.connections[identity] = connection
+            Self.queue.append(identity)
             return (connection, false)
         }
     }
@@ -81,11 +83,29 @@ public actor TcpProxyConnection
 //        }
 
         self.connections.removeValue(forKey: identity)
+        self.queue = self.queue.filter
+        {
+            queueIdentity in
+
+            return queueIdentity != identity
+        }
     }
 
     static public func getConnections() -> [TcpProxyConnection]
     {
         return [TcpProxyConnection](self.connections.values)
+    }
+
+    static public func getQueuedConnection() -> TcpProxyConnection?
+    {
+        let identity = self.queue.removeFirst()
+        let connection = self.connections[identity]
+        if connection != nil
+        {
+            self.queue.append(identity)
+        }
+
+        return connection
     }
     // End of static section
 

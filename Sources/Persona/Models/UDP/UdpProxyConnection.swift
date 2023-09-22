@@ -18,6 +18,7 @@ public class UdpProxyConnection
     // These static properties and functions handle caching connections to the udpproxy subsystem.
     // We need one connection to the udpproxy subsystem for each source address/port pair.
     static var connections: [UdpIdentity: UdpProxyConnection] = [:]
+    static var queue: [UdpIdentity] = []
 
     static public func getConnection(identity: UdpIdentity, downstream: AsyncConnection, logger: Logger, udpLogger: Puppy, writeLogger: Puppy) async throws -> UdpProxyConnection
     {
@@ -41,6 +42,18 @@ public class UdpProxyConnection
     static public func getConnections() -> [UdpProxyConnection]
     {
         return [UdpProxyConnection](self.connections.values)
+    }
+
+    static public func getQueuedConnection() -> UdpProxyConnection?
+    {
+        let identity = self.queue.removeFirst()
+        let connection = self.connections[identity]
+        if connection != nil
+        {
+            self.queue.append(identity)
+        }
+
+        return connection
     }
     // End of static section
 
