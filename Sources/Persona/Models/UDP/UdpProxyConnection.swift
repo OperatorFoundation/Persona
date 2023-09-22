@@ -65,7 +65,7 @@ public class UdpProxyConnection
         // Also note that we only need one udpproxy instance for each source address/port pair.
         // This is so that we can route traffic from upstream to downstream correctly.
         // The udpproxy subsystem is running locally under systemd, so we make a TCP connection to its port.
-        self.upstream = try await AsyncTcpSocketConnection("127.0.0.1", 1233, self.logger, verbose: true)
+        self.upstream = try await AsyncTcpSocketConnection("127.0.0.1", 1233, self.logger, verbose: false)
         self.lastUsed = Date()
     }
 
