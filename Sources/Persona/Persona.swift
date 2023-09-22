@@ -165,10 +165,12 @@ public class Persona
                     {
                         self.logger.info("Persona.run - waiting on client read, pumping TCP")
                         let tcpPumpResult = try await self.tcpProxy.pump()
+                        self.logger.info("TCP progress? \(tcpPumpResult)")
                         progress = progress || tcpPumpResult
 
                         self.logger.info("Persona.run - waiting on client read, pumping UDP")
                         let udpPumpResult = try await self.udpProxy.pump()
+                        self.logger.info("UDP progress? \(udpPumpResult)")
                         progress = progress || udpPumpResult
                     }
                     catch
@@ -180,7 +182,7 @@ public class Persona
 
             if !progress
             {
-                try await Task.sleep(for: .milliseconds(100))
+                try await Task.sleep(for: .milliseconds(1000)) // 1 second
             }
         }
     }
