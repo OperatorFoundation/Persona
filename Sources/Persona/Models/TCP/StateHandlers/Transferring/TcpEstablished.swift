@@ -13,6 +13,8 @@ public class TcpEstablished: TcpStateHandler
 {
     override public func processDownstreamPacket(ipv4: IPv4, tcp: TCP, payload: Data?) async throws -> TcpStateTransition
     {
+        self.lastUsed = Date() // now
+
         let clientWindow = self.straw.clientWindow(size: tcp.windowSize)
         let packetLowerBound = SequenceNumber(tcp.sequenceNumber)
 
@@ -137,6 +139,14 @@ public class TcpEstablished: TcpStateHandler
 
     override func pump() async throws -> TcpStateTransition
     {
+        let now = Date().timeIntervalSince1970
+        let then = self.lastUsed.timeIntervalSince1970
+        let interval = now - then
+        if interval < 0.1 // 100 ms
+        {
+            return TcpStateTransition(newState: self, packetsToSend: [])
+        }
+
         let serverIsStillOpen: Bool
         if self.straw.isEmpty
         {
@@ -148,6 +158,11 @@ public class TcpEstablished: TcpStateHandler
         }
 
         var packets = try await self.pumpStrawToClient()
+
+        if packets.count > 0
+        {
+            self.lastUsed = Date() // now
+        }
 
         if serverIsStillOpen
         {
