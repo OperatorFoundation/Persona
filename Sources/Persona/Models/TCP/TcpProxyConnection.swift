@@ -319,7 +319,9 @@ public actor TcpProxyConnection
                 }
             }
 
+            self.logger.trace("About to send packet.")
             try await self.sendPacket(packet)
+            self.logger.trace("Sent packet.")
         }
 
         guard self.state.open else
