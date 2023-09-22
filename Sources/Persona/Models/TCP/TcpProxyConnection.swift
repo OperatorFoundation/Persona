@@ -98,6 +98,11 @@ public actor TcpProxyConnection
 
     static public func getQueuedConnection() -> TcpProxyConnection?
     {
+        guard self.queue.count > 0 else
+        {
+            return nil
+        }
+
         let identity = self.queue.removeFirst()
         let connection = self.connections[identity]
         if connection != nil

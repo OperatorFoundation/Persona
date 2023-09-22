@@ -46,6 +46,11 @@ public class UdpProxyConnection
 
     static public func getQueuedConnection() -> UdpProxyConnection?
     {
+        guard self.queue.count > 0 else
+        {
+            return nil
+        }
+        
         let identity = self.queue.removeFirst()
         let connection = self.connections[identity]
         if connection != nil
