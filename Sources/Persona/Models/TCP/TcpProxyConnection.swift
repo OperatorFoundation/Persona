@@ -372,7 +372,7 @@ public actor TcpProxyConnection
         }
     }
 
-    public func pump() async throws
+    public func pump() async throws -> Bool
     {
         let transition = try await self.state.pump()
 
@@ -411,6 +411,8 @@ public actor TcpProxyConnection
 
             throw TcpProxyConnectionError.tcpClosed
         }
+
+        return transition.progress
     }
 
     func close() async throws

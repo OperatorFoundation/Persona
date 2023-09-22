@@ -70,12 +70,10 @@ public actor TcpProxy
         {
             // FIXME - add more cases
             case is TcpEstablished:
-                try await connection.pump()
-                return true
+                return try await connection.pump()
 
             case is TcpCloseWait:
-                try await connection.pump()
-                return true
+                return try await connection.pump()
 
             default:
                 return false

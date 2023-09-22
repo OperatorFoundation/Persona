@@ -172,7 +172,7 @@ public class TcpEstablished: TcpStateHandler
                 packets.append(ack)
             }
 
-            return TcpStateTransition(newState: self, packetsToSend: packets)
+            return TcpStateTransition(newState: self, packetsToSend: packets, progress: true)
         }
         else
         {
@@ -182,7 +182,7 @@ public class TcpEstablished: TcpStateHandler
                 packets.append(ack)
             }
 
-            return TcpStateTransition(newState: TcpClosing(self), packetsToSend: packets)
+            return TcpStateTransition(newState: TcpClosing(self), packetsToSend: packets, progress: true)
         }
     }
 }
