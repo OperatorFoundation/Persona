@@ -64,7 +64,7 @@ public class UdpProxy
             {
                 self.udpLogger.debug("UDP: \(resultIPv4.sourceAddress.ipv4AddressString ?? "not an IPv4 address"):\(resultUDP.sourcePort) -> \(resultIPv4.destinationAddress.ipv4AddressString ?? "not an IPv4 address"):\(resultUDP.destinationPort) ; persona <- udpproxy: \(resultIPv4.data.count) bytes")
             }
-            self.writeLogger.info("\(resultIPv4.data.count) - \(resultIPv4.data.hex)")
+            self.writeLogger.info("\(resultIPv4.data.count)")
         }
         else
         {
@@ -107,7 +107,7 @@ public class UdpProxy
                     {
                         self.udpLogger.debug("UDP: \(resultIPv4.sourceAddress.ipv4AddressString ?? "not an IPv4 address"):\(resultUDP.sourcePort) -> \(resultIPv4.destinationAddress.ipv4AddressString ?? "not an IPv4 address"):\(resultUDP.destinationPort) ; persona <- udpproxy: \(resultIPv4.data.count) bytes")
                     }
-                    self.writeLogger.info("\(resultIPv4.data.count) - \(resultIPv4.data.hex)")
+                    self.writeLogger.info("\(resultIPv4.data.count)")
                 }
 
                 try await connection.checkForCleanup()
