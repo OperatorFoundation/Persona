@@ -159,6 +159,14 @@ public class UdpProxyConnection
 
     public func pump() async throws -> (IPv4, UDP, Data)?
     {
+        let now = Date().timeIntervalSince1970
+        let then = self.lastUsed.timeIntervalSince1970
+        let interval = now - then
+        if interval < 0.1 // 100 ms
+        {
+            return nil
+        }
+
         self.logger.trace("pumping UDP")
 
         try await self.upstream.write(Data(array: [0, 0, 0, 0]))
