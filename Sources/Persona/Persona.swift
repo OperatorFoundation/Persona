@@ -29,7 +29,7 @@ public class Persona
 
     var udpProxy: UdpProxy! = nil
     var tcpProxy: TcpProxy! = nil
-//    var clientReadPromise: Promise<Data>
+    var clientReadPromise: Promise<Data>
 
     public init() async throws
     {
@@ -114,15 +114,9 @@ public class Persona
         // Run Persona's TCP proxying control logic
         self.tcpProxy = TcpProxy(client: self.connection, logger: self.logger, tcpLogger: self.tcpLogger, writeLogger: self.clientWriteLog)
 
-//        self.logger.info("Persona.init - reading first message from client, blocking")
-//        let message = try await self.connection.readWithLengthPrefix(prefixSizeInBits: 32)
-//        self.clientReadPromise = Promise<Data>(value: message)
-//
-//        self.clientReadPromise = Promise<Data>
-//        {
-//            self.logger.info("Persona.run - reading from client, nonblocking")
-//            let message = try await self.connection.readWithLengthPrefix(prefixSizeInBits: 32)
-//        }
+        self.logger.info("Persona.init - reading first message from client, blocking")
+        let message = try await self.connection.readWithLengthPrefix(prefixSizeInBits: 32)
+        self.clientReadPromise = Promise<Data>(value: message)
     }
 
     // Start the Persona processing loop. Please note that each client gets its own Persona instance.
@@ -132,67 +126,53 @@ public class Persona
         {
             self.logger.info("Persona.run - main loop")
 
-            do
+            switch self.clientReadPromise.result()
             {
-                // Persona expects the client to send raw IPv4 packets prefixed with a 4-byte length
-                // All responses will also be raw IPv4 packets prefixed with a 4-byte length
-//                let pendingConnectionsCount = TcpProxyConnection.getConnections().count + UdpProxyConnection.getConnections().count
-//                let message: Data
-//                if pendingConnectionsCount == 0
-//                {
-//                    self.logger.info("Persona.run - reading from client, blocking")
-//                    message = try await self.connection.readWithLengthPrefix(prefixSizeInBits: 32)
-//                }
-//                else
-//                {
-//                    self.logger.info("Persona.run - reading from client, nonblocking")
-//                    message = try await self.connection.readWithLengthPrefixNonblocking(prefixSizeInBits: 32)
-//                }
+                case .success(let message):
+                    do
+                    {
+                        // Process the packet that we received from the downstream client
+                        self.logger.info("Persona.run - handling message")
+                        try await self.handleMessage(message)
+                        self.logger.info("Persona.run - done")
+                    }
+                    catch
+                    {
+                        self.logger.error("Persona.run - failed to handle message: \(message): \(error). Moving on to next message.")
+                    }
 
-                self.logger.info("Persona.run - reading from client, blocking")
-                let message = try await self.connection.readWithLengthPrefix(prefixSizeInBits: 32)
+                    self.clientReadPromise = Promise<Data>
+                    {
+                        self.logger.info("Persona.run - reading from client, nonblocking")
+                        return try await self.connection.readWithLengthPrefix(prefixSizeInBits: 32)
+                    }
 
+                case .failed(let error):
+                    self.logger.error("Persona.run: reading from client failed: \(error) | \(error.localizedDescription)")
+                    self.logger.error("Persona.run: assuming client connection closed, exiting Persona.")
 
-                do
-                {
-                    // Process the packet that we received from the downstream client
-                    self.logger.info("Persona.run - handling message")
-                    try await self.handleMessage(message)
-                    self.logger.info("Persona.run - done")
-                }
-                catch
-                {
-                    self.logger.error("Persona.run - failed to handle message: \(message): \(error). Moving on to next message.")
-                }
-            }
-            catch(AsyncTcpSocketConnectionError.noData)
-            {
-                do
-                {
-                    await self.tcpProxy.pump()
-                    try await self.udpProxy.pump()
-                }
-                catch
-                {
-                    self.logger.error("Persona.run (noData) - failed to pump: \(error). Try reading from the client again.")
-                }
-            }
-            catch
-            {
-                self.logger.error("Persona.run: reading from client failed: \(error) | \(error.localizedDescription)")
-                self.logger.error("Persona.run: assuming client connection closed, exiting Persona.")
+                    for udpConnection in UdpProxyConnection.getConnections()
+                    {
+                        try? await udpConnection.close()
+                    }
 
-                for udpConnection in UdpProxyConnection.getConnections()
-                {
-                    try? await udpConnection.close()
-                }
+                    for tcpConnection in TcpProxyConnection.getConnections()
+                    {
+                        try? await tcpConnection.close()
+                    }
 
-                for tcpConnection in TcpProxyConnection.getConnections()
-                {
-                    try? await tcpConnection.close()
-                }
+                    exit(0)
 
-                exit(0)
+                case .waiting:
+                    do
+                    {
+                        await self.tcpProxy.pump()
+                        try await self.udpProxy.pump()
+                    }
+                    catch
+                    {
+                        self.logger.error("Persona.run (noData) - failed to pump: \(error). Try reading from the client again.")
+                    }
             }
         }
     }
