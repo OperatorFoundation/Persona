@@ -212,8 +212,10 @@ public actor TcpProxyConnection
                     self.tcpLogger.debug("! <- \(description(packet, outTcp))")
                 }
             }
-
+            
+            self.logger.trace("About to send packet.")
             try await self.sendPacket(packet)
+            self.logger.trace("Sent packet.")
         }
 
 //        let oldState = self.state
