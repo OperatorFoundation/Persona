@@ -126,11 +126,15 @@ public class Persona
         {
             self.logger.info("Persona.run - main loop")
 
+            var progress: Bool = false
+
             self.logger.info("Persona.run - checking on client")
             switch self.clientReadPromise.result()
             {
                 case .success(let message):
                     self.logger.info("Persona.run - read from client")
+                    progress = true
+
                     do
                     {
                         // Process the packet that we received from the downstream client
@@ -170,15 +174,22 @@ public class Persona
                     do
                     {
                         self.logger.info("Persona.run - waiting on client read, pumping TCP")
-                        await self.tcpProxy.pump()
+                        let tcpPumpResult = await self.tcpProxy.pump()
+                        progress = progress || tcpPumpResult
 
                         self.logger.info("Persona.run - waiting on client read, pumping UDP")
-                        try await self.udpProxy.pump()
+                        let udpPumpResult = try await self.udpProxy.pump()
+                        progress = progress || udpPumpResult
                     }
                     catch
                     {
                         self.logger.error("Persona.run (noData) - failed to pump: \(error). Try reading from the client again.")
                     }
+            }
+
+            if !progress
+            {
+                try await Task.sleep(for: .milliseconds(100))
             }
         }
     }

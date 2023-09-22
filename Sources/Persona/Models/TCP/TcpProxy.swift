@@ -49,11 +49,11 @@ public actor TcpProxy
     }
 
     // On every packet received, check on the OTHER connections.
-    public func pump(_ skipConnection: TcpProxyConnection? = nil) async
+    public func pump(_ skipConnection: TcpProxyConnection? = nil) async -> Bool
     {
         guard let connection = TcpProxyConnection.getQueuedConnection() else
         {
-            return
+            return false
         }
 
         let newIdentity = connection.identity
@@ -64,7 +64,7 @@ public actor TcpProxy
 
             if newIdentity == skipIdentity
             {
-                return
+                return false
             }
         }
 
@@ -75,17 +75,20 @@ public actor TcpProxy
                 // FIXME - add more cases
                 case is TcpEstablished:
                     try await connection.pump()
+                    return true
 
                 case is TcpCloseWait:
                     try await connection.pump()
+                    return true
 
                 default:
-                    return
+                    return false
             }
         }
         catch
         {
             self.logger.error("Error pumping connection \(error)")
+            return false
         }
     }
 }

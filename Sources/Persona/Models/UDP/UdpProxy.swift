@@ -74,11 +74,11 @@ public class UdpProxy
         try await self.pump(upstream)
     }
 
-    public func pump(_ skipConnection: UdpProxyConnection? = nil) async throws
+    public func pump(_ skipConnection: UdpProxyConnection? = nil) async throws -> Bool
     {
         guard let connection = UdpProxyConnection.getQueuedConnection() else
         {
-            return
+            return false
         }
 
         let newIdentity = connection.identity
@@ -89,7 +89,7 @@ public class UdpProxy
 
             if newIdentity == skipIdentity
             {
-                return
+                return false
             }
         }
 
@@ -111,13 +111,22 @@ public class UdpProxy
                     self.udpLogger.debug("UDP: \(resultIPv4.sourceAddress.ipv4AddressString ?? "not an IPv4 address"):\(resultUDP.sourcePort) -> \(resultIPv4.destinationAddress.ipv4AddressString ?? "not an IPv4 address"):\(resultUDP.destinationPort) ; persona <- udpproxy: \(resultIPv4.data.count) bytes")
                 }
                 self.writeLogger.info("\(resultIPv4.data.count)")
-            }
 
-            try await connection.checkForCleanup()
+                try await connection.checkForCleanup()
+
+                return true
+            }
+            else
+            {
+                try await connection.checkForCleanup()
+
+                return false
+            }
         }
         catch
         {
             self.logger.error("Error pumping UDP connection \(error)")
+            return false
         }
     }
 }
