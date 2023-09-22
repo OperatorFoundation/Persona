@@ -29,6 +29,7 @@ public class Persona
 
     var udpProxy: UdpProxy! = nil
     var tcpProxy: TcpProxy! = nil
+    var clientReadPromise: Promise<Data>
 
     public init() async throws
     {
@@ -112,6 +113,16 @@ public class Persona
 
         // Run Persona's TCP proxying control logic
         self.tcpProxy = TcpProxy(client: self.connection, logger: self.logger, tcpLogger: self.tcpLogger, writeLogger: self.clientWriteLog)
+
+        self.logger.info("Persona.init - reading first message from client, blocking")
+        let message = try await self.connection.readWithLengthPrefix(prefixSizeInBits: 32)
+        self.clientReadPromise = Promise<Data>(value: message)
+
+        self.clientReadPromise = Promise<Data>
+        {
+            self.logger.info("Persona.run - reading from client, nonblocking")
+            let message = try await self.connection.readWithLengthPrefix(prefixSizeInBits: 32)
+        }
     }
 
     // Start the Persona processing loop. Please note that each client gets its own Persona instance.
@@ -138,8 +149,9 @@ public class Persona
 //                    message = try await self.connection.readWithLengthPrefixNonblocking(prefixSizeInBits: 32)
 //                }
 
-                self.logger.info("Persona.run - reading from client, blocking")
-                let message = try await self.connection.readWithLengthPrefix(prefixSizeInBits: 32)
+//                self.logger.info("Persona.run - reading from client, blocking")
+//                let message = try await self.connection.readWithLengthPrefix(prefixSizeInBits: 32)
+
 
                 do
                 {
