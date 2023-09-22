@@ -126,9 +126,11 @@ public class Persona
         {
             self.logger.info("Persona.run - main loop")
 
+            self.logger.info("Persona.run - checking on client")
             switch self.clientReadPromise.result()
             {
                 case .success(let message):
+                    self.logger.info("Persona.run - read from client")
                     do
                     {
                         // Process the packet that we received from the downstream client
@@ -164,9 +166,13 @@ public class Persona
                     exit(0)
 
                 case .waiting:
+                    self.logger.info("Persona.run - waiting on client read")
                     do
                     {
+                        self.logger.info("Persona.run - waiting on client read, pumping TCP")
                         await self.tcpProxy.pump()
+
+                        self.logger.info("Persona.run - waiting on client read, pumping UDP")
                         try await self.udpProxy.pump()
                     }
                     catch
