@@ -70,8 +70,6 @@ public class UdpProxy
         {
             self.logger.debug("UDP read upstream failed")
         }
-
-        try await self.pump(upstream)
     }
 
     public func pump(_ skipConnection: UdpProxyConnection? = nil) async throws -> Bool
@@ -93,39 +91,31 @@ public class UdpProxy
             }
         }
 
-        do
+        if let result = try await connection.pump()
         {
-            if let result = try await connection.pump()
+            let (resultIPv4, resultUDP, resultPayload) = result
+
+            self.logger.info("🏓 UDP: $ <- \(resultIPv4.sourceAddress.ipv4AddressString ?? "not an ipv4 address"):\(resultUDP.sourcePort) -> \(resultIPv4.destinationAddress.ipv4AddressString ?? "not an ipv4 address"):\(resultUDP.destinationPort) - \(resultPayload.count) byte payload")
+
+            // We have a valid UDP packet, so we send it downstream to the client.
+            // The client expects raw IPv4 packets prefixed with a 4-byte length.
+            try await self.client.writeWithLengthPrefix(resultIPv4.data, 32)
+
+            self.logger.debug("UDP: \(resultIPv4.sourceAddress.ipv4AddressString ?? "not an IPv4 address"):\(resultUDP.sourcePort) -> \(resultIPv4.destinationAddress.ipv4AddressString ?? "not an IPv4 address"):\(resultUDP.destinationPort) ; persona <- udpproxy: \(resultIPv4.data.count) bytes")
+            if resultUDP.destinationPort == 7
             {
-                let (resultIPv4, resultUDP, resultPayload) = result
-
-                self.logger.info("🏓 UDP: $ <- \(resultIPv4.sourceAddress.ipv4AddressString ?? "not an ipv4 address"):\(resultUDP.sourcePort) -> \(resultIPv4.destinationAddress.ipv4AddressString ?? "not an ipv4 address"):\(resultUDP.destinationPort) - \(resultPayload.count) byte payload")
-
-                // We have a valid UDP packet, so we send it downstream to the client.
-                // The client expects raw IPv4 packets prefixed with a 4-byte length.
-                try await self.client.writeWithLengthPrefix(resultIPv4.data, 32)
-
-                self.logger.debug("UDP: \(resultIPv4.sourceAddress.ipv4AddressString ?? "not an IPv4 address"):\(resultUDP.sourcePort) -> \(resultIPv4.destinationAddress.ipv4AddressString ?? "not an IPv4 address"):\(resultUDP.destinationPort) ; persona <- udpproxy: \(resultIPv4.data.count) bytes")
-                if resultUDP.destinationPort == 7
-                {
-                    self.udpLogger.debug("UDP: \(resultIPv4.sourceAddress.ipv4AddressString ?? "not an IPv4 address"):\(resultUDP.sourcePort) -> \(resultIPv4.destinationAddress.ipv4AddressString ?? "not an IPv4 address"):\(resultUDP.destinationPort) ; persona <- udpproxy: \(resultIPv4.data.count) bytes")
-                }
-                self.writeLogger.info("\(resultIPv4.data.count)")
-
-                try await connection.checkForCleanup()
-
-                return true
+                self.udpLogger.debug("UDP: \(resultIPv4.sourceAddress.ipv4AddressString ?? "not an IPv4 address"):\(resultUDP.sourcePort) -> \(resultIPv4.destinationAddress.ipv4AddressString ?? "not an IPv4 address"):\(resultUDP.destinationPort) ; persona <- udpproxy: \(resultIPv4.data.count) bytes")
             }
-            else
-            {
-                try await connection.checkForCleanup()
+            self.writeLogger.info("\(resultIPv4.data.count)")
 
-                return false
-            }
+            try await connection.checkForCleanup()
+
+            return true
         }
-        catch
+        else
         {
-            self.logger.error("Error pumping UDP connection \(error)")
+            try await connection.checkForCleanup()
+
             return false
         }
     }

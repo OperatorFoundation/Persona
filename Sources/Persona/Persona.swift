@@ -157,24 +157,14 @@ public class Persona
                     self.logger.error("Persona.run: reading from client failed: \(error) | \(error.localizedDescription)")
                     self.logger.error("Persona.run: assuming client connection closed, exiting Persona.")
 
-                    for udpConnection in UdpProxyConnection.getConnections()
-                    {
-                        try? await udpConnection.close()
-                    }
-
-                    for tcpConnection in TcpProxyConnection.getConnections()
-                    {
-                        try? await tcpConnection.close()
-                    }
-
-                    exit(0)
+                    await self.close()
 
                 case .waiting:
                     self.logger.info("Persona.run - waiting on client read")
                     do
                     {
                         self.logger.info("Persona.run - waiting on client read, pumping TCP")
-                        let tcpPumpResult = await self.tcpProxy.pump()
+                        let tcpPumpResult = try await self.tcpProxy.pump()
                         progress = progress || tcpPumpResult
 
                         self.logger.info("Persona.run - waiting on client read, pumping UDP")
@@ -183,7 +173,8 @@ public class Persona
                     }
                     catch
                     {
-                        self.logger.error("Persona.run (noData) - failed to pump: \(error). Try reading from the client again.")
+                        self.logger.error("Persona.run (noData) - failed to pump: \(error).")
+                        await self.close()
                     }
             }
 
@@ -192,6 +183,21 @@ public class Persona
                 try await Task.sleep(for: .milliseconds(100))
             }
         }
+    }
+
+    func close() async
+    {
+        for udpConnection in UdpProxyConnection.getConnections()
+        {
+            try? await udpConnection.close()
+        }
+
+        for tcpConnection in TcpProxyConnection.getConnections()
+        {
+            try? await tcpConnection.close()
+        }
+
+        exit(0)
     }
 
     func handleMessage(_ data: Data) async throws

@@ -44,12 +44,10 @@ public actor TcpProxy
             // Only process packets on preestablished connections. If it's a new connetion, it will process the packet internally in the constructor.
             try await connection.processDownstreamPacket(ipv4: ipv4, tcp: tcp, payload: payload)
         }
-
-        await self.pump(connection)
     }
 
     // On every packet received, check on the OTHER connections.
-    public func pump(_ skipConnection: TcpProxyConnection? = nil) async -> Bool
+    public func pump(_ skipConnection: TcpProxyConnection? = nil) async throws -> Bool
     {
         guard let connection = TcpProxyConnection.getQueuedConnection() else
         {
@@ -68,27 +66,19 @@ public actor TcpProxy
             }
         }
 
-        do
+        switch await connection.state
         {
-            switch await connection.state
-            {
-                // FIXME - add more cases
-                case is TcpEstablished:
-                    try await connection.pump()
-                    return true
+            // FIXME - add more cases
+            case is TcpEstablished:
+                try await connection.pump()
+                return true
 
-                case is TcpCloseWait:
-                    try await connection.pump()
-                    return true
+            case is TcpCloseWait:
+                try await connection.pump()
+                return true
 
-                default:
-                    return false
-            }
-        }
-        catch
-        {
-            self.logger.error("Error pumping connection \(error)")
-            return false
+            default:
+                return false
         }
     }
 }
