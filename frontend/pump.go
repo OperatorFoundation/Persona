@@ -19,11 +19,15 @@ type PumpStation struct {
 
 // Run - blocking
 func (ps PumpStation) Run() {
+	print("PumpStation.Run()\n")
 	leftToRight := Pump{ps.Left, ps.Right, ps.Close}
 	rightToLeft := Pump{ps.Right, ps.Left, ps.Close}
 
+	print("PumpStation.Run() - leftToRight\n")
 	go leftToRight.Pump() // non-blocking
-	rightToLeft.Pump()    // blocking
+	print("PumpStation.Run() - rightToLeft\n")
+	rightToLeft.Pump() // blocking
+	print("PumpStation.Run() - done\n")
 }
 
 type Pump struct {

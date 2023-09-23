@@ -19,7 +19,9 @@ func main() {
 		closeWithError(closeError, 3, persona, client)
 	}}
 
+	print("frontend.main - station.Run()")
 	station.Run() // blocking
+	print("frontend.main - station.Run() exited")
 }
 
 func closeWithError(closeError error, exitCode int, socket net.Conn, file *os.File) {
