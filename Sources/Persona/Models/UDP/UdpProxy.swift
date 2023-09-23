@@ -57,7 +57,8 @@ public class UdpProxy
 
             // We have a valid UDP packet, so we send it downstream to the client.
             // The client expects raw IPv4 packets prefixed with a 4-byte length.
-            try await self.client.writeWithLengthPrefix(resultIPv4.data, 32)
+            let clientMessage = Data(array: [Subsystem.Client.rawValue]) + resultIPv4.data
+            try await self.client.writeWithLengthPrefix(clientMessage, 32)
 
             self.logger.debug("UDP: \(resultIPv4.sourceAddress.ipv4AddressString ?? "not an IPv4 address"):\(resultUDP.sourcePort) -> \(resultIPv4.destinationAddress.ipv4AddressString ?? "not an IPv4 address"):\(resultUDP.destinationPort) ; persona <- udpproxy: \(resultIPv4.data.count) bytes")
             if udp.destinationPort == 7
@@ -99,6 +100,7 @@ public class UdpProxy
 
             // We have a valid UDP packet, so we send it downstream to the client.
             // The client expects raw IPv4 packets prefixed with a 4-byte length.
+            let clientMessage = Data(array: [Subsystem.Client.rawValue]) + resultIPv4.data
             try await self.client.writeWithLengthPrefix(resultIPv4.data, 32)
 
             self.logger.debug("UDP: \(resultIPv4.sourceAddress.ipv4AddressString ?? "not an IPv4 address"):\(resultUDP.sourcePort) -> \(resultIPv4.destinationAddress.ipv4AddressString ?? "not an IPv4 address"):\(resultUDP.destinationPort) ; persona <- udpproxy: \(resultIPv4.data.count) bytes")
