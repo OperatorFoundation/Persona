@@ -8,7 +8,7 @@ import (
 func main() {
 	client := os.NewFile(3, "systemd")
 
-	persona, dialError := net.Dial("tcp", "127.0.0.1:1234")
+	persona, dialError := net.Dial("tcp", "127.0.0.1:1230")
 	if dialError != nil {
 		print(dialError.Error())
 		_ = client.Close()
