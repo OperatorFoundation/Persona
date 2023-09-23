@@ -15,20 +15,15 @@ func main() {
 		os.Exit(1)
 	}
 
-	clientToPersona := Pump{client, persona, func(closeError error) {
-		closeWithError(closeError, 2, persona, client)
-	}}
-	personaToClient := Pump{persona, client, func(closeError error) {
+	station := PumpStation{client, persona, func(closeError error) {
 		closeWithError(closeError, 3, persona, client)
 	}}
 
-	go clientToPersona.Pump()
-
-	personaToClient.Pump()
+	station.Run() // blocking
 }
 
 func closeWithError(closeError error, exitCode int, socket net.Conn, file *os.File) {
-	print(closeError.Error())
+	print(closeError.Error() + "\n")
 	_ = socket.Close()
 	_ = file.Close()
 	os.Exit(exitCode)
