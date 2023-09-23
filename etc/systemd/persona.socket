@@ -4,7 +4,7 @@
 Description = Persona server
 
 [Socket]
-ListenStream = 1234
+ListenStream = 1230
 Accept = yes
 ReusePort = yes
 

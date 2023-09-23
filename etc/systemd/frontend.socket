@@ -4,7 +4,7 @@
 Description = frontend server
 
 [Socket]
-ListenStream = 1230
+ListenStream = 1234
 Accept = yes
 ReusePort = yes
 
