@@ -65,11 +65,12 @@ func (p Pump) Pump() {
 			p.Close(errors.New("short write on length"))
 		}
 
+		print("Pump.Pump() - writing data %d", len(data))
 		dataWritten, dataWriteError := p.Output.Write(data)
 		if dataWriteError != nil {
 			p.Close(dataWriteError)
 		}
-		if dataWritten != 4 {
+		if dataWritten != length {
 			p.Close(errors.New("short write on data"))
 		}
 	}

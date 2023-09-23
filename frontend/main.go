@@ -15,6 +15,8 @@ func main() {
 		os.Exit(1)
 	}
 
+	print("dialed persona %v", persona)
+
 	station := PumpStation{client, persona, func(closeError error) {
 		closeWithError(closeError, 3, persona, client)
 	}}
