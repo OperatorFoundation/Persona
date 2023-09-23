@@ -29,7 +29,6 @@ public class Persona
 
     var udpProxy: UdpProxy! = nil
     var tcpProxy: TcpProxy! = nil
-    var clientReadPromise: Promise<Data>
 
     public init() async throws
     {
@@ -113,10 +112,6 @@ public class Persona
 
         // Run Persona's TCP proxying control logic
         self.tcpProxy = TcpProxy(client: self.connection, logger: self.logger, tcpLogger: self.tcpLogger, writeLogger: self.clientWriteLog)
-
-        self.logger.info("Persona.init - reading first message from client, blocking")
-        let message = try await self.connection.readWithLengthPrefix(prefixSizeInBits: 32)
-        self.clientReadPromise = Promise<Data>(value: message)
     }
 
     // Start the Persona processing loop. Please note that each client gets its own Persona instance.
@@ -126,64 +121,49 @@ public class Persona
         {
             self.logger.info("Persona.run - main loop")
 
-            var progress: Bool = false
-
-            self.logger.info("Persona.run - checking on client")
-            switch self.clientReadPromise.result()
+            self.logger.info("Persona.run - reading message from client, blocking")
+            do
             {
-                case .success(let message):
-                    self.logger.info("Persona.run - read from client")
-                    progress = true
+                let message = try await self.connection.readWithLengthPrefix(prefixSizeInBits: 32)
 
-                    do
-                    {
-                        // Process the packet that we received from the downstream client
-                        self.logger.info("Persona.run - handling message")
-                        try await self.handleMessage(message)
-                        self.logger.info("Persona.run - done")
-                    }
-                    catch
-                    {
-                        self.logger.error("Persona.run - failed to handle message: \(message): \(error). Moving on to next message.")
-                    }
+                do
+                {
+                    // Process the packet that we received from the downstream client
+                    self.logger.info("Persona.run - handling message")
+                    try await self.handleMessage(message)
+                    self.logger.info("Persona.run - done")
+                }
+                catch
+                {
+                    self.logger.error("Persona.run - failed to handle message: \(message): \(error). Moving on to next message.")
+                }
+            }
+            catch
+            {
+                self.logger.error("Persona.run: reading from client failed: \(error) | \(error.localizedDescription)")
+                self.logger.error("Persona.run: assuming client connection closed, exiting Persona.")
 
-                    self.clientReadPromise = Promise<Data>
-                    {
-                        self.logger.info("Persona.run - reading from client, nonblocking")
-                        return try await self.connection.readWithLengthPrefix(prefixSizeInBits: 32)
-                    }
-
-                case .failed(let error):
-                    self.logger.error("Persona.run: reading from client failed: \(error) | \(error.localizedDescription)")
-                    self.logger.error("Persona.run: assuming client connection closed, exiting Persona.")
-
-                    await self.close()
-
-                case .waiting:
-                    self.logger.info("Persona.run - waiting on client read")
-                    do
-                    {
-                        self.logger.info("Persona.run - waiting on client read, pumping TCP")
-                        let tcpPumpResult = try await self.tcpProxy.pump()
-                        self.logger.info("TCP progress? \(tcpPumpResult)")
-                        progress = progress || tcpPumpResult
-
-                        self.logger.info("Persona.run - waiting on client read, pumping UDP")
-                        let udpPumpResult = try await self.udpProxy.pump()
-                        self.logger.info("UDP progress? \(udpPumpResult)")
-                        progress = progress || udpPumpResult
-                    }
-                    catch
-                    {
-                        self.logger.error("Persona.run (noData) - failed to pump: \(error).")
-                        await self.close()
-                    }
+                await self.close()
             }
 
-            if !progress
-            {
-                try await Task.sleep(for: .milliseconds(1000)) // 1 second
-            }
+            // FIXME - re-enable pumping
+//            do
+//            {
+//                self.logger.info("Persona.run - waiting on client read, pumping TCP")
+//                let tcpPumpResult = try await self.tcpProxy.pump()
+//                self.logger.info("TCP progress? \(tcpPumpResult)")
+//                progress = progress || tcpPumpResult
+//
+//                self.logger.info("Persona.run - waiting on client read, pumping UDP")
+//                let udpPumpResult = try await self.udpProxy.pump()
+//                self.logger.info("UDP progress? \(udpPumpResult)")
+//                progress = progress || udpPumpResult
+//            }
+//            catch
+//            {
+//                self.logger.error("Persona.run (noData) - failed to pump: \(error).")
+//                await self.close()
+//            }
         }
     }
 
