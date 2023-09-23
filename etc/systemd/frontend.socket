@@ -1,0 +1,12 @@
+# frontend.socket
+
+[Unit]
+Description = frontend server
+
+[Socket]
+ListenStream = 1230
+Accept = yes
+ReusePort = yes
+
+[Install]
+WantedBy = sockets.target

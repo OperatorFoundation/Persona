@@ -24,3 +24,7 @@ killall 9 Persona >/dev/null 2>/dev/null
 systemctl start tcpproxy.socket
 systemctl start udpproxy.socket
 systemctl start persona.socket
+
+pushd frontend
+go install
+popd

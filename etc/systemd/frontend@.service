@@ -1,0 +1,7 @@
+# frontend@.service
+
+[Unit]
+Description = frontend server service
+
+[Service]
+ExecStart=/root/Persona/.build/x86_64-unknown-linux-gnu/debug/Persona
