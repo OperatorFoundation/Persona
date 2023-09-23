@@ -6,37 +6,13 @@ import (
 	"io"
 )
 
-type Pumpable interface {
-	io.Reader
-	io.Writer
-}
-
-type PumpStation struct {
-	Left  Pumpable
-	Right Pumpable
-	Close func(error)
-}
-
-// Run - blocking
-func (ps PumpStation) Run() {
-	print("PumpStation.Run()\n")
-	leftToRight := Pump{ps.Left, ps.Right, ps.Close}
-	rightToLeft := Pump{ps.Right, ps.Left, ps.Close}
-
-	print("PumpStation.Run() - leftToRight\n")
-	go leftToRight.Pump() // non-blocking
-	print("PumpStation.Run() - rightToLeft\n")
-	rightToLeft.Pump() // blocking
-	print("PumpStation.Run() - done\n")
-}
-
-type Pump struct {
+type ReaderToChannel struct {
 	Input  io.Reader
-	Output io.Writer
+	Output chan []byte
 	Close  func(error)
 }
 
-func (p Pump) Pump() {
+func (p ReaderToChannel) Pump() {
 	for {
 		lengthBytes := make([]byte, 4)
 		lengthRead, lengthReadError := p.Input.Read(lengthBytes)
@@ -56,6 +32,24 @@ func (p Pump) Pump() {
 		if dataReadLength != length {
 			p.Close(errors.New("short read of data"))
 		}
+
+		p.Output <- data
+	}
+}
+
+type ChannelToWriter struct {
+	Input  chan []byte
+	Output io.Writer
+	Close  func(error)
+}
+
+func (p ChannelToWriter) Pump() {
+	for {
+		data := <-p.Input
+
+		length := len(data)
+		lengthBytes := make([]byte, 4)
+		binary.BigEndian.PutUint32(lengthBytes, uint32(length))
 
 		lengthWritten, lengthWriteError := p.Output.Write(lengthBytes)
 		if lengthWriteError != nil {

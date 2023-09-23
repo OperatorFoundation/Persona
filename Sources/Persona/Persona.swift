@@ -15,6 +15,13 @@ import Puppy
 import Net
 import TransmissionAsync
 
+public enum Subsystem: UInt8
+{
+    case Client   = 1
+    case Udpproxy = 2
+    case Tcpproxy = 3
+}
+
 public class Persona
 {
     public let stats: Stats = Stats()
@@ -184,6 +191,31 @@ public class Persona
 
     func handleMessage(_ data: Data) async throws
     {
+        guard data.count > 0 else
+        {
+            throw PersonaError.noData
+        }
+
+        let subsystemByte = data[0]
+        let rest = Data(data[1...])
+
+        guard let subsystem = Subsystem(rawValue: subsystemByte) else
+        {
+            throw PersonaError.unknownSubsystem(subsystemByte)
+        }
+
+        switch subsystem
+        {
+            case .Client:
+                try await self.handleClientMessage(rest)
+
+            default:
+                self.logger.error("unimplemented subsystem: \(subsystem)")
+        }
+    }
+
+    public func handleClientMessage(_ data: Data) async throws
+    {
         // Attempt to parse the data we received from the downstream client as an IPv4 packet.
         // Note that we only support IPv4 packets and we only support TCP and UDP packets.
         let packet = Packet(ipv4Bytes: data, timestamp: Date())
@@ -268,4 +300,6 @@ public enum PersonaError: Error
     case emptyPayload
     case echoListenerFailure
     case listenFailed
+    case noData
+    case unknownSubsystem(UInt8)
 }

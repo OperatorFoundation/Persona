@@ -17,13 +17,35 @@ func main() {
 
 	print("dialed persona %v", persona)
 
-	station := PumpStation{client, persona, func(closeError error) {
+	clientReadChannel := make(chan []byte)
+	clientWriteChannel := make(chan []byte)
+
+	personaReadChannel := make(chan []byte)
+	personaWriteChannel := make(chan []byte)
+
+	clientToChannel := ReaderToChannel{client, clientReadChannel, func(closeError error) {
+		closeWithError(closeError, 2, persona, client)
+	}}
+	channelToClient := ChannelToWriter{clientWriteChannel, client, func(closeError error) {
 		closeWithError(closeError, 3, persona, client)
 	}}
 
-	print("frontend.main - station.Run()")
-	station.Run() // blocking
-	print("frontend.main - station.Run() exited")
+	personaToChannel := ReaderToChannel{persona, personaReadChannel, func(closeError error) {
+		closeWithError(closeError, 4, persona, client)
+	}}
+	channelToPersona := ChannelToWriter{personaWriteChannel, persona, func(closeError error) {
+		closeWithError(closeError, 5, persona, client)
+	}}
+
+	// Non-blocking
+	go clientToChannel.Pump()
+	go channelToClient.Pump()
+
+	go personaToChannel.Pump()
+	go channelToPersona.Pump()
+
+	router := Router{clientReadChannel, clientWriteChannel, personaReadChannel, personaWriteChannel}
+	router.Route() // blocking
 }
 
 func closeWithError(closeError error, exitCode int, socket net.Conn, file *os.File) {
