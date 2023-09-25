@@ -135,7 +135,6 @@ public actor TcpProxyConnection
     public let identity: TcpIdentity
 
     let downstream: AsyncConnection
-    let upstream: AsyncConnection
     let logger: Logger
     let tcpLogger: Puppy
     let writeLogger: Puppy
@@ -152,83 +151,10 @@ public actor TcpProxyConnection
         self.tcpLogger = tcpLogger
         self.writeLogger = writeLogger
 
-        let hostBytes = ipv4.destinationAddress
-        guard let portBytes = tcp.destinationPort.maybeNetworkData else
-        {
-            throw TcpProxyError.dataConversionFailed
-        }
-
-        // tcpproxy subsystem expects 4-byte address and 2-byte port
-        let bytes = hostBytes + portBytes
-
-        self.upstream = try await AsyncTcpSocketConnection("127.0.0.1", 1232, self.logger, verbose: false)
-
         let clientMessage = Data(array: [Subsystem.Tcpproxy.rawValue]) + identity.data
         try await self.downstream.writeWithLengthPrefix(clientMessage, 32)
-    }
 
-    override public func processUpstreamConnectSuccess() async throws
-    {
-        // Here is where we actually write the TCP destination to the tcpproxy subsystem.
-        try await upstream.write(bytes)
-
-        let connectionStatusData = try await upstream.readSize(1)
-        let connectionStatusByte = connectionStatusData[0]
-        guard let connectionStatus = ConnectionStatus(rawValue: connectionStatusByte) else
-        {
-            throw TcpProxyError.unknownConnectionStatus(connectionStatusByte)
-        }
-
-        guard connectionStatus == .success else
-        {
-            throw TcpProxyError.upstreamConnectionFailed
-        }
-
-        self.state = TcpListen(identity: identity, upstream: self.upstream, logger: logger, tcpLogger: tcpLogger, writeLogger: writeLogger)
-
-        let transition = try await self.state.processDownstreamPacket(ipv4: ipv4, tcp: tcp, payload: nil)
-
-        self.logger.debug("! \(self.state) => \(transition.newState), \(transition.packetsToSend.count) packets to send")
-
-        if tcp.destinationPort == 7
-        {
-            self.tcpLogger.debug("! \(self.state) => \(transition.newState), \(transition.packetsToSend.count) packets to send")
-        }
-
-        for packet in transition.packetsToSend
-        {
-            let outPacket = Packet(ipv4Bytes: packet.data, timestamp: Date())
-            if let outTcp = outPacket.tcp
-            {
-                self.logger.debug("! <- \(description(packet, outTcp))")
-
-                if outTcp.sourcePort == 7
-                {
-                    self.tcpLogger.debug("! <- \(description(packet, outTcp))")
-                }
-            }
-            
-            self.logger.trace("About to send packet.")
-            try await self.sendPacket(packet)
-            self.logger.trace("Sent packet.")
-        }
-
-        self.state = transition.newState
-
-        guard self.state.open else
-        {
-            self.logger.debug("TcpProxyConnection.init - connection was closed immediately!")
-            if tcp.destinationPort == 7 || tcp.destinationPort == 853
-            {
-                self.tcpLogger.debug("TcpProxyConnection.init - connection was closed immediately!")
-            }
-
-            throw TcpProxyConnectionError.tcpClosed
-        }
-    }
-
-    override public func processUpstreamConnectFailure() async throws
-    {
+        self.state = TcpClosed(identity: identity, downstream: downstream, logger: logger, tcpLogger: tcpLogger, writeLogger: writeLogger)
     }
 
     public func processDownstreamPacket(ipv4: IPv4, tcp: TCP, payload: Data?) async throws
@@ -339,86 +265,14 @@ public actor TcpProxyConnection
         }
     }
 
-    public func processUpstreamConnectSuccess() async throws
+    public func processUpstreamConnectSuccess() async throws -> TcpStateTransition
     {
-        let transition = try await self.state.processUpstreamConnectSuccess()
-
-        for packet in transition.packetsToSend
-        {
-            let outPacket = Packet(ipv4Bytes: packet.data, timestamp: Date())
-            if let outTcp = outPacket.tcp
-            {
-                self.logger.debug("$ <- \(description(packet, outTcp))")
-
-                if outTcp.sourcePort == 7
-                {
-                    self.tcpLogger.debug("$ <- \(description(packet, outTcp))")
-                }
-            }
-
-            try await self.sendPacket(packet)
-        }
-
-        self.state = transition.newState
-
-        guard self.state.open else
-        {
-            self.logger.debug("TcpProxyConnection.pump - connection was closed")
-
-            do
-            {
-                try await self.state.close()
-            }
-            catch
-            {
-                self.logger.error("TcpProxyConnection.pump - Tried to close connection that was already closed")
-            }
-
-            Self.removeConnection(identity: self.identity)
-
-            throw TcpProxyConnectionError.tcpClosed
-        }
+        return TcpStateTransition(newState: TcpListen(self.state))
     }
 
     public func processUpstreamConnectFailure() async throws
     {
-        let transition = try await self.state.processUpstreamConnectFailure()
-
-        for packet in transition.packetsToSend
-        {
-            let outPacket = Packet(ipv4Bytes: packet.data, timestamp: Date())
-            if let outTcp = outPacket.tcp
-            {
-                self.logger.debug("$ <- \(description(packet, outTcp))")
-
-                if outTcp.sourcePort == 7
-                {
-                    self.tcpLogger.debug("$ <- \(description(packet, outTcp))")
-                }
-            }
-
-            try await self.sendPacket(packet)
-        }
-
-        self.state = transition.newState
-
-        guard self.state.open else
-        {
-            self.logger.debug("TcpProxyConnection.pump - connection was closed")
-
-            do
-            {
-                try await self.state.close()
-            }
-            catch
-            {
-                self.logger.error("TcpProxyConnection.pump - Tried to close connection that was already closed")
-            }
-
-            Self.removeConnection(identity: self.identity)
-
-            throw TcpProxyConnectionError.tcpClosed
-        }
+        throw TcpProxyError.upstreamConnectionFailed
     }
 
     public func processUpstreamData(data: Data) async throws

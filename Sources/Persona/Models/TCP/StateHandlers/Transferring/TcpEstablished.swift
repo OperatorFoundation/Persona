@@ -65,71 +65,39 @@ public class TcpEstablished: TcpStateHandler
             }
         }
 
-        var serverIsStillOpen: Bool = true
-        if tcp.payload != nil
+        if let payload = tcp.payload
         {
-            serverIsStillOpen = try await self.pumpOnlyClientToServer(tcp)
+            let message = Data(array: [Subsystem.Tcpproxy.rawValue]) + self.identity.data + payload
+            try await self.downstream.writeWithLengthPrefix(message, 32)
+            self.straw.increaseAcknowledgementNumber(payload.count)
         }
 
         var packets = try await self.pumpStrawToClient(tcp)
 
         self.logger.debug("checking for closing conditions")
         // There are three possible outcomes now:
-        // - server is open, FIN      - CLOSE-WAIT
-        // - server is open, no FIN   - ESTABLISHED
-        // - server is closed, FIN    - CLOSING
-        // - server is closed, no FIN - FIN-WAIT-1
-        if serverIsStillOpen
+        if tcp.fin
         {
-            if tcp.fin
-            {
-                self.logger.debug("TcpEstablished - open, FIN")
-                // - server is open, FIN      - CLOSE-WAIT
+            self.logger.debug("TcpEstablished - open, FIN")
+            // - server is open, FIN      - CLOSE-WAIT
 
-                self.straw.increaseAcknowledgementNumber(1)
-                let ack = try await makeAck()
-                packets.append(ack) // ACK the FIN
+            self.straw.increaseAcknowledgementNumber(1)
+            let ack = try await makeAck()
+            packets.append(ack) // ACK the FIN
 
-                return TcpStateTransition(newState: TcpCloseWait(self), packetsToSend: packets)
-            }
-            else
-            {
-                self.logger.debug("TcpEstablished - open, no FIN")
-                // - server is open, no FIN   - ESTABLISHED
-                if packets.isEmpty
-                {
-                    let ack = try await makeAck()
-                    packets.append(ack)
-                }
-
-                return TcpStateTransition(newState: self, packetsToSend: packets)
-            }
+            return TcpStateTransition(newState: TcpCloseWait(self), packetsToSend: packets)
         }
         else
         {
-            if tcp.fin
+            self.logger.debug("TcpEstablished - open, no FIN")
+            // - server is open, no FIN   - ESTABLISHED
+            if packets.isEmpty
             {
-                self.logger.debug("TcpEstablished - closed, FIN")
-                // - server is closed, FIN    - CLOSING
-
-                self.straw.increaseAcknowledgementNumber(1)
                 let ack = try await makeAck()
-                packets.append(ack) // ACK the FIN
-
-                return TcpStateTransition(newState:TcpClosing(self), packetsToSend: packets)
+                packets.append(ack)
             }
-            else
-            {
-                self.logger.debug("TcpEstablished - closed, no FIN")
-                // - server is closed, no FIN - FIN-WAIT-1
-                if packets.isEmpty
-                {
-                    let ack = try await makeAck()
-                    packets.append(ack)
-                }
 
-                return TcpStateTransition(newState:TcpFinWait1(self), packetsToSend: packets)
-            }
+            return TcpStateTransition(newState: self, packetsToSend: packets)
         }
     }
 

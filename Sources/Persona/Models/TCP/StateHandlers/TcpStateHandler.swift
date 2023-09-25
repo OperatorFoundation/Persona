@@ -38,20 +38,19 @@ public enum TcpProxyMessage: UInt8
 public class TcpStateHandler
 {
     public let identity: TcpIdentity
+    public let downstream: AsyncConnection
     public let logger: Logger
     public let tcpLogger: Puppy
     public let writeLogger: Puppy
 
     public var lastUsed: Date
     public var straw: TCPStraw
-    public var upstream: AsyncConnection
     public var open: Bool = true
 
-    public init(identity: TcpIdentity, upstream: AsyncConnection, logger: Logger, tcpLogger: Puppy, writeLogger: Puppy)
+    public init(identity: TcpIdentity, downstream: AsyncConnection, logger: Logger, tcpLogger: Puppy, writeLogger: Puppy)
     {
         self.identity = identity
-        self.upstream = upstream
-
+        self.downstream = downstream
         self.logger = logger
         self.tcpLogger = tcpLogger
         self.writeLogger = writeLogger
@@ -64,7 +63,7 @@ public class TcpStateHandler
     public init(_ oldState: TcpStateHandler)
     {
         self.identity = oldState.identity
-        self.upstream = oldState.upstream
+        self.downstream = oldState.downstream
         self.logger = oldState.logger
         self.tcpLogger = oldState.tcpLogger
         self.writeLogger = oldState.writeLogger
@@ -124,83 +123,6 @@ public class TcpStateHandler
         return TcpStateTransition(newState: self)
     }
 
-    // Returns whether the server connection closed during write
-    func pumpOnlyClientToServer(_ tcp: TCP) async throws -> Bool
-    {
-        guard let payload = tcp.payload else
-        {
-            return true
-        }
-
-        // Fully write all incoming payloads from the client to the server so that we don't have to buffer them.
-        do
-        {
-            try await self.upstream.write(TcpProxyMessage.upstreamOnly.data)
-            try await self.upstream.writeWithLengthPrefix(payload, 32)
-            self.straw.increaseAcknowledgementNumber(payload.count)
-
-            let data = try await self.upstream.readWithLengthPrefix(prefixSizeInBits: 32)
-            if data.isEmpty
-            {
-                self.logger.error("Server gave us data that we did not want, discarding \(data.count) bytes")
-            }
-
-            self.logger.debug("TcpEstablished.pumpClientToServer: Persona --> tcpproxy - \(payload.count) bytes (new ACK#\(self.straw.acknowledgementNumber))")
-            return true
-        }
-        catch
-        {
-            self.logger.error("Error in pumpOnlyClientToServer: \(error)")
-            return false
-        }
-    }
-
-    // Returns whether the server connection closed during write
-    func pumpBothClientToServerAndServerToStraw(_ tcp: TCP) async throws -> Bool
-    {
-        guard let payload = tcp.payload else
-        {
-            return true
-        }
-
-        // Fully write all incoming payloads from the client to the server so that we don't have to buffer them.
-        do
-        {
-            try await self.upstream.write(TcpProxyMessage.bidirectional.data)
-            try await self.upstream.writeWithLengthPrefix(payload, 32)
-            self.straw.increaseAcknowledgementNumber(payload.count)
-            self.logger.debug("TcpEstablished.pumpClientToServer: Persona --> tcpproxy - \(payload.count) bytes (new ACK#\(self.straw.acknowledgementNumber))")
-        }
-        catch
-        {
-            // Return early if the connection is closed, no need to try reading from a closed connection
-            return false
-        }
-
-        do
-        {
-            // Buffer data from the server until the client ACKs it.
-            let data = try await self.upstream.readWithLengthPrefix(prefixSizeInBits: 32)
-
-            if data.count > 0
-            {
-                try self.straw.write(data)
-                self.logger.debug("TcpEstablished.pumpBothClientToServerAndServerToStraw: Persona <-- tcpproxy - \(data.count) bytes")
-            }
-            else
-            {
-                self.logger.debug("TcpEstablished.pumpBothClientToServerAndServerToStraw: Persona <-- tcpproxy - no data")
-            }
-
-            return true
-        }
-        catch
-        {
-            self.logger.error("Error in pumpBothClientToServerAndServerToStraw: \(error)")
-            return false
-        }
-    }
-
     func pumpStrawToClient(_ tcp: TCP? = nil) async throws -> [IPv4]
     {
         guard !self.straw.isEmpty else
@@ -246,17 +168,8 @@ public class TcpStateHandler
     func close() async throws
     {
         self.logger.trace("TcpStateHandler.close()")
-        try await self.upstream.write(TcpProxyMessage.close.data)
-
-        do
-        {
-            // This will probably throw since upstream will already have closed.
-            try await self.upstream.close()
-        }
-        catch
-        {
-            return
-        }
+        let message = Data(array: [Subsystem.Tcpproxy.rawValue]) + TcpProxyRequest(type: TcpProxyRequestType.RequestClose, identity: self.identity).data
+        try await self.downstream.writeWithLengthPrefix(message, 32)
     }
 
     /// In all states except SYN-SENT, all reset (RST) segments are validated by checking their SEQ-fields.

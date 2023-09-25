@@ -24,15 +24,30 @@ public enum TcpProxyRequestType: UInt8
 
 public struct TcpProxyRequest
 {
+    public var data: Data
+    {
+        let typeBytes = Data(array: [self.type.rawValue])
+        let identityBytes = self.identity.data
+
+        if let payload = self.payload
+        {
+            return typeBytes + identityBytes + payload
+        }
+        else
+        {
+            return typeBytes + identityBytes
+        }
+    }
+
     let type: TcpProxyRequestType
     let identity: TcpIdentity
-    let data: Data?
+    let payload: Data?
 
-    public init(type: TcpProxyRequestType, identity: TcpIdentity, data: Data?)
+    public init(type: TcpProxyRequestType, identity: TcpIdentity, payload: Data? = nil)
     {
         self.type = type
         self.identity = identity
-        self.data = data
+        self.payload = payload
     }
 }
 
@@ -88,6 +103,12 @@ public struct TcpProxyResponse
 
             case .ResponseError:
                 self.init(type: type, identity: identity, error: TcpProxyError.frontendError(rest.string))
+
+            case .ResponseConnectSuccess:
+                self.init(type: type, identity: identity)
+
+            case .ResponseConnectFailure:
+                self.init(type: type, identity: identity)
         }
     }
 }
@@ -131,6 +152,12 @@ public actor TcpProxy
                 {
                     throw error
                 }
+
+            case .ResponseConnectSuccess:
+                try await self.processUpstreamConnectSuccess(identity: message.identity)
+
+            case .ResponseConnectFailure:
+                try await self.processUpstreamConnectFailure(identity: message.identity)
         }
     }
 

@@ -15,9 +15,9 @@ import TransmissionAsync
 // FIXME me - implement this state
 public class TcpClosed: TcpStateHandler
 {
-    public override init(identity: TcpIdentity, upstream: AsyncConnection, logger: Logger, tcpLogger: Puppy, writeLogger: Puppy)
+    public override init(identity: TcpIdentity, downstream: AsyncConnection, logger: Logger, tcpLogger: Puppy, writeLogger: Puppy)
     {
-        super.init(identity: identity, upstream: upstream, logger: logger, tcpLogger: tcpLogger, writeLogger: writeLogger)
+        super.init(identity: identity, downstream: downstream, logger: logger, tcpLogger: tcpLogger, writeLogger: writeLogger)
 
         self.open = false
     }
