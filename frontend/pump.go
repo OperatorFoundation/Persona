@@ -35,8 +35,9 @@ func (p ReaderToChannel) Pump() {
 			p.Close(errors.New("short read of data"))
 		}
 
-		log.Printf("ReadToChannel.Pump() - writing to channel %d\n", len(data))
+		log.Printf("ReadToChannel.Pump - writing to channel %d\n", len(data))
 		p.Output <- data
+		log.Printf("ReadToChannel.Pump - wrote to channel %d -> %v\n", len(data), p.Output)
 	}
 }
 
