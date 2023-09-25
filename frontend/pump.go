@@ -8,9 +8,13 @@ import (
 )
 
 type ReaderToChannel struct {
-	Input  io.Reader
-	Output chan []byte
-	Close  func(error)
+	InputName string
+	Input     io.Reader
+
+	OutputName string
+	Output     chan []byte
+
+	Close func(error)
 }
 
 func (p ReaderToChannel) Pump() {
@@ -42,9 +46,13 @@ func (p ReaderToChannel) Pump() {
 }
 
 type ChannelToWriter struct {
-	Input  chan []byte
-	Output io.Writer
-	Close  func(error)
+	InputName string
+	Input     chan []byte
+
+	OutputName string
+	Output     io.Writer
+
+	Close func(error)
 }
 
 func (p ChannelToWriter) Pump() {
@@ -64,7 +72,7 @@ func (p ChannelToWriter) Pump() {
 			p.Close(errors.New("short write on length"))
 		}
 
-		log.Println("ChannelToWriter.Pump() - writing data to writer", len(data))
+		log.Println("ChannelToWriter.Pump() - writing data to writer: %v -> %v", len(data), p.InputName, p.OutputName)
 		dataWritten, dataWriteError := p.Output.Write(data)
 		if dataWriteError != nil {
 			p.Close(dataWriteError)

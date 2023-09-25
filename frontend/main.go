@@ -32,17 +32,17 @@ func main() {
 	personaReadChannel := make(chan []byte)
 	personaWriteChannel := make(chan []byte)
 
-	clientToChannel := ReaderToChannel{client, clientReadChannel, func(closeError error) {
+	clientToChannel := ReaderToChannel{"client", client, "router", clientReadChannel, func(closeError error) {
 		closeWithError(closeError, 2, persona, client)
 	}}
-	channelToClient := ChannelToWriter{clientWriteChannel, client, func(closeError error) {
+	channelToClient := ChannelToWriter{"router", clientWriteChannel, "client", client, func(closeError error) {
 		closeWithError(closeError, 3, persona, client)
 	}}
 
-	personaToChannel := ReaderToChannel{persona, personaReadChannel, func(closeError error) {
+	personaToChannel := ReaderToChannel{"persona", persona, "router", personaReadChannel, func(closeError error) {
 		closeWithError(closeError, 4, persona, client)
 	}}
-	channelToPersona := ChannelToWriter{personaWriteChannel, persona, func(closeError error) {
+	channelToPersona := ChannelToWriter{"router", personaWriteChannel, "persona", persona, func(closeError error) {
 		closeWithError(closeError, 5, persona, client)
 	}}
 
