@@ -35,44 +35,14 @@ public actor TcpProxyConnection
     {
         if let connection = Self.connections[identity]
         {
-//            logger.debug("TcpProxyConnection.getConnection: existing - \(ipv4.sourceAddress.ipv4AddressString ?? "not an IPv4 address"):\(tcp.sourcePort) -> \(ipv4.destinationAddress.ipv4AddressString ?? "not an IPv4 address"):\(tcp.destinationPort)")
-//            if tcp.destinationPort == 7 || tcp.destinationPort == 853
-//            {
-//                tcpLogger.debug("TcpProxyConnection.processDownstreamPacket: existing - \(ipv4.sourceAddress.ipv4AddressString ?? "not an IPv4 address"):\(tcp.sourcePort) -> \(ipv4.destinationAddress.ipv4AddressString ?? "not an IPv4 address"):\(tcp.destinationPort)")
-//            }
-
             return (connection, true)
         }
         else
         {
-//            logger.debug("TcpProxyConnection.getConnection: new attempt, need SYN - \(ipv4.sourceAddress.ipv4AddressString ?? "not an IPv4 address"):\(tcp.sourcePort) -> \(ipv4.destinationAddress.ipv4AddressString ?? "not an IPv4 address"):\(tcp.destinationPort)")
-//            if tcp.destinationPort == 7 || tcp.destinationPort == 853
-//            {
-//                tcpLogger.debug("TcpProxyConnection.processDownstreamPacket: new attempt, need SYN - \(ipv4.sourceAddress.ipv4AddressString ?? "not an IPv4 address"):\(tcp.sourcePort) -> \(ipv4.destinationAddress.ipv4AddressString ?? "not an IPv4 address"):\(tcp.destinationPort)")
-//            }
-
             guard tcp.syn, !tcp.ack, !tcp.rst, !tcp.fin else
             {
-//                logger.debug("rejected packet - SYN:\(tcp.syn) ACK:\(tcp.ack) RST:\(tcp.rst) FIN:\(tcp.fin)")
-//                if tcp.destinationPort == 7 || tcp.destinationPort == 853
-//                {
-//                    tcpLogger.debug("rejected packet - SYN:\(tcp.syn) ACK:\(tcp.ack) RST:\(tcp.rst) FIN:\(tcp.fin)")
-//                }
-//
-//                logger.debug("new TcpProxyConnection cancelled due to lack of SYN")
-//                if tcp.destinationPort == 7 || tcp.destinationPort == 853
-//                {
-//                    tcpLogger.debug("new TcpProxyConnection cancelled due to lack of SYN")
-//                }
-
                 throw TcpProxyConnectionError.badFirstPacket
             }
-
-//            logger.debug("TcpProxyConnection.getConnection: new with SYN - \(ipv4.sourceAddress.ipv4AddressString ?? "not an IPv4 address"):\(tcp.sourcePort) -> \(ipv4.destinationAddress.ipv4AddressString ?? "not an IPv4 address"):\(tcp.destinationPort)")
-//            if tcp.destinationPort == 7 || tcp.destinationPort == 853
-//            {
-//                tcpLogger.debug("TcpProxyConnection.processDownstreamPacket: new with SYN - \(ipv4.sourceAddress.ipv4AddressString ?? "not an IPv4 address"):\(tcp.sourcePort) -> \(ipv4.destinationAddress.ipv4AddressString ?? "not an IPv4 address"):\(tcp.destinationPort)")
-//            }
 
             let connection = try await TcpProxyConnection(identity: identity, downstream: downstream, ipv4: ipv4, tcp: tcp, payload: payload, logger: logger, tcpLogger: tcpLogger, writeLogger: writeLogger)
             Self.connections[identity] = connection
@@ -83,15 +53,6 @@ public actor TcpProxyConnection
 
     static public func removeConnection(identity: TcpIdentity)
     {
-//        if let connection = self.connections[identity]
-//        {
-//            connection.logger.debug("TcpProxyConnection.removeConnection: \(identity.localAddress.data.ipv4AddressString ?? "?.?.?.?"):\(identity.localPort) -> \(identity.remoteAddress.data.ipv4AddressString ?? "?.?.?.?"):\(identity.remotePort)")
-//            if identity.remotePort == 7 || identity.remotePort == 853
-//            {
-//                connection.tcpLogger.debug("TcpProxyConnection.removeConnection: \(identity.localAddress.data.ipv4AddressString ?? "?.?.?.?"):\(identity.localPort) -> \(identity.remoteAddress.data.ipv4AddressString ?? "?.?.?.?"):\(identity.remotePort)")
-//            }
-//        }
-
         self.connections.removeValue(forKey: identity)
         self.queue = self.queue.filter
         {
@@ -166,10 +127,8 @@ public actor TcpProxyConnection
         let acknowledgementDifference = tcpAcknowledgementNumber - sequenceNumber
         self.logger.debug("TcpProxyConnection.processDownstreamPacket - SEQ#:\(tcpSequenceNumber) (\(sequenceDifference) difference), ACK#:\(tcpAcknowledgementNumber) (\(acknowledgementDifference) difference)")
 
-//        self.logger.debug("TcpProxyConnection.processDownstreamPacket[\(self.state)] - \(description(ipv4, tcp))")
         let transition = try await self.state.processDownstreamPacket(ipv4: ipv4, tcp: tcp, payload: nil)
-//        self.logger.debug("TcpProxyConnection.processDownstreamPacket - returned from current TCP state processDownstreamPacket()")
-        
+
         var packetsToSend: [IPv4]
         
         switch transition.newState

@@ -134,9 +134,7 @@ func (r *Router) RouteTcpproxy() {
 			if tcpProxyResponse.Error != nil {
 				log.Println(tcpProxyResponse.Error.Error())
 
-				closeResponse := tcpproxy.NewCloseResponse(tcpProxyResponse.Identity)
-
-				messageData, dataError := closeResponse.Data()
+				messageData, dataError := tcpProxyResponse.Data()
 				if dataError != nil {
 					log.Println(dataError.Error())
 					continue
