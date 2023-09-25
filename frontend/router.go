@@ -45,10 +45,13 @@ func NewRouter(clientRead chan []byte, clientWrite chan []byte, personaRead chan
 }
 
 func (r *Router) Route() {
+	log.Println("Router.Route()")
 	for {
+		log.Println("Router.Route - main loop")
 		select {
 		// Received data from the client
 		case clientData := <-r.ClientReadChannel:
+			log.Println("Router.Route - ClientReadChannel")
 			// Forward data to Persona
 			message := make([]byte, 0)
 			message = append(message, byte(Client))
@@ -57,6 +60,7 @@ func (r *Router) Route() {
 			r.PersonaWriteChannel <- message
 
 		case personaData := <-r.PersonaReadChannel:
+			log.Println("Router.Route - PersonaReadChannel")
 			if len(personaData) < 1 {
 				log.Println("error, personaData was empty")
 				continue
@@ -89,6 +93,7 @@ func (r *Router) Route() {
 			}
 
 		case tcpProxyResponse := <-r.TcpProxyReadChannel:
+			log.Println("Router.Route - TcpProxyReadChannel")
 			switch tcpProxyResponse.Type {
 			case tcpproxy.ResponseData:
 				messageData, dataError := tcpProxyResponse.Data()
@@ -137,6 +142,7 @@ func (r *Router) Route() {
 			}
 
 		case udpProxyResponse := <-r.UdpProxyReadChannel:
+			log.Println("Router.Route - UdpProxyReadChannel")
 			switch udpProxyResponse.Type {
 			case udpproxy.ResponseData:
 				messageData, dataError := udpProxyResponse.Data()

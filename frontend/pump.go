@@ -15,6 +15,7 @@ type ReaderToChannel struct {
 
 func (p ReaderToChannel) Pump() {
 	for {
+		log.Println("ReadToChannel.Pump() - reading from reader")
 		lengthBytes := make([]byte, 4)
 		lengthRead, lengthReadError := p.Input.Read(lengthBytes)
 		if lengthReadError != nil {
@@ -34,6 +35,7 @@ func (p ReaderToChannel) Pump() {
 			p.Close(errors.New("short read of data"))
 		}
 
+		log.Printf("ReadToChannel.Pump() - writing to channel %d\n", len(data))
 		p.Output <- data
 	}
 }
@@ -46,6 +48,7 @@ type ChannelToWriter struct {
 
 func (p ChannelToWriter) Pump() {
 	for {
+		log.Println("ChannelToWriter.Pump() - reading data to from channel")
 		data := <-p.Input
 
 		length := len(data)
