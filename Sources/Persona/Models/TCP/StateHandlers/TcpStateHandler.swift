@@ -168,8 +168,8 @@ public class TcpStateHandler
     func close() async throws
     {
         self.logger.trace("TcpStateHandler.close()")
-        let message = Data(array: [Subsystem.Tcpproxy.rawValue]) + TcpProxyRequest(type: TcpProxyRequestType.RequestClose, identity: self.identity).data
-        try await self.downstream.writeWithLengthPrefix(message, 32)
+        let message = TcpProxyRequest(type: .RequestClose, identity: self.identity)
+        try await self.downstream.writeWithLengthPrefix(message.data, 32)
     }
 
     /// In all states except SYN-SENT, all reset (RST) segments are validated by checking their SEQ-fields.

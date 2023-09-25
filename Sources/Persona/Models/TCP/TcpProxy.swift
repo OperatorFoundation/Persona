@@ -26,7 +26,7 @@ public struct TcpProxyRequest
 {
     public var data: Data
     {
-        let typeBytes = Data(array: [self.type.rawValue])
+        let typeBytes = Data(array: [Subsystem.Tcpproxy.rawValue, self.type.rawValue])
         let identityBytes = self.identity.data
 
         if let payload = self.payload

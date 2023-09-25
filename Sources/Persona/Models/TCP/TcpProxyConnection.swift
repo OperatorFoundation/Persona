@@ -151,8 +151,8 @@ public actor TcpProxyConnection
         self.tcpLogger = tcpLogger
         self.writeLogger = writeLogger
 
-        let clientMessage = Data(array: [Subsystem.Tcpproxy.rawValue]) + identity.data
-        try await self.downstream.writeWithLengthPrefix(clientMessage, 32)
+        let message = TcpProxyRequest(type: .RequestOpen, identity: self.identity, payload: payload)
+        try await self.downstream.writeWithLengthPrefix(message.data, 32)
 
         self.state = TcpClosed(identity: identity, downstream: downstream, logger: logger, tcpLogger: tcpLogger, writeLogger: writeLogger)
     }
