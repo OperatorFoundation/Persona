@@ -74,6 +74,8 @@ func (p *Proxy) Run() {
 				p.PersonaOutput <- NewCloseResponse(request.Identity)
 				log.Println("tcpproxy.Proxy.Run - RequestClose - wrote ResponseClose")
 			} else {
+				log.Println("error, Persona is requesting us to close a connection that we do not have")
+
 				log.Println("tcpproxy.Proxy.Run - RequestClose - writing ResponseError")
 				p.PersonaOutput <- NewErrorResponse(request.Identity, errors.New("error, Persona is asking us to close a connection that we do not have"))
 				log.Println("tcpproxy.Proxy.Run - RequestClose - wrote ResponseError")
