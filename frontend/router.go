@@ -4,6 +4,7 @@ import (
 	"errors"
 	"frontend/tcpproxy"
 	"frontend/udpproxy"
+	"log"
 )
 
 type Router struct {
@@ -57,7 +58,7 @@ func (r *Router) Route() {
 
 		case personaData := <-r.PersonaReadChannel:
 			if len(personaData) < 1 {
-				print("error, personaData was empty")
+				log.Println("error, personaData was empty")
 				continue
 			}
 
@@ -70,7 +71,7 @@ func (r *Router) Route() {
 			case Udpproxy:
 				request := udpproxy.NewRequest(data)
 				if request == nil {
-					print("error, bad request")
+					log.Println("error, bad request")
 					continue
 				} else {
 					r.UdpProxyWriteChannel <- request
@@ -78,13 +79,13 @@ func (r *Router) Route() {
 			case Tcpproxy:
 				request := tcpproxy.NewRequest(data)
 				if request == nil {
-					print("error, bad request")
+					log.Println("error, bad request")
 					continue
 				} else {
 					r.TcpProxyWriteChannel <- request
 				}
 			default:
-				print("bad message type")
+				log.Println("bad message type")
 			}
 
 		case tcpProxyResponse := <-r.TcpProxyReadChannel:
@@ -92,7 +93,7 @@ func (r *Router) Route() {
 			case tcpproxy.ResponseData:
 				messageData, dataError := tcpProxyResponse.Data()
 				if dataError != nil {
-					print(dataError.Error())
+					log.Println(dataError.Error())
 					continue
 				}
 
@@ -105,7 +106,7 @@ func (r *Router) Route() {
 			case tcpproxy.ResponseClose:
 				messageData, dataError := tcpProxyResponse.Data()
 				if dataError != nil {
-					print(dataError.Error())
+					log.Println(dataError.Error())
 					continue
 				}
 
@@ -117,13 +118,13 @@ func (r *Router) Route() {
 
 			case tcpproxy.ResponseError:
 				if tcpProxyResponse.Error != nil {
-					print(tcpProxyResponse.Error.Error())
+					log.Println(tcpProxyResponse.Error.Error())
 
 					closeResponse := tcpproxy.NewCloseResponse(tcpProxyResponse.Identity)
 
 					messageData, dataError := closeResponse.Data()
 					if dataError != nil {
-						print(dataError.Error())
+						log.Println(dataError.Error())
 						continue
 					}
 
@@ -140,7 +141,7 @@ func (r *Router) Route() {
 			case udpproxy.ResponseData:
 				messageData, dataError := udpProxyResponse.Data()
 				if dataError != nil {
-					print(dataError.Error())
+					log.Println(dataError.Error())
 					continue
 				}
 
@@ -153,7 +154,7 @@ func (r *Router) Route() {
 			case udpproxy.ResponseClose:
 				messageData, dataError := udpProxyResponse.Data()
 				if dataError != nil {
-					print(dataError.Error())
+					log.Println(dataError.Error())
 					continue
 				}
 
@@ -165,13 +166,13 @@ func (r *Router) Route() {
 
 			case udpproxy.ResponseError:
 				if udpProxyResponse.Error != nil {
-					print(udpProxyResponse.Error.Error())
+					log.Println(udpProxyResponse.Error.Error())
 
 					closeResponse := tcpproxy.NewCloseResponse(udpProxyResponse.Identity)
 
 					messageData, dataError := closeResponse.Data()
 					if dataError != nil {
-						print(dataError.Error())
+						log.Println(dataError.Error())
 						continue
 					}
 

@@ -4,6 +4,7 @@ import (
 	"encoding/binary"
 	"errors"
 	"frontend/ip"
+	"log"
 	"net"
 	"time"
 )
@@ -144,7 +145,7 @@ func (p Proxy) Cleanup() {
 		for identityString, lastUsed := range p.LastUsed {
 			identity, identityError := ip.NewIdentityFromString(identityString)
 			if identityError != nil {
-				print("error, malformed identity string")
+				log.Println("error, malformed identity string")
 				continue
 			}
 
@@ -156,7 +157,7 @@ func (p Proxy) Cleanup() {
 					delete(p.Connections, identityString)
 					delete(p.LastUsed, identityString)
 				} else {
-					print("error, lastUsed out of sync with connections")
+					log.Println("error, lastUsed out of sync with connections")
 				}
 			}
 		}

@@ -4,6 +4,7 @@ import (
 	"encoding/binary"
 	"errors"
 	"io"
+	"log"
 )
 
 type ReaderToChannel struct {
@@ -59,7 +60,7 @@ func (p ChannelToWriter) Pump() {
 			p.Close(errors.New("short write on length"))
 		}
 
-		print("Pump.Pump() - writing data %d", len(data))
+		log.Println("Pump.Pump() - writing data %d", len(data))
 		dataWritten, dataWriteError := p.Output.Write(data)
 		if dataWriteError != nil {
 			p.Close(dataWriteError)
