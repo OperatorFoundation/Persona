@@ -66,13 +66,9 @@ public class TcpEstablished: TcpStateHandler
         }
 
         var serverIsStillOpen: Bool = true
-        if tcp.payload == nil
+        if tcp.payload != nil
         {
-            serverIsStillOpen = try await self.pumpOnlyServerToStraw()
-        }
-        else
-        {
-            serverIsStillOpen = try await self.pumpBothClientToServerAndServerToStraw(tcp)
+            serverIsStillOpen = try await self.pumpOnlyClientToServer(tcp)
         }
 
         var packets = try await self.pumpStrawToClient(tcp)
@@ -137,7 +133,7 @@ public class TcpEstablished: TcpStateHandler
         }
     }
 
-    override func pump() async throws -> TcpStateTransition
+    override public func processUpstreamData(data: Data) async throws -> TcpStateTransition
     {
         let now = Date().timeIntervalSince1970
         let then = self.lastUsed.timeIntervalSince1970
@@ -147,14 +143,17 @@ public class TcpEstablished: TcpStateHandler
             return TcpStateTransition(newState: self, packetsToSend: [])
         }
 
-        let serverIsStillOpen: Bool
         if self.straw.isEmpty
         {
-            serverIsStillOpen = try await self.pumpOnlyServerToStraw()
-        }
-        else
-        {
-            serverIsStillOpen = true
+            if data.count > 0
+            {
+                try self.straw.write(data)
+                self.logger.debug("TcpEstablished.processUpstreamData: Persona <-- tcpproxy - \(data.count) bytes")
+            }
+            else
+            {
+                self.logger.debug("TcpEstablished.processUpstreamData: Persona <-- tcpproxy - no data")
+            }
         }
 
         var packets = try await self.pumpStrawToClient()
@@ -164,26 +163,13 @@ public class TcpEstablished: TcpStateHandler
             self.lastUsed = Date() // now
         }
 
-        if serverIsStillOpen
+        if packets.isEmpty
         {
-            if packets.isEmpty
-            {
-                let ack = try await makeAck()
-                packets.append(ack)
-            }
-
-            return TcpStateTransition(newState: self, packetsToSend: packets, progress: true)
+            let ack = try await makeAck()
+            packets.append(ack)
         }
-        else
-        {
-            if packets.isEmpty
-            {
-                let ack = try await makeAck()
-                packets.append(ack)
-            }
 
-            return TcpStateTransition(newState: TcpClosing(self), packetsToSend: packets, progress: true)
-        }
+        return TcpStateTransition(newState: self, packetsToSend: packets, progress: true)
     }
 }
 

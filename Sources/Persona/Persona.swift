@@ -209,8 +209,11 @@ public class Persona
             case .Client:
                 try await self.handleClientMessage(rest)
 
-            default:
-                self.logger.error("unimplemented subsystem: \(subsystem)")
+            case .Tcpproxy:
+                try await self.handleTcpproxyMessage(rest)
+
+            case .Udpproxy:
+                try await self.handleUdpproxyMessage(rest)
         }
     }
 
@@ -286,6 +289,16 @@ public class Persona
 
             // Non-IPv4 packets are not supported
         }
+    }
+
+    public func handleTcpproxyMessage(_ data: Data) async throws
+    {
+        try await self.tcpProxy.handleMessage(data)
+    }
+
+    public func handleUdpproxyMessage(_ data: Data) async throws
+    {
+        try await self.udpProxy.handleMessage(data)
     }
 }
 

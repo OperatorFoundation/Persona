@@ -85,7 +85,7 @@ public class TcpStateHandler
         return try await self.panicOnDownstream(ipv4: ipv4, tcp: tcp, payload: payload, sequenceNumber: SequenceNumber(0), acknowledgementNumber: SequenceNumber(tcp.sequenceNumber), windowSize: 0)
     }
 
-    public func processUpstreamData(data: Data) throws -> TcpStateTransition
+    public func processUpstreamData(data: Data) async throws -> TcpStateTransition
     {
         return self.panicOnUpstream(data: data)
     }
@@ -141,34 +141,6 @@ public class TcpStateHandler
         catch
         {
             self.logger.error("Error in pumpOnlyClientToServer: \(error)")
-            return false
-        }
-    }
-
-    // Returns whether the server connection closed during write
-    func pumpOnlyServerToStraw() async throws -> Bool
-    {
-        do
-        {
-            try await self.upstream.write(TcpProxyMessage.downstreamOnly.data)
-
-            let data = try await self.upstream.readWithLengthPrefix(prefixSizeInBits: 32)
-
-            if data.count > 0
-            {
-                try self.straw.write(data)
-                self.logger.debug("TcpStateHandler.pumpOnlyServerToStraw: Persona <-- tcpproxy - \(data.count) bytes")
-            }
-            else
-            {
-                self.logger.debug("TcpStateHandler.pumpOnlyServerToStraw: Persona <-- tcpproxy - no data")
-            }
-
-            return true
-        }
-        catch
-        {
-            self.logger.error("Error in pumpOnlyServerToStraw: \(error)")
             return false
         }
     }

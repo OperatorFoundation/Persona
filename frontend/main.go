@@ -44,7 +44,10 @@ func main() {
 	go personaToChannel.Pump()
 	go channelToPersona.Pump()
 
-	router := Router{clientReadChannel, clientWriteChannel, personaReadChannel, personaWriteChannel}
+	router, routerError := NewRouter(clientReadChannel, clientWriteChannel, personaReadChannel, personaWriteChannel)
+	if routerError != nil {
+		closeWithError(routerError, 6, persona, client)
+	}
 	router.Route() // blocking
 }
 

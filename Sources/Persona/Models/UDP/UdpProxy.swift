@@ -34,6 +34,11 @@ public class UdpProxy
         self.writeLogger = writeLogger
     }
 
+    public func handleMessage(_ message: Data) async throws
+    {
+
+    }
+
     // An IPVv4-UDP packet has been received from the client. Check that we know how to handle it and then send it to the udpproxy subsystem.
     public func processDownstreamPacket(ipv4: IPv4, udp: UDP, payload: Data) async throws
     {
@@ -101,7 +106,7 @@ public class UdpProxy
             // We have a valid UDP packet, so we send it downstream to the client.
             // The client expects raw IPv4 packets prefixed with a 4-byte length.
             let clientMessage = Data(array: [Subsystem.Client.rawValue]) + resultIPv4.data
-            try await self.client.writeWithLengthPrefix(resultIPv4.data, 32)
+            try await self.client.writeWithLengthPrefix(clientMessage, 32)
 
             self.logger.debug("UDP: \(resultIPv4.sourceAddress.ipv4AddressString ?? "not an IPv4 address"):\(resultUDP.sourcePort) -> \(resultIPv4.destinationAddress.ipv4AddressString ?? "not an IPv4 address"):\(resultUDP.destinationPort) ; persona <- udpproxy: \(resultIPv4.data.count) bytes")
             if resultUDP.destinationPort == 7

@@ -21,6 +21,16 @@ public actor TcpProxyConnection
     static var connections: [TcpIdentity: TcpProxyConnection] = [:]
     static var queue: [TcpIdentity] = []
 
+    static public func getConnection(identity: TcpIdentity) throws -> TcpProxyConnection
+    {
+        guard let connection = Self.connections[identity] else
+        {
+            throw TcpProxyConnectionError.unknownConnection
+        }
+
+        return connection
+    }
+
     static public func getConnection(identity: TcpIdentity, downstream: AsyncConnection, ipv4: IPv4, tcp: TCP, payload: Data?, logger: Logger, tcpLogger: Puppy, writeLogger: Puppy) async throws -> (TcpProxyConnection, Bool)
     {
         if let connection = Self.connections[identity]
@@ -111,6 +121,14 @@ public actor TcpProxyConnection
         }
 
         return connection
+    }
+
+    static public func close(identity: TcpIdentity) async throws
+    {
+        if let connection = self.connections[identity]
+        {
+            try await connection.close()
+        }
     }
     // End of static section
 
@@ -372,9 +390,9 @@ public actor TcpProxyConnection
         }
     }
 
-    public func pump() async throws -> Bool
+    public func processUpstreamData(data: Data) async throws
     {
-        let transition = try await self.state.pump()
+        let transition = try await self.state.processUpstreamData(data: data)
 
         for packet in transition.packetsToSend
         {
@@ -411,8 +429,6 @@ public actor TcpProxyConnection
 
             throw TcpProxyConnectionError.tcpClosed
         }
-
-        return transition.progress
     }
 
     func close() async throws
@@ -423,50 +439,9 @@ public actor TcpProxyConnection
 
     func sendPacket(_ ipv4: IPv4) async throws
     {
-//        self.logger.info("TcpProxyConnection.sendPacket - \(ipv4.data.count) bytes")
-
         let packet = Packet(ipv4Bytes: ipv4.data, timestamp: Date())
         if let ipv4 = packet.ipv4, let _ = packet.tcp
         {
-//            if tcp.syn
-//            {
-//                if tcp.ack
-//                {
-//                    self.logger.info("TcpProxyConnection.sendPacket - SYN-ACK")
-//                }
-//                else
-//                {
-//                    self.logger.info("TcpProxyConnection.sendPacket - SYN")
-//                }
-//            }
-//            else if tcp.ack
-//            {
-//                if let payload = tcp.payload
-//                {
-//                    self.logger.info("TcpProxyConnection.sendPacket - ACK with \(payload.count) byte payload")
-//                }
-//                else
-//                {
-//                    self.logger.info("TcpProxyConnection.sendPacket - ACK with no payload")
-//                }
-//            }
-//            else if tcp.fin
-//            {
-//                self.logger.info("TcpProxyConnection.sendPacket - FIN")
-//            }
-//            else if tcp.rst
-//            {
-//                self.logger.info("TcpProxyConnection.sendPacket - RST")
-//            }
-//            else if let payload = tcp.payload
-//            {
-//                self.logger.info("TcpProxyConnection.sendPacket - no flags, \(payload.count) byte payload")
-//            }
-//            else
-//            {
-//                self.logger.info("TcpProxyConnection.sendPacket - no flags, no payload")
-//            }
-
             self.writeLogger.info("TcpProxyConnection.sendPacket - write \(ipv4.data.count) bytes to client")
 
             let clientMessage = Data(array: [Subsystem.Client.rawValue]) + ipv4.data
@@ -487,4 +462,5 @@ public enum TcpProxyConnectionError: Error
 {
     case badFirstPacket
     case tcpClosed
+    case unknownConnection
 }

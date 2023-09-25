@@ -1,6 +1,11 @@
 git pull origin main
 swift build
 
+apt install golang
+pushd frontend
+go install
+popd
+
 cp etc/systemd/* /etc/systemd/system
 systemctl daemon-reload
 systemctl start persona.socket

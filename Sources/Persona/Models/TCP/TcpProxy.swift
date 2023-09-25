@@ -9,10 +9,86 @@ import Logging
 import Foundation
 
 import Chord
+import Datable
 import InternetProtocols
 import Net
 import Puppy
 import TransmissionAsync
+
+public enum TcpProxyRequestType: UInt8
+{
+    case RequestOpen = 1
+    case RequestWrite = 2
+    case RequestClose = 3
+}
+
+public struct TcpProxyRequest
+{
+    let type: TcpProxyRequestType
+    let identity: TcpIdentity
+    let data: Data?
+
+    public init(type: TcpProxyRequestType, identity: TcpIdentity, data: Data?)
+    {
+        self.type = type
+        self.identity = identity
+        self.data = data
+    }
+}
+
+public enum TcpProxyResponseType: UInt8
+{
+    case ResponseData = 1
+    case ResponseClose = 2
+    case ResponseError = 3
+}
+
+public struct TcpProxyResponse
+{
+    let type: TcpProxyResponseType
+    let identity: TcpIdentity
+    let payload: Data?
+    let error: Error?
+
+    public init(type: TcpProxyResponseType, identity: TcpIdentity, payload: Data? = nil, error: Error? = nil)
+    {
+        self.type = type
+        self.identity = identity
+        self.payload = payload
+        self.error = error
+    }
+
+    public init(data: Data) throws
+    {
+        guard data.count >= 13 else
+        {
+            throw TcpProxyError.shortMessage
+        }
+
+        let typeByte = data[0]
+        let identityBytes = Data(data[1..<13])
+        let rest = Data(data[13...])
+
+        guard let type = TcpProxyResponseType(rawValue: typeByte) else
+        {
+            throw TcpProxyError.badMessage
+        }
+
+        let identity = try TcpIdentity(data: identityBytes)
+
+        switch type
+        {
+            case .ResponseData:
+                self.init(type: type, identity: identity, payload: rest)
+
+            case .ResponseClose:
+                self.init(type: type, identity: identity)
+
+            case .ResponseError:
+                self.init(type: type, identity: identity, error: TcpProxyError.frontendError(rest.string))
+        }
+    }
+}
 
 // Persona's TCP proxying control logic offloads TCP packets to the tcpproxy subsystem.
 // This control logic filters out packets that we don't know how to handle and prepares them into a form suitable for ingestion by the tcpproxy subsystem.
@@ -32,6 +108,30 @@ public actor TcpProxy
         self.writeLogger = writeLogger
     }
 
+    public func handleMessage(_ data: Data) async throws
+    {
+        let message = try TcpProxyResponse(data: data)
+        switch message.type
+        {
+            case .ResponseData:
+                guard let data = message.payload else
+                {
+                    throw TcpProxyError.badMessage
+                }
+
+                try await self.processUpstreamData(identity: message.identity, data: data)
+
+            case .ResponseClose:
+                try await self.processUpstreamClose(identity: message.identity)
+
+            case .ResponseError:
+                if let error = message.error
+                {
+                    throw error
+                }
+        }
+    }
+
     // An IPVv4-TCP packet has been received from the client. Check that we know how to handle it and then send it to the tcpproxy subsystem.
     public func processDownstreamPacket(ipv4: IPv4, tcp: TCP, payload: Data?) async throws
     {
@@ -46,38 +146,16 @@ public actor TcpProxy
         }
     }
 
-    // On every packet received, check on the OTHER connections.
-    public func pump(_ skipConnection: TcpProxyConnection? = nil) async throws -> Bool
+    public func processUpstreamData(identity: TcpIdentity, data: Data) async throws
     {
-        guard let connection = TcpProxyConnection.getQueuedConnection() else
-        {
-            return false
-        }
+        let connection = try TcpProxyConnection.getConnection(identity: identity)
 
-        let newIdentity = connection.identity
+        try await connection.processUpstreamData(data: data)
+    }
 
-        if let skipConnection
-        {
-            let skipIdentity = skipConnection.identity
-
-            if newIdentity == skipIdentity
-            {
-                return false
-            }
-        }
-
-        switch await connection.state
-        {
-            // FIXME - add more cases
-            case is TcpEstablished:
-                return try await connection.pump()
-
-            case is TcpCloseWait:
-                return try await connection.pump()
-
-            default:
-                return false
-        }
+    public func processUpstreamClose(identity: TcpIdentity) async throws
+    {
+        try await TcpProxyConnection.close(identity: identity)
     }
 }
 
@@ -91,4 +169,8 @@ public enum TcpProxyError: Error
     case notTcpPacket(Packet)
     case badIpv4Packet
     case dataConversionFailed
+    case shortMessage
+    case badMessage
+    case frontendError(String)
+    case badIdentity
 }

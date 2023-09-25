@@ -41,6 +41,38 @@ public struct TcpIdentity
         self.remoteAddress = remoteAddress
         self.remotePort = remotePort
     }
+
+    public init(data: Data) throws
+    {
+        guard data.count == 12 else
+        {
+            throw TcpIdentityError.badIdentity
+        }
+
+        let localAdddressBytes = Data(data[0..<4])
+        let localPortBytes = Data(data[4..<6])
+        let remoteAdddressBytes = Data(data[6..<10])
+        let remotePortBytes = Data(data[10..<12])
+
+        guard let localAddress = IPv4Address(data: localAdddressBytes) else
+        {
+            throw TcpIdentityError.badIdentity
+        }
+        guard let localPort = localPortBytes.maybeNetworkUint16 else
+        {
+            throw TcpIdentityError.badIdentity
+        }
+        guard let remoteAddress = IPv4Address(data: remoteAdddressBytes) else
+        {
+            throw TcpIdentityError.badIdentity
+        }
+        guard let remotePort = remotePortBytes.maybeNetworkUint16 else
+        {
+            throw TcpIdentityError.badIdentity
+        }
+
+        self.init(localAddress: localAddress, localPort: localPort, remoteAddress: remoteAddress, remotePort: remotePort)
+    }
 }
 
 extension TcpIdentity: Equatable
@@ -60,4 +92,9 @@ extension TcpIdentity: Hashable
         hasher.combine(self.remoteAddress)
         hasher.combine(self.remotePort)
     }
+}
+
+public enum TcpIdentityError: Error
+{
+    case badIdentity
 }
