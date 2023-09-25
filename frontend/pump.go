@@ -39,7 +39,7 @@ func (p ReaderToChannel) Pump() {
 			p.Close(errors.New("short read of data"))
 		}
 
-		log.Printf("ReadToChannel.Pump - writing to channel %d\n", len(data))
+		log.Printf("ReadToChannel.Pump - writing to channel %v -%d-> %v\n", p.InputName, len(data), p.OutputName)
 		p.Output <- data
 		log.Printf("ReadToChannel.Pump - wrote to channel %d -> %v\n", len(data), p.Output)
 	}
@@ -72,7 +72,7 @@ func (p ChannelToWriter) Pump() {
 			p.Close(errors.New("short write on length"))
 		}
 
-		log.Println("ChannelToWriter.Pump() - writing data to writer: %v -> %v", len(data), p.InputName, p.OutputName)
+		log.Printf("ChannelToWriter.Pump() - writing data to writer: %v -%d-> %v\n", p.InputName, len(data), p.OutputName)
 		dataWritten, dataWriteError := p.Output.Write(data)
 		if dataWriteError != nil {
 			p.Close(dataWriteError)
