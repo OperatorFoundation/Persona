@@ -71,7 +71,7 @@ func (r *Router) Route() {
 			case Udpproxy:
 				request := udpproxy.NewRequest(data)
 				if request == nil {
-					log.Println("error, bad request")
+					log.Println("error, bad udpproxy request")
 					continue
 				} else {
 					r.UdpProxyWriteChannel <- request
@@ -79,7 +79,7 @@ func (r *Router) Route() {
 			case Tcpproxy:
 				request := tcpproxy.NewRequest(data)
 				if request == nil {
-					log.Println("error, bad request")
+					log.Println("error, bad tcpproxy request")
 					continue
 				} else {
 					r.TcpProxyWriteChannel <- request

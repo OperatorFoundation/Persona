@@ -60,7 +60,7 @@ func (p ChannelToWriter) Pump() {
 			p.Close(errors.New("short write on length"))
 		}
 
-		log.Println("Pump.Pump() - writing data %d", len(data))
+		log.Println("ChannelToWriter.Pump() - writing data to writer", len(data))
 		dataWritten, dataWriteError := p.Output.Write(data)
 		if dataWriteError != nil {
 			p.Close(dataWriteError)

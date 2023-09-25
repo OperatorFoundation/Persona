@@ -24,7 +24,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	log.Println("dialed persona %v", persona)
+	log.Println("dialed persona")
 
 	clientReadChannel := make(chan []byte)
 	clientWriteChannel := make(chan []byte)
