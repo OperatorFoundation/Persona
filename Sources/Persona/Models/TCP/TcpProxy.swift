@@ -178,6 +178,9 @@ public actor TcpProxy
         let connection = try TcpProxyConnection.getConnection(identity: identity)
 
         try await connection.processUpstreamConnectSuccess()
+
+        let (ipv4, tcp, payload) = connection.firstPacket
+        try await connection.processDownstreamPacket(ipv4: ipv4, tcp: tcp, payload: payload)
     }
 
     public func processUpstreamConnectFailure(identity: TcpIdentity) async throws

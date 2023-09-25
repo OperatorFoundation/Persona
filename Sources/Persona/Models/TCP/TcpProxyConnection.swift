@@ -94,6 +94,7 @@ public actor TcpProxyConnection
     // End of static section
 
     public let identity: TcpIdentity
+    public let firstPacket: (IPv4, TCP, Data?)
 
     let downstream: AsyncConnection
     let logger: Logger
@@ -111,6 +112,7 @@ public actor TcpProxyConnection
         self.logger = logger
         self.tcpLogger = tcpLogger
         self.writeLogger = writeLogger
+        self.firstPacket = (ipv4, tcp, payload)
 
         let message = TcpProxyRequest(type: .RequestOpen, identity: self.identity, payload: payload)
         try await self.downstream.writeWithLengthPrefix(message.data, 32)
@@ -224,14 +226,26 @@ public actor TcpProxyConnection
         }
     }
 
-    public func processUpstreamConnectSuccess() async throws -> TcpStateTransition
+    public func processUpstreamConnectSuccess() async throws
     {
-        return TcpStateTransition(newState: TcpListen(self.state))
+        let transition = try await self.state.processUpstreamConnectSuccess()
+        self.state = transition.newState
+
+        for packet in transition.packetsToSend
+        {
+            try await self.sendPacket(packet)
+        }
     }
 
     public func processUpstreamConnectFailure() async throws
     {
-        throw TcpProxyError.upstreamConnectionFailed
+        let transition = try await self.state.processUpstreamConnectSuccess()
+        self.state = transition.newState
+
+        for packet in transition.packetsToSend
+        {
+            try await self.sendPacket(packet)
+        }
     }
 
     public func processUpstreamData(data: Data) async throws
