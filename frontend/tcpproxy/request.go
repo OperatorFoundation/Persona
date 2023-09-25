@@ -1,6 +1,9 @@
 package tcpproxy
 
-import "frontend/ip"
+import (
+	"frontend/ip"
+	"log"
+)
 
 type RequestType byte
 
@@ -17,6 +20,8 @@ type Request struct {
 }
 
 func NewRequest(data []byte) *Request {
+	log.Printf("tcpproxy.NewRequest(%d bytes)\n", len(data))
+
 	if len(data) < 13 {
 		return nil
 	}
