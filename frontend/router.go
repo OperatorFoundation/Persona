@@ -30,10 +30,14 @@ func NewRouter(clientRead chan []byte, clientWrite chan []byte, personaRead chan
 		return nil, errors.New("could not initialize TCP proxy")
 	}
 
+	go tcp.Run()
+
 	udp := udpproxy.New()
 	if udp == nil {
 		return nil, errors.New("could not initialize UDP proxy")
 	}
+
+	go udp.Run()
 
 	tcpWrite := make(chan *tcpproxy.Request)
 	tcpRead := make(chan *tcpproxy.Response)
@@ -86,7 +90,9 @@ func (r *Router) Route() {
 					log.Println("error, bad tcpproxy request")
 					continue
 				} else {
+					log.Println("sending Persona request to tcpproxy")
 					r.TcpProxyWriteChannel <- request
+					log.Println("sent Persona request to tcpproxy")
 				}
 			default:
 				log.Println("bad message type")

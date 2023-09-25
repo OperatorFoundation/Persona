@@ -25,7 +25,37 @@ func New() *Proxy {
 	return &Proxy{connections, lastUsed, input, output}
 }
 
-func (p Proxy) Run() {
+func (p *Proxy) Cleanup() {
+	for {
+		timer := time.NewTimer(60 * time.Second) // 60 seconds
+
+		<-timer.C // wait on timer channel to fire
+
+		now := time.Now()
+
+		for identityString, lastUsed := range p.LastUsed {
+			identity, identityError := ip.NewIdentityFromString(identityString)
+			if identityError != nil {
+				log.Println("error, malformed identity string")
+				continue
+			}
+
+			if now.Sub(lastUsed).Seconds() > 60 {
+				p.PersonaOutput <- NewCloseResponse(identity)
+				connection, ok := p.Connections[identityString]
+				if ok {
+					_ = connection.Close()
+					delete(p.Connections, identityString)
+					delete(p.LastUsed, identityString)
+				} else {
+					log.Println("error, lastUsed out of sync with connections")
+				}
+			}
+		}
+	}
+}
+
+func (p *Proxy) Run() {
 	go p.Cleanup()
 
 	for {
@@ -92,7 +122,7 @@ func (p Proxy) Run() {
 	}
 }
 
-func (p Proxy) ReadFromServer(server net.Conn, identity *ip.Identity, output chan Response) {
+func (p *Proxy) ReadFromServer(server net.Conn, identity *ip.Identity, output chan Response) {
 	for {
 		lengthBytes := make([]byte, 4)
 		lengthRead, lengthReadError := server.Read(lengthBytes)
@@ -131,35 +161,5 @@ func (p Proxy) ReadFromServer(server net.Conn, identity *ip.Identity, output cha
 		}
 
 		output <- NewDataResponse(identity, data)
-	}
-}
-
-func (p Proxy) Cleanup() {
-	for {
-		timer := time.NewTimer(60 * time.Second) // 60 seconds
-
-		<-timer.C // wait on timer channel to fire
-
-		now := time.Now()
-
-		for identityString, lastUsed := range p.LastUsed {
-			identity, identityError := ip.NewIdentityFromString(identityString)
-			if identityError != nil {
-				log.Println("error, malformed identity string")
-				continue
-			}
-
-			if now.Sub(lastUsed).Seconds() > 60 {
-				p.PersonaOutput <- NewCloseResponse(identity)
-				connection, ok := p.Connections[identityString]
-				if ok {
-					_ = connection.Close()
-					delete(p.Connections, identityString)
-					delete(p.LastUsed, identityString)
-				} else {
-					log.Println("error, lastUsed out of sync with connections")
-				}
-			}
-		}
 	}
 }
