@@ -10,14 +10,14 @@ import (
 
 type Proxy struct {
 	Connections   map[string]net.Conn
-	PersonaInput  chan Request
-	PersonaOutput chan Response
+	PersonaInput  chan *Request
+	PersonaOutput chan *Response
 }
 
 func New() *Proxy {
 	connections := make(map[string]net.Conn)
-	input := make(chan Request)
-	output := make(chan Response)
+	input := make(chan *Request)
+	output := make(chan *Response)
 
 	return &Proxy{connections, input, output}
 }
@@ -25,59 +25,57 @@ func New() *Proxy {
 func (p *Proxy) Run() {
 	log.Println("tcpproxy.Proxy.Run()")
 	for {
-		log.Println("tcpproxy.Proxy.Run - main loop")
-		select {
-		case request := <-p.PersonaInput:
-			log.Println("tcpproxy.Proxy.Run - PersonaInput")
-			switch request.Type {
-			case RequestOpen:
-				log.Println("tcpproxy.Proxy.Run - RequestOpen")
-				_, ok := p.Connections[request.Identity.String()]
-				if ok {
-					p.PersonaOutput <- NewErrorResponse(request.Identity, errors.New("error, Persona is asking us to open a connection that we already have open"))
-					continue
-				} else {
-					log.Printf("tcpproxy.Proxy.Run - connecting to upstream server %s\n", request.Identity.Destination)
-					go p.Connect(request.Identity)
-				}
+		log.Println("tcpproxy.Proxy.Run - main loop, waiting for message on channel input")
+		request := <-p.PersonaInput
+		log.Println("tcpproxy.Proxy.Run - PersonaInput")
+		switch request.Type {
+		case RequestOpen:
+			log.Println("tcpproxy.Proxy.Run - RequestOpen")
+			_, ok := p.Connections[request.Identity.String()]
+			if ok {
+				p.PersonaOutput <- NewErrorResponse(request.Identity, errors.New("error, Persona is asking us to open a connection that we already have open"))
+				continue
+			} else {
+				log.Printf("tcpproxy.Proxy.Run - connecting to upstream server %s\n", request.Identity.Destination)
+				go p.Connect(request.Identity)
+			}
 
-			case RequestWrite:
-				log.Println("tcpproxy.Proxy.Run - RequestWrite")
-				if request.Data == nil || len(request.Data) == 0 {
-					p.PersonaOutput <- NewErrorResponse(request.Identity, errors.New("error, bad write request, no data to write"))
-					continue
-				}
-
-				connection, ok := p.Connections[request.Identity.String()]
-				if ok {
-					bytesWrote, writeError := connection.Write(request.Data)
-					if writeError != nil {
-						p.PersonaOutput <- NewErrorResponse(request.Identity, errors.New("error, bad write"))
-						continue
-					}
-					if bytesWrote != len(request.Data) {
-						p.PersonaOutput <- NewErrorResponse(request.Identity, errors.New("error, short write"))
-						continue
-					}
-				} else {
-					p.PersonaOutput <- NewErrorResponse(request.Identity, errors.New("error, Persona is asking us to close a connection that we do not have"))
-					continue
-				}
-
-			case RequestClose:
-				log.Println("tcpproxy.Proxy.Run - RequestClose")
-				connection, ok := p.Connections[request.Identity.String()]
-				if ok {
-					_ = connection.Close()
-					delete(p.Connections, request.Identity.String())
-					p.PersonaOutput <- NewCloseResponse(request.Identity)
-				} else {
-					p.PersonaOutput <- NewErrorResponse(request.Identity, errors.New("error, Persona is asking us to close a connection that we do not have"))
-				}
-			default:
-				p.PersonaOutput <- NewErrorResponse(request.Identity, errors.New("unknown TCP proxy request type"))
+		case RequestWrite:
+			log.Println("tcpproxy.Proxy.Run - RequestWrite")
+			if request.Data == nil || len(request.Data) == 0 {
+				p.PersonaOutput <- NewErrorResponse(request.Identity, errors.New("error, bad write request, no data to write"))
 				continue
 			}
+
+			connection, ok := p.Connections[request.Identity.String()]
+			if ok {
+				bytesWrote, writeError := connection.Write(request.Data)
+				if writeError != nil {
+					p.PersonaOutput <- NewErrorResponse(request.Identity, errors.New("error, bad write"))
+					continue
+				}
+				if bytesWrote != len(request.Data) {
+					p.PersonaOutput <- NewErrorResponse(request.Identity, errors.New("error, short write"))
+					continue
+				}
+			} else {
+				p.PersonaOutput <- NewErrorResponse(request.Identity, errors.New("error, Persona is asking us to close a connection that we do not have"))
+				continue
+			}
+
+		case RequestClose:
+			log.Println("tcpproxy.Proxy.Run - RequestClose")
+			connection, ok := p.Connections[request.Identity.String()]
+			if ok {
+				_ = connection.Close()
+				delete(p.Connections, request.Identity.String())
+				p.PersonaOutput <- NewCloseResponse(request.Identity)
+			} else {
+				p.PersonaOutput <- NewErrorResponse(request.Identity, errors.New("error, Persona is asking us to close a connection that we do not have"))
+			}
+		default:
+			p.PersonaOutput <- NewErrorResponse(request.Identity, errors.New("unknown TCP proxy request type"))
+			continue
 		}
 	}
 }
@@ -100,7 +98,7 @@ func (p *Proxy) Connect(identity *ip.Identity) {
 	go p.ReadFromServer(conn, identity, p.PersonaOutput)
 }
 
-func (p *Proxy) ReadFromServer(server net.Conn, identity *ip.Identity, output chan Response) {
+func (p *Proxy) ReadFromServer(server net.Conn, identity *ip.Identity, output chan *Response) {
 	for {
 		setError := server.SetReadDeadline(time.Now().Add(100 * time.Millisecond)) // 100 milliseconds
 		if setError != nil {

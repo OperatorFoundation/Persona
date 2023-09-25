@@ -16,12 +16,6 @@ type Router struct {
 
 	PersonaReadChannel  chan []byte
 	PersonaWriteChannel chan []byte
-
-	TcpProxyWriteChannel chan *tcpproxy.Request
-	TcpProxyReadChannel  chan *tcpproxy.Response
-
-	UdpProxyWriteChannel chan *udpproxy.Request
-	UdpProxyReadChannel  chan *udpproxy.Response
 }
 
 func NewRouter(clientRead chan []byte, clientWrite chan []byte, personaRead chan []byte, personaWrite chan []byte) (*Router, error) {
@@ -39,13 +33,7 @@ func NewRouter(clientRead chan []byte, clientWrite chan []byte, personaRead chan
 
 	go udp.Run()
 
-	tcpWrite := make(chan *tcpproxy.Request)
-	tcpRead := make(chan *tcpproxy.Response)
-
-	udpWrite := make(chan *udpproxy.Request)
-	udpRead := make(chan *udpproxy.Response)
-
-	return &Router{tcp, udp, clientRead, clientWrite, personaRead, personaWrite, tcpWrite, tcpRead, udpWrite, udpRead}, nil
+	return &Router{tcp, udp, clientRead, clientWrite, personaRead, personaWrite}, nil
 }
 
 func (r *Router) Route() {
@@ -82,7 +70,7 @@ func (r *Router) Route() {
 					log.Println("error, bad udpproxy request")
 					continue
 				} else {
-					r.UdpProxyWriteChannel <- request
+					r.Udp.PersonaInput <- request
 				}
 			case Tcpproxy:
 				request := tcpproxy.NewRequest(data)
@@ -91,14 +79,14 @@ func (r *Router) Route() {
 					continue
 				} else {
 					log.Println("sending Persona request to tcpproxy")
-					r.TcpProxyWriteChannel <- request
+					r.Tcp.PersonaInput <- request
 					log.Println("sent Persona request to tcpproxy")
 				}
 			default:
 				log.Println("bad message type")
 			}
 
-		case tcpProxyResponse := <-r.TcpProxyReadChannel:
+		case tcpProxyResponse := <-r.Tcp.PersonaOutput:
 			log.Println("Router.Route - TcpProxyReadChannel")
 			switch tcpProxyResponse.Type {
 			case tcpproxy.ResponseData:
@@ -147,7 +135,7 @@ func (r *Router) Route() {
 				}
 			}
 
-		case udpProxyResponse := <-r.UdpProxyReadChannel:
+		case udpProxyResponse := <-r.Udp.PersonaOutput:
 			log.Println("Router.Route - UdpProxyReadChannel")
 			switch udpProxyResponse.Type {
 			case udpproxy.ResponseData:

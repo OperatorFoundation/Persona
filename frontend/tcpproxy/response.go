@@ -19,27 +19,27 @@ type Response struct {
 	Error    error
 }
 
-func NewDataResponse(identity *ip.Identity, payload []byte) Response {
-	return Response{ResponseData, identity, payload, nil}
+func NewDataResponse(identity *ip.Identity, payload []byte) *Response {
+	return &Response{ResponseData, identity, payload, nil}
 }
 
-func NewCloseResponse(identity *ip.Identity) Response {
-	return Response{ResponseClose, identity, nil, nil}
+func NewCloseResponse(identity *ip.Identity) *Response {
+	return &Response{ResponseClose, identity, nil, nil}
 }
 
-func NewErrorResponse(identity *ip.Identity, responseError error) Response {
-	return Response{ResponseError, identity, nil, responseError}
+func NewErrorResponse(identity *ip.Identity, responseError error) *Response {
+	return &Response{ResponseError, identity, nil, responseError}
 }
 
-func NewConnectSuccessResponse(identity *ip.Identity) Response {
-	return Response{ResponseConnectSuccess, identity, nil, nil}
+func NewConnectSuccessResponse(identity *ip.Identity) *Response {
+	return &Response{ResponseConnectSuccess, identity, nil, nil}
 }
 
-func NewConnectFailureResponse(identity *ip.Identity) Response {
-	return Response{ResponseConnectFailure, identity, nil, nil}
+func NewConnectFailureResponse(identity *ip.Identity) *Response {
+	return &Response{ResponseConnectFailure, identity, nil, nil}
 }
 
-func (r Response) Data() ([]byte, error) {
+func (r *Response) Data() ([]byte, error) {
 	result := make([]byte, 0)
 
 	typeByte := byte(r.Type)

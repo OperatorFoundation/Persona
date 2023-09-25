@@ -12,15 +12,15 @@ import (
 type Proxy struct {
 	Connections   map[string]*net.UDPConn
 	LastUsed      map[string]time.Time
-	PersonaInput  chan Request
-	PersonaOutput chan Response
+	PersonaInput  chan *Request
+	PersonaOutput chan *Response
 }
 
 func New() *Proxy {
 	connections := make(map[string]*net.UDPConn)
 	lastUsed := make(map[string]time.Time)
-	input := make(chan Request)
-	output := make(chan Response)
+	input := make(chan *Request)
+	output := make(chan *Response)
 
 	return &Proxy{connections, lastUsed, input, output}
 }
@@ -122,7 +122,7 @@ func (p *Proxy) Run() {
 	}
 }
 
-func (p *Proxy) ReadFromServer(server net.Conn, identity *ip.Identity, output chan Response) {
+func (p *Proxy) ReadFromServer(server net.Conn, identity *ip.Identity, output chan *Response) {
 	for {
 		lengthBytes := make([]byte, 4)
 		lengthRead, lengthReadError := server.Read(lengthBytes)
