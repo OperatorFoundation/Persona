@@ -69,12 +69,19 @@ func (p *Proxy) Run() {
 			if ok {
 				_ = connection.Close()
 				delete(p.Connections, request.Identity.String())
+
+				log.Println("tcpproxy.Proxy.Run - RequestClose - writing ResponseClose")
 				p.PersonaOutput <- NewCloseResponse(request.Identity)
+				log.Println("tcpproxy.Proxy.Run - RequestClose - wrote ResponseClose")
 			} else {
+				log.Println("tcpproxy.Proxy.Run - RequestClose - writing ResponseError")
 				p.PersonaOutput <- NewErrorResponse(request.Identity, errors.New("error, Persona is asking us to close a connection that we do not have"))
+				log.Println("tcpproxy.Proxy.Run - RequestClose - wrote ResponseError")
 			}
 		default:
+			log.Println("tcpproxy.Proxy.Run - RequestClose - writing ResponseError due to unknown type")
 			p.PersonaOutput <- NewErrorResponse(request.Identity, errors.New("unknown TCP proxy request type"))
+			log.Println("tcpproxy.Proxy.Run - RequestClose - wrote ResponseError due to unknown type")
 			continue
 		}
 	}
