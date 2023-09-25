@@ -38,11 +38,12 @@ func NewRouter(clientRead chan []byte, clientWrite chan []byte, personaRead chan
 
 func (r *Router) Route() {
 	log.Println("Router.Route()")
-	go r.RouteClient()
 	go r.RoutePersona()
 	go r.RouteTcpproxy()
 	go r.RouteUdpproxy()
-	log.Println("Router.Route - all router goroutines started")
+
+	log.Println("Router.Route - all router goroutines started, starting client router main loop")
+	r.RouteClient()
 }
 
 func (r *Router) RouteClient() {

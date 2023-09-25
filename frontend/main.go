@@ -58,6 +58,8 @@ func main() {
 		closeWithError(routerError, 6, persona, client)
 	}
 	router.Route() // blocking
+
+	log.Println("exiting frontend abnormally, something isn't blocking")
 }
 
 func closeWithError(closeError error, exitCode int, socket net.Conn, file *os.File) {
