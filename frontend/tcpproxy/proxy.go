@@ -3,6 +3,7 @@ package tcpproxy
 import (
 	"errors"
 	"frontend/ip"
+	"log"
 	"net"
 	"time"
 )
@@ -21,10 +22,13 @@ func New() *Proxy {
 	return &Proxy{connections, input, output}
 }
 
-func (p Proxy) Run() {
+func (p *Proxy) Run() {
+	log.Println("tcpproxy.Proxy.Run()")
 	for {
+		log.Println("tcpproxy.Proxy.Run - main loop")
 		select {
 		case request := <-p.PersonaInput:
+			log.Println("tcpproxy.Proxy.Run - PersonaInput")
 			switch request.Type {
 			case RequestOpen:
 				_, ok := p.Connections[request.Identity.String()]
@@ -85,7 +89,7 @@ func (p Proxy) Run() {
 	}
 }
 
-func (p Proxy) ReadFromServer(server net.Conn, identity *ip.Identity, output chan Response) {
+func (p *Proxy) ReadFromServer(server net.Conn, identity *ip.Identity, output chan Response) {
 	for {
 		setError := server.SetReadDeadline(time.Now().Add(100 * time.Millisecond)) // 100 milliseconds
 		if setError != nil {
