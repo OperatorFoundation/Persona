@@ -42,6 +42,7 @@ func (r *Router) Route() {
 	go r.RoutePersona()
 	go r.RouteTcpproxy()
 	go r.RouteUdpproxy()
+	log.Println("Router.Route - all router goroutines started")
 }
 
 func (r *Router) RouteClient() {
