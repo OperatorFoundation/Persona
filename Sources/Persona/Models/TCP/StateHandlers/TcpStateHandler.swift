@@ -90,7 +90,7 @@ public class TcpStateHandler
         return self.panicOnUpstream(data: data)
     }
 
-    public func processUpstreamClose() throws -> TcpStateTransition
+    public func processUpstreamClose() async throws -> TcpStateTransition
     {
         return self.panicOnUpstreamClose()
     }

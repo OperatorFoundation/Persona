@@ -17,22 +17,42 @@ import InternetProtocols
 ///
 public class TcpCloseWait: TcpStateHandler
 {
-    override public func pump() async throws -> TcpStateTransition
+    override public func processUpstreamData(data: Data) async throws -> TcpStateTransition
     {
-        let serverIsStillOpen: Bool = try await self.pumpOnlyServerToStraw()
+        if self.straw.isEmpty
+        {
+            if data.count > 0
+            {
+                try self.straw.write(data)
+                self.logger.debug("TcpEstablished.processUpstreamData: Persona <-- tcpproxy - \(data.count) bytes")
+            }
+            else
+            {
+                self.logger.debug("TcpEstablished.processUpstreamData: Persona <-- tcpproxy - no data")
+            }
+        }
+
         var packets = try await self.pumpStrawToClient()
 
-        if serverIsStillOpen
+        if packets.isEmpty
         {
-            self.logger.debug("TcpCloseWait - server is still open, closing the upstream connection.")
-            try await self.close()
+            let ack = try await makeAck()
+            packets.append(ack)
         }
+
+        self.logger.debug("TcpCloseWait - server is still open, closing the upstream connection.")
+        try await self.close()
 
         // Send FIN
         let fin = try await makeFin()
         packets.append(fin)
 
         return TcpStateTransition(newState: TcpLastAck(self), packetsToSend: packets)
+    }
+
+    override public func processUpstreamClose() async throws -> TcpStateTransition
+    {
+        return TcpStateTransition(newState: TcpLastAck(self))
     }
 }
 

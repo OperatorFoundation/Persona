@@ -171,6 +171,11 @@ public class TcpEstablished: TcpStateHandler
 
         return TcpStateTransition(newState: self, packetsToSend: packets, progress: true)
     }
+
+    override public func processUpstreamClose() async throws -> TcpStateTransition
+    {
+        return TcpStateTransition(newState: TcpFinWait1(self))
+    }
 }
 
 public enum TcpEstablishedError: Error
