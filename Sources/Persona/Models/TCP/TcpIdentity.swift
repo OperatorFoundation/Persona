@@ -14,6 +14,25 @@ import Net
 
 public struct TcpIdentity
 {
+    public var data: Data
+    {
+        let localHostBytes = self.localAddress.data
+
+        guard let localPortBytes = self.localPort.maybeNetworkData else
+        {
+            return Data()
+        }
+
+        let remoteHostBytes = self.remoteAddress.data
+
+        guard let remotePortBytes = self.remotePort.maybeNetworkData else
+        {
+            return Data()
+        }
+
+        return localHostBytes + localPortBytes + remoteHostBytes + remotePortBytes
+    }
+
     public let localAddress: IPv4Address
     public let localPort: UInt16
     public let remoteAddress: IPv4Address

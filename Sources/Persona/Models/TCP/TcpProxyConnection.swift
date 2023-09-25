@@ -127,7 +127,7 @@ public actor TcpProxyConnection
     {
         if let connection = self.connections[identity]
         {
-            try await connection.close()
+            try await connection.state.close()
         }
     }
     // End of static section
@@ -146,12 +146,6 @@ public actor TcpProxyConnection
     // init() automatically send a syn-ack back for the syn (we only open a connect on receiving a syn)
     public init(identity: TcpIdentity, downstream: AsyncConnection, ipv4: IPv4, tcp: TCP, payload: Data?, logger: Logger, tcpLogger: Puppy, writeLogger: Puppy) async throws
     {
-//        logger.debug("TcpProxyConnection.init: \(identity.localAddress.data.ipv4AddressString ?? "?.?.?.?"):\(identity.localPort) -> \(identity.remoteAddress.data.ipv4AddressString ?? "?.?.?.?"):\(identity.remotePort)")
-//        if identity.remotePort == 7 || identity.remotePort == 853
-//        {
-//            tcpLogger.debug("TcpProxyConnection.init: \(identity.localAddress.data.ipv4AddressString ?? "?.?.?.?."):\(identity.localPort) -> \(identity.remoteAddress.data.ipv4AddressString ?? "?.?.?.?."):\(identity.remotePort)")
-//        }
-
         self.identity = identity
         self.downstream = downstream
         self.logger = logger
@@ -167,32 +161,16 @@ public actor TcpProxyConnection
         // tcpproxy subsystem expects 4-byte address and 2-byte port
         let bytes = hostBytes + portBytes
 
-//        self.logger.trace("TcpProxyConnection.init - connecting to tcpproxy subsystem")
-
         self.upstream = try await AsyncTcpSocketConnection("127.0.0.1", 1232, self.logger, verbose: false)
 
-//        self.logger.trace("TcpProxyConnection.init - connected to tcpproxy subsystem")
+        let clientMessage = Data(array: [Subsystem.Tcpproxy.rawValue]) + identity.data
+        try await self.downstream.writeWithLengthPrefix(clientMessage, 32)
+    }
 
-//        self.logger.debug("TcpProxyConnection.init - Writing \(bytes.count) bytes to the TCP Proxy Server: \(bytes.hex)")
-//        if tcp.destinationPort == 7 || tcp.destinationPort == 853
-//        {
-//            self.tcpLogger.debug("TcpProxyConnection.init - Writing \(bytes.count) bytes to the TCP Proxy Server: \(bytes.hex)")
-//        }
-
+    override public func processUpstreamConnectSuccess() async throws
+    {
         // Here is where we actually write the TCP destination to the tcpproxy subsystem.
         try await upstream.write(bytes)
-
-//        self.logger.debug("TcpProxyConnection.init - Write to tcpproxy successful")
-//        if tcp.destinationPort == 7 || tcp.destinationPort == 853
-//        {
-//            self.tcpLogger.debug("TcpProxyConnection.init - Write to tcpproxy successful")
-//        }
-
-//        self.logger.debug("TcpProxyConnection.init - Reading 1 status byte from tcpproxy")
-//        if tcp.destinationPort == 7 || tcp.destinationPort == 853
-//        {
-//            self.tcpLogger.debug("TcpProxyConnection.init - Reading 1 status byte from tcpproxy")
-//        }
 
         let connectionStatusData = try await upstream.readSize(1)
         let connectionStatusByte = connectionStatusData[0]
@@ -201,38 +179,12 @@ public actor TcpProxyConnection
             throw TcpProxyError.unknownConnectionStatus(connectionStatusByte)
         }
 
-//        self.logger.debug("TcpProxyConnection.init - Read 1 status byte from tcpproxy successfully")
-//        if tcp.destinationPort == 7 || tcp.destinationPort == 853
-//        {
-//            self.tcpLogger.debug("TcpProxyConnection.init - Read 1 status byte from tcpproxy successfully")
-//        }
-
         guard connectionStatus == .success else
         {
-//            self.logger.debug("TcpProxyConnection.init - tcpproxy status was failure")
-//            if tcp.destinationPort == 7 || tcp.destinationPort == 853
-//            {
-//                self.tcpLogger.debug("TcpProxyConnection.init - tcpstatus was failure")
-//            }
-
             throw TcpProxyError.upstreamConnectionFailed
         }
 
-//        self.logger.debug("TcpProxyConnection.init - tcpproxy status was success")
-//        if tcp.destinationPort == 7 || tcp.destinationPort == 853
-//        {
-//            self.tcpLogger.debug("TcpProxyConnection.init - tcpstatus was success")
-//        }
-
         self.state = TcpListen(identity: identity, upstream: self.upstream, logger: logger, tcpLogger: tcpLogger, writeLogger: writeLogger)
-
-//        logger.debug("TcpProxyConnection.init::\(self.state) \(description(ipv4, tcp))")
-//        if identity.remotePort == 7 || identity.remotePort == 853
-//        {
-//            tcpLogger.debug("TcpProxyConnection.init: \(description(ipv4, tcp))")
-//        }
-
-//        self.logger.debug("TcpProxyConnection.init[\(self.state)] - \(description(ipv4, tcp))")
 
         let transition = try await self.state.processDownstreamPacket(ipv4: ipv4, tcp: tcp, payload: nil)
 
@@ -261,14 +213,7 @@ public actor TcpProxyConnection
             self.logger.trace("Sent packet.")
         }
 
-//        let oldState = self.state
         self.state = transition.newState
-
-//        logger.debug("TcpProxyConnection.init: \(oldState) => \(self.state), \(transition.packetsToSend.count) packets sent downstream")
-//        if identity.remotePort == 7 || identity.remotePort == 853
-//        {
-//            tcpLogger.debug("TcpProxyConnection.init: \(oldState) => \(self.state), \(transition.packetsToSend.count) packets sent downstream")
-//        }
 
         guard self.state.open else
         {
@@ -280,6 +225,10 @@ public actor TcpProxyConnection
 
             throw TcpProxyConnectionError.tcpClosed
         }
+    }
+
+    override public func processUpstreamConnectFailure() async throws
+    {
     }
 
     public func processDownstreamPacket(ipv4: IPv4, tcp: TCP, payload: Data?) async throws
@@ -382,6 +331,88 @@ public actor TcpProxyConnection
             catch
             {
                 self.logger.error("TcpProxyConnection.processDownstreamPacket - Tried to close connection that was already closed \(error)")
+            }
+
+            Self.removeConnection(identity: self.identity)
+
+            throw TcpProxyConnectionError.tcpClosed
+        }
+    }
+
+    public func processUpstreamConnectSuccess() async throws
+    {
+        let transition = try await self.state.processUpstreamConnectSuccess()
+
+        for packet in transition.packetsToSend
+        {
+            let outPacket = Packet(ipv4Bytes: packet.data, timestamp: Date())
+            if let outTcp = outPacket.tcp
+            {
+                self.logger.debug("$ <- \(description(packet, outTcp))")
+
+                if outTcp.sourcePort == 7
+                {
+                    self.tcpLogger.debug("$ <- \(description(packet, outTcp))")
+                }
+            }
+
+            try await self.sendPacket(packet)
+        }
+
+        self.state = transition.newState
+
+        guard self.state.open else
+        {
+            self.logger.debug("TcpProxyConnection.pump - connection was closed")
+
+            do
+            {
+                try await self.state.close()
+            }
+            catch
+            {
+                self.logger.error("TcpProxyConnection.pump - Tried to close connection that was already closed")
+            }
+
+            Self.removeConnection(identity: self.identity)
+
+            throw TcpProxyConnectionError.tcpClosed
+        }
+    }
+
+    public func processUpstreamConnectFailure() async throws
+    {
+        let transition = try await self.state.processUpstreamConnectFailure()
+
+        for packet in transition.packetsToSend
+        {
+            let outPacket = Packet(ipv4Bytes: packet.data, timestamp: Date())
+            if let outTcp = outPacket.tcp
+            {
+                self.logger.debug("$ <- \(description(packet, outTcp))")
+
+                if outTcp.sourcePort == 7
+                {
+                    self.tcpLogger.debug("$ <- \(description(packet, outTcp))")
+                }
+            }
+
+            try await self.sendPacket(packet)
+        }
+
+        self.state = transition.newState
+
+        guard self.state.open else
+        {
+            self.logger.debug("TcpProxyConnection.pump - connection was closed")
+
+            do
+            {
+                try await self.state.close()
+            }
+            catch
+            {
+                self.logger.error("TcpProxyConnection.pump - Tried to close connection that was already closed")
             }
 
             Self.removeConnection(identity: self.identity)

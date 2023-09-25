@@ -41,6 +41,8 @@ public enum TcpProxyResponseType: UInt8
     case ResponseData = 1
     case ResponseClose = 2
     case ResponseError = 3
+    case ResponseConnectSuccess = 4
+    case ResponseConnectFailure = 5
 }
 
 public struct TcpProxyResponse
@@ -144,6 +146,20 @@ public actor TcpProxy
             // Only process packets on preestablished connections. If it's a new connetion, it will process the packet internally in the constructor.
             try await connection.processDownstreamPacket(ipv4: ipv4, tcp: tcp, payload: payload)
         }
+    }
+
+    public func processUpstreamConnectSuccess(identity: TcpIdentity) async throws
+    {
+        let connection = try TcpProxyConnection.getConnection(identity: identity)
+
+        try await connection.processUpstreamConnectSuccess()
+    }
+
+    public func processUpstreamConnectFailure(identity: TcpIdentity) async throws
+    {
+        let connection = try TcpProxyConnection.getConnection(identity: identity)
+
+        try await connection.processUpstreamConnectFailure()
     }
 
     public func processUpstreamData(identity: TcpIdentity, data: Data) async throws

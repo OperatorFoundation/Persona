@@ -35,8 +35,11 @@ func (p Proxy) Run() {
 					conn, dialError := net.Dial("tcp", request.Identity.Destination)
 					if dialError != nil {
 						p.PersonaOutput <- NewErrorResponse(request.Identity, dialError)
+						p.PersonaOutput <- NewConnectFailureResponse(request.Identity)
 						continue
 					}
+
+					p.PersonaOutput <- NewConnectSuccessResponse(request.Identity)
 
 					p.Connections[request.Identity.String()] = conn
 

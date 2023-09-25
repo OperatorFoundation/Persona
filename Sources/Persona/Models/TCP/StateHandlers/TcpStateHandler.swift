@@ -85,6 +85,16 @@ public class TcpStateHandler
         return try await self.panicOnDownstream(ipv4: ipv4, tcp: tcp, payload: payload, sequenceNumber: SequenceNumber(0), acknowledgementNumber: SequenceNumber(tcp.sequenceNumber), windowSize: 0)
     }
 
+    public func processUpstreamConnectSuccess() async throws -> TcpStateTransition
+    {
+        return TcpStateTransition(newState: self)
+    }
+
+    public func processUpstreamConnectFailure() async throws -> TcpStateTransition
+    {
+        return TcpStateTransition(newState: self)
+    }
+
     public func processUpstreamData(data: Data) async throws -> TcpStateTransition
     {
         return self.panicOnUpstream(data: data)
