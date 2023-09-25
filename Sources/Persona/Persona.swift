@@ -152,25 +152,6 @@ public class Persona
 
                 await self.close()
             }
-
-            // FIXME - re-enable pumping
-//            do
-//            {
-//                self.logger.info("Persona.run - waiting on client read, pumping TCP")
-//                let tcpPumpResult = try await self.tcpProxy.pump()
-//                self.logger.info("TCP progress? \(tcpPumpResult)")
-//                progress = progress || tcpPumpResult
-//
-//                self.logger.info("Persona.run - waiting on client read, pumping UDP")
-//                let udpPumpResult = try await self.udpProxy.pump()
-//                self.logger.info("UDP progress? \(udpPumpResult)")
-//                progress = progress || udpPumpResult
-//            }
-//            catch
-//            {
-//                self.logger.error("Persona.run (noData) - failed to pump: \(error).")
-//                await self.close()
-//            }
         }
     }
 
@@ -219,6 +200,7 @@ public class Persona
 
     public func handleClientMessage(_ data: Data) async throws
     {
+        self.logger.info("Persona.handleClientMessage(\(data.count) bytes)")
         // Attempt to parse the data we received from the downstream client as an IPv4 packet.
         // Note that we only support IPv4 packets and we only support TCP and UDP packets.
         let packet = Packet(ipv4Bytes: data, timestamp: Date())
@@ -293,11 +275,13 @@ public class Persona
 
     public func handleTcpproxyMessage(_ data: Data) async throws
     {
+        self.logger.info("Persona.handleTcpproxyMessage(\(data.count) bytes)")
         try await self.tcpProxy.handleMessage(data)
     }
 
     public func handleUdpproxyMessage(_ data: Data) async throws
     {
+        self.logger.info("Persona.handleUdpproxyMessage(\(data.count) bytes)")
         try await self.udpProxy.handleMessage(data)
     }
 }

@@ -134,6 +134,7 @@ public actor TcpProxy
     public func handleMessage(_ data: Data) async throws
     {
         let message = try TcpProxyResponse(data: data)
+        self.logger.info("TcpProxy.handleMesssage(\(message))")
         switch message.type
         {
             case .ResponseData:
@@ -148,10 +149,7 @@ public actor TcpProxy
                 try await self.processUpstreamClose(identity: message.identity)
 
             case .ResponseError:
-                if let error = message.error
-                {
-                    throw error
-                }
+                self.logger.error("TcpProxy.handleMessage - error: \(message.error?.localizedDescription ?? "none")")
 
             case .ResponseConnectSuccess:
                 try await self.processUpstreamConnectSuccess(identity: message.identity)
