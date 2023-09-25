@@ -31,26 +31,18 @@ func (p *Proxy) Run() {
 			log.Println("tcpproxy.Proxy.Run - PersonaInput")
 			switch request.Type {
 			case RequestOpen:
+				log.Println("tcpproxy.Proxy.Run - RequestOpen")
 				_, ok := p.Connections[request.Identity.String()]
 				if ok {
 					p.PersonaOutput <- NewErrorResponse(request.Identity, errors.New("error, Persona is asking us to open a connection that we already have open"))
 					continue
 				} else {
-					conn, dialError := net.Dial("tcp", request.Identity.Destination)
-					if dialError != nil {
-						p.PersonaOutput <- NewErrorResponse(request.Identity, dialError)
-						p.PersonaOutput <- NewConnectFailureResponse(request.Identity)
-						continue
-					}
-
-					p.PersonaOutput <- NewConnectSuccessResponse(request.Identity)
-
-					p.Connections[request.Identity.String()] = conn
-
-					go p.ReadFromServer(conn, request.Identity, p.PersonaOutput)
+					log.Printf("tcpproxy.Proxy.Run - connecting to upstream server %s\n", request.Identity.Destination)
+					go p.Connect(request.Identity)
 				}
 
 			case RequestWrite:
+				log.Println("tcpproxy.Proxy.Run - RequestWrite")
 				if request.Data == nil || len(request.Data) == 0 {
 					p.PersonaOutput <- NewErrorResponse(request.Identity, errors.New("error, bad write request, no data to write"))
 					continue
@@ -73,6 +65,7 @@ func (p *Proxy) Run() {
 				}
 
 			case RequestClose:
+				log.Println("tcpproxy.Proxy.Run - RequestClose")
 				connection, ok := p.Connections[request.Identity.String()]
 				if ok {
 					_ = connection.Close()
@@ -87,6 +80,24 @@ func (p *Proxy) Run() {
 			}
 		}
 	}
+}
+
+func (p *Proxy) Connect(identity *ip.Identity) {
+	log.Printf("dialing %s\n", identity.Destination)
+	conn, dialError := net.Dial("tcp", identity.Destination)
+	if dialError != nil {
+		log.Printf("error dialing %s - %v\n", identity.Destination, dialError)
+		p.PersonaOutput <- NewErrorResponse(identity, dialError)
+		p.PersonaOutput <- NewConnectFailureResponse(identity)
+		return
+	}
+
+	log.Printf("success dialing %s\n", identity.Destination)
+	p.PersonaOutput <- NewConnectSuccessResponse(identity)
+
+	p.Connections[identity.String()] = conn
+
+	go p.ReadFromServer(conn, identity, p.PersonaOutput)
 }
 
 func (p *Proxy) ReadFromServer(server net.Conn, identity *ip.Identity, output chan Response) {
