@@ -117,7 +117,7 @@ extension TcpIdentity: CustomStringConvertible
 {
     public var description: String
     {
-        return "\(self.localAddress.string):\(self.localPort) ~ \(self.remoteAddress):\(self.remotePort)"
+        return "\(self.localAddress.string):\(self.localPort) ~ \(self.remoteAddress.string):\(self.remotePort)"
     }
 }
 

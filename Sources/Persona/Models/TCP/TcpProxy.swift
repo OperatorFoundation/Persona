@@ -24,6 +24,18 @@ public enum TcpProxyRequestType: UInt8
 
 public struct TcpProxyRequest
 {
+    public var description: String
+    {
+        if let payload = self.payload
+        {
+            return "[TCP Request \(self.type): \(self.identity), \(payload.count) bytes]"
+        }
+        else
+        {
+            return "[TCP Request \(self.type): \(self.identity)]"
+        }
+    }
+
     public var data: Data
     {
         let typeBytes = Data(array: [Subsystem.Tcpproxy.rawValue, self.type.rawValue])
