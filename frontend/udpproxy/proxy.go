@@ -27,11 +27,15 @@ func New() *Proxy {
 func (p *Proxy) Run() {
 	go p.Cleanup()
 
+	log.Println("udpproxy.Proxy.Run()")
 	for {
+		log.Println("udpproxy.Proxy.Run - main loop")
 		select {
 		case request := <-p.PersonaInput:
+			log.Println("udpproxy.Proxy.Run - request received")
 			switch request.Type {
 			case RequestWrite:
+				log.Println("udpproxy.Proxy.Run - request is a write")
 				if request.Data == nil || len(request.Data) == 0 {
 					p.PersonaOutput <- NewErrorResponse(request.Identity, errors.New("error, bad write request, no data to write"))
 					continue
@@ -39,6 +43,7 @@ func (p *Proxy) Run() {
 
 				connection, ok := p.Connections[request.Identity.String()]
 				if !ok {
+					log.Println("udpproxy.Proxy.Run - new UDP connection")
 					addr, resolveError := net.ResolveUDPAddr("udp", request.Identity.Destination)
 					if resolveError != nil {
 						p.PersonaOutput <- NewErrorResponse(request.Identity, resolveError)
@@ -58,6 +63,7 @@ func (p *Proxy) Run() {
 					go p.ReadFromServer(connection, request.Identity, p.PersonaOutput)
 				}
 
+				log.Printf("udpproxy.Proxy.Run - writing %d\n bytes upstream", len(request.Data))
 				bytesWrote, writeError := connection.Write(request.Data)
 				if writeError != nil {
 					p.PersonaOutput <- NewErrorResponse(request.Identity, errors.New("error, bad write"))
@@ -67,6 +73,7 @@ func (p *Proxy) Run() {
 					p.PersonaOutput <- NewErrorResponse(request.Identity, errors.New("error, short write"))
 					continue
 				}
+				log.Printf("udpproxy.Proxy.Run - wrote %d\n bytes upstream", byteWrote)
 			}
 		}
 	}
