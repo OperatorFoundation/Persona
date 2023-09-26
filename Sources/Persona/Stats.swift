@@ -42,6 +42,8 @@ public class Stats
         {
             self.logger.add(file)
         }
+
+        self.logger.info("Persona started")
     }
 
     public func writeLog()
