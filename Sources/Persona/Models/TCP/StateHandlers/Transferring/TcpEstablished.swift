@@ -104,33 +104,15 @@ public class TcpEstablished: TcpStateHandler
 
     override public func processUpstreamData(data: Data) async throws -> TcpStateTransition
     {
-        let now = Date().timeIntervalSince1970
-        let then = self.lastUsed.timeIntervalSince1970
-        let interval = now - then
-        if interval < 0.1 // 100 ms
+        guard data.count > 0 else
         {
-            return TcpStateTransition(newState: self, packetsToSend: [])
+            return TcpStateTransition(newState: self)
         }
 
-        if self.straw.isEmpty
-        {
-            if data.count > 0
-            {
-                try self.straw.write(data)
-                self.logger.debug("TcpEstablished.processUpstreamData: Persona <-- tcpproxy - \(data.count) bytes")
-            }
-            else
-            {
-                self.logger.debug("TcpEstablished.processUpstreamData: Persona <-- tcpproxy - no data")
-            }
-        }
+        try self.straw.write(data)
+        self.logger.debug("TcpEstablished.processUpstreamData: Persona <-- tcpproxy - \(data.count) bytes")
 
         var packets = try await self.pumpStrawToClient()
-
-        if packets.count > 0
-        {
-            self.lastUsed = Date() // now
-        }
 
         if packets.isEmpty
         {
