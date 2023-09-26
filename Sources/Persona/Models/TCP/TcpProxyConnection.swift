@@ -115,6 +115,7 @@ public actor TcpProxyConnection
         self.firstPacket = (ipv4, tcp, payload)
 
         let message = TcpProxyRequest(type: .RequestOpen, identity: self.identity, payload: payload)
+        self.logger.info("<< \(message)")
         try await self.downstream.writeWithLengthPrefix(message.data, 32)
 
         self.state = TcpNew(identity: identity, downstream: downstream, logger: logger, tcpLogger: tcpLogger, writeLogger: writeLogger)
@@ -298,9 +299,11 @@ public actor TcpProxyConnection
     func sendPacket(_ ipv4: IPv4) async throws
     {
         let packet = Packet(ipv4Bytes: ipv4.data, timestamp: Date())
-        if let ipv4 = packet.ipv4, let _ = packet.tcp
+        if let ipv4 = packet.ipv4, let tcp = packet.tcp
         {
             self.writeLogger.info("TcpProxyConnection.sendPacket - write \(ipv4.data.count) bytes to client")
+
+            self.logger.info("<- \(description(ipv4, tcp))")
 
             let clientMessage = Data(array: [Subsystem.Client.rawValue]) + ipv4.data
             try await self.downstream.writeWithLengthPrefix(clientMessage, 32)

@@ -113,6 +113,14 @@ extension TcpIdentity: Hashable
     }
 }
 
+extension TcpIdentity: CustomStringConvertible
+{
+    public var description: String
+    {
+        return "\(self.localAddress.string):\(self.localPort) ~ \(self.remoteAddress):\(self.remotePort)"
+    }
+}
+
 public enum TcpIdentityError: Error
 {
     case badIdentity

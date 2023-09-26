@@ -51,8 +51,29 @@ public struct TcpProxyRequest
     }
 }
 
-public enum TcpProxyResponseType: UInt8
+public enum TcpProxyResponseType: UInt8, CustomStringConvertible
 {
+    public var description: String
+    {
+        switch self
+        {
+            case .ResponseData:
+                return "DATA"
+
+            case .ResponseClose:
+                return "CLOSE"
+
+            case .ResponseError:
+                return "ERROR"
+
+            case .ResponseConnectSuccess:
+                return "SUCCESS"
+
+            case .ResponseConnectFailure:
+                return "FAILURE"
+        }
+    }
+
     case ResponseData = 1
     case ResponseClose = 2
     case ResponseError = 3
@@ -60,8 +81,27 @@ public enum TcpProxyResponseType: UInt8
     case ResponseConnectFailure = 5
 }
 
-public struct TcpProxyResponse
+public struct TcpProxyResponse: CustomStringConvertible
 {
+    public var description: String
+    {
+        if let payload = self.payload
+        {
+            return "[TCP Response \(self.type): \(self.identity), \(payload.count) bytes]"
+        }
+        else
+        {
+            if let error = self.error
+            {
+                return "[TCP Response \(self.type): \(self.identity), \(error.localizedDescription)]"
+            }
+            else
+            {
+                return "[TCP Response \(self.type): \(self.identity)]"
+            }
+        }
+    }
+
     let type: TcpProxyResponseType
     let identity: TcpIdentity
     let payload: Data?
