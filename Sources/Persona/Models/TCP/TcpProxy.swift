@@ -37,7 +37,7 @@ public enum TcpProxyRequestType: UInt8, CustomStringConvertible
     case RequestClose = 3
 }
 
-public struct TcpProxyRequest
+public struct TcpProxyRequest: CustomStringConvertible
 {
     public var description: String
     {
