@@ -42,8 +42,8 @@ public class Persona
         // First we set up the logging. There are several loggers that log different specific events that are helpful for debugging.
         // The location of the log files assumes that you have Persona checked out in the home directory of the root user.
         let mainLogURL = URL(fileURLWithPath: "/root/Persona/Persona.log")
-        var logger = try FileLogging.logger(label: "Persona", localFile: mainLogURL)
-        logger.logLevel = .critical
+        let logger = try FileLogging.logger(label: "Persona", localFile: mainLogURL)
+//        logger.logLevel = .critical
         self.logger = logger
 
         let logFileURL = File.homeDirectory().appendingPathComponent("Persona/PersonaTcpLog.log", isDirectory: false)
