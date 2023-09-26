@@ -9,6 +9,7 @@ swift package update
 swift build
 
 pushd frontend
+go get frontend
 go install
 popd
 

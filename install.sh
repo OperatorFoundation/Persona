@@ -3,6 +3,7 @@ swift build
 
 apt install golang
 pushd frontend
+go get frontend
 go install
 popd
 
