@@ -117,7 +117,7 @@ public actor TcpProxyConnection
         let message = TcpProxyRequest(type: .RequestOpen, identity: self.identity, payload: payload)
         try await self.downstream.writeWithLengthPrefix(message.data, 32)
 
-        self.state = TcpClosed(identity: identity, downstream: downstream, logger: logger, tcpLogger: tcpLogger, writeLogger: writeLogger)
+        self.state = TcpNew(identity: identity, downstream: downstream, logger: logger, tcpLogger: tcpLogger, writeLogger: writeLogger)
     }
 
     public func processDownstreamPacket(ipv4: IPv4, tcp: TCP, payload: Data?) async throws
@@ -239,7 +239,7 @@ public actor TcpProxyConnection
 
     public func processUpstreamConnectFailure() async throws
     {
-        let transition = try await self.state.processUpstreamConnectSuccess()
+        let transition = try await self.state.processUpstreamConnectFailure()
         self.state = transition.newState
 
         for packet in transition.packetsToSend
