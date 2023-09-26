@@ -173,7 +173,7 @@ public class UdpProxy
     public func handleMessage(_ data: Data) async throws
     {
         let message = try UdpProxyResponse(data: data)
-        self.logger.info(">> \(message)")
+        self.logger.debug(">> \(message)")
         switch message.type
         {
             case .ResponseData:
@@ -197,7 +197,7 @@ public class UdpProxy
         let identity = try Identity(ipv4: ipv4, udp: udp)
         let message = UdpProxyRequest(type: .RequestWrite, identity: identity, payload: payload)
 
-        self.logger.info("<< UDP \(message)")
+        self.logger.debug("<< UDP \(message)")
         try await self.downstream.writeWithLengthPrefix(message.data, 32)
     }
 
@@ -224,15 +224,13 @@ public class UdpProxy
             return
         }
 
-        self.logger.info("<<- UDP \(ipv4.sourceAddress.ipv4AddressString ?? "not an ipv4 address"):\(udp.sourcePort) -> \(ipv4.destinationAddress.ipv4AddressString ?? "not an ipv4 address"):\(udp.destinationPort) - \(data.count) byte payload")
+        self.logger.debug("<<- UDP \(ipv4.sourceAddress.ipv4AddressString ?? "not an ipv4 address"):\(udp.sourcePort) -> \(ipv4.destinationAddress.ipv4AddressString ?? "not an ipv4 address"):\(udp.destinationPort) - \(data.count) byte payload")
 
         // We have a valid UDP packet, so we send it downstream to the client.
         // The client expects raw IPv4 packets prefixed with a 4-byte length.
         let message = Data(array: [Subsystem.Client.rawValue]) + ipv4.data
 
-        self.logger.info("sending UDP client message")
         try await self.downstream.writeWithLengthPrefix(message, 32)
-        self.logger.info("sent UDP client message")
     }
 }
 

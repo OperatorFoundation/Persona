@@ -68,7 +68,7 @@ public class TcpEstablished: TcpStateHandler
         if let payload = tcp.payload
         {
             let message = TcpProxyRequest(type: .RequestWrite, identity: self.identity, payload: payload)
-            self.logger.info("<< ESTABLISHED \(message)")
+            self.logger.debug("<< ESTABLISHED \(message)")
             try await self.downstream.writeWithLengthPrefix(message.data, 32)
             self.straw.increaseAcknowledgementNumber(payload.count)
         }
@@ -87,7 +87,7 @@ public class TcpEstablished: TcpStateHandler
             packets.append(ack) // ACK the FIN
 
             let message = TcpProxyRequest(type: .RequestClose, identity: self.identity)
-            self.logger.info("<< ESTABLISHED \(message)")
+            self.logger.debug("<< ESTABLISHED \(message)")
             try await self.downstream.writeWithLengthPrefix(message.data, 32)
 
             return TcpStateTransition(newState: TcpCloseWait(self), packetsToSend: packets)

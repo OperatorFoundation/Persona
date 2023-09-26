@@ -115,7 +115,7 @@ public actor TcpProxyConnection
         self.firstPacket = (ipv4, tcp, payload)
 
         let message = TcpProxyRequest(type: .RequestOpen, identity: self.identity, payload: payload)
-        self.logger.info("<< \(message)")
+        self.logger.debug("<< \(message)")
         try await self.downstream.writeWithLengthPrefix(message.data, 32)
 
         self.state = TcpNew(identity: identity, downstream: downstream, logger: logger, tcpLogger: tcpLogger, writeLogger: writeLogger)
@@ -303,7 +303,7 @@ public actor TcpProxyConnection
         {
             self.writeLogger.info("TcpProxyConnection.sendPacket - write \(ipv4.data.count) bytes to client")
 
-            self.logger.info("<<- \(description(ipv4, tcp))")
+            self.logger.debug("<<- \(description(ipv4, tcp))")
 
             let clientMessage = Data(array: [Subsystem.Client.rawValue]) + ipv4.data
             try await self.downstream.writeWithLengthPrefix(clientMessage, 32)

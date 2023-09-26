@@ -13,19 +13,9 @@ public class TcpListen: TcpStateHandler
 {
     override public func processDownstreamPacket(ipv4: IPv4, tcp: TCP, payload: Data?) async throws -> TcpStateTransition
     {
-//        self.logger.debug("TcpListen.processDownstreamPacket: \(identity.localAddress.data.ipv4AddressString ?? "?.?.?.?"):\(identity.localPort) -> \(identity.remoteAddress.data.ipv4AddressString ?? "?.?.?.?"):\(identity.remotePort)")
-//        if identity.remotePort == 7 || identity.remotePort == 853
-//        {
-//            self.tcpLogger.debug("TcpListen.procesDownstreamPacket: \(identity.localAddress.data.ipv4AddressString ?? "?.?.?.?"):\(identity.localPort) -> \(identity.remoteAddress.data.ipv4AddressString ?? "?.?.?.?"):\(identity.remotePort)")
-//        }
-
         guard !tcp.rst else
         {
             self.logger.debug("TcpListen.processDownstreamPacket: packet rejected because of RST")
-//            if identity.remotePort == 7 || identity.remotePort == 853
-//            {
-//                self.tcpLogger.debug("TcpListen.processDownstreamPacket: packet rejected because of RST")
-//            }
 
             // No need to send a RST for a RST, just fail on this packet and move to the next one.
             throw TcpListenError.rstReceived
@@ -34,10 +24,6 @@ public class TcpListen: TcpStateHandler
         guard !tcp.fin else
         {
             self.logger.debug("TcpListen.processDownstreamPacket: packet rejected because of FIN")
-//            if identity.remotePort == 7 || identity.remotePort == 853
-//            {
-//                self.tcpLogger.debug("TcpListen.processDownstreamPacket: packet rejected because of FIN")
-//            }
 
             /// Do not process the FIN if the state is CLOSED, LISTEN or SYN-SENT
             /// since the SEG.SEQ cannot be validated; drop the segment and return.
@@ -47,11 +33,6 @@ public class TcpListen: TcpStateHandler
         guard !tcp.ack else
         {
             self.logger.debug("TcpListen.processDownstreamPacket: packet rejected because of ACK")
-//            if identity.remotePort == 7 || identity.remotePort == 853
-//            {
-//                self.tcpLogger.debug("TcpListen.processDownstreamPacket: packet rejected because of ACK")
-//                self.tcpLogger.debug("Rejected packet:\n\(tcp.description)\n")
-//            }
 
             // Send a RST and close.
             return try await self.panicOnDownstream(ipv4: ipv4, tcp: tcp, payload: payload, sequenceNumber: SequenceNumber(0), acknowledgementNumber: SequenceNumber(0), windowSize: 0)
@@ -61,10 +42,6 @@ public class TcpListen: TcpStateHandler
         guard tcp.syn else
         {
             self.logger.debug("TcpListen.processDownstreamPacket: packet rejected because of lack of SYN")
-//            if identity.remotePort == 7 || identity.remotePort == 853
-//            {
-//                self.tcpLogger.debug("TcpListen.processDownstreamPacket: packet rejected because of lack of SYN")
-//            }
 
             // Send a RST and close.
             return try await self.panicOnDownstream(ipv4: ipv4, tcp: tcp, payload: payload, sequenceNumber: SequenceNumber(0), acknowledgementNumber: SequenceNumber(0), windowSize: 0)
@@ -82,33 +59,12 @@ public class TcpListen: TcpStateHandler
         // Don't forget to actually send this acknowledgementNumber downstream, or else we'll be out of sync.
         self.straw = TCPStraw(sequenceNumber: upstreamSequenceNumber, acknowledgementNumber: downstreamSequenceNumber)
 
-//        self.logger.debug("TcpListen.processDownstreamPacket: Packet accepted! Sending SYN-ACK and switching to SYN-RECEIVED state")
-//        self.logger.trace("-> TcpListen.SYN: \(ipv4.sourceAddress.ipv4AddressString ?? "?.?.?.?."):\(tcp.sourcePort) -> \(ipv4.destinationAddress.ipv4AddressString ?? "?.?.?.?.") - SYN:\(tcp.syn), SEQ#:\(SequenceNumber(tcp.sequenceNumber)), ACK#:\(SequenceNumber(tcp.acknowledgementNumber)), CHK:\(tcp.checksum).data.hex")
-//        if identity.remotePort == 7 || identity.remotePort == 853
-//        {
-//            self.tcpLogger.debug("TcpListen.processDownstreamPacket: Packet accepted! Sending SYN-ACK and switching to SYN-RECEIVED state")
-//            self.logger.trace("-> TcpListen.SYN: \(description(ipv4, tcp))")
-//            self.tcpLogger.trace("-> TcpListen.SYN: \(description(ipv4, tcp))")
-//        }
-        
-//        self.logger.debug("TcpListen.processDownstreamPacket: try to make a SYN-ACK")
-        
         do
         {
             // Our sequence number is taken from upstream.
             let (sequenceNumber, acknowledgementNumber, windowSize) = self.getState()
 
             let synAck = try self.makeSynAck(sequenceNumber: sequenceNumber, acknowledgementNumber: acknowledgementNumber, windowSize: windowSize)
-//            self.logger.debug("TcpListen.processDownstreamPacket: made a SYN-ACK")
-
-//            let packet = Packet(ipv4Bytes: synAck.data, timestamp: Date())
-//            if let ipv4 = packet.ipv4, let tcp = packet.tcp
-//            {
-//                self.logger.trace("IPv4 of SYN-ACK: \(ipv4.description)")
-//                self.logger.trace("TCP of SYN-ACK: \(tcp.description)")
-//                self.logger.trace("<- TcpListen.SYN-ACK: \(description(ipv4, tcp))")
-//                self.tcpLogger.trace("<- TcpListen.SYN-ACK: \(description(ipv4, tcp))")
-//            }
 
             // Count the SYN we sent
             self.straw.incrementSequenceNumber()
@@ -125,7 +81,6 @@ public class TcpListen: TcpStateHandler
 
     func makeSynAck(sequenceNumber: SequenceNumber, acknowledgementNumber: SequenceNumber, windowSize: UInt16) throws -> IPv4
     {
-//        self.logger.trace("TcpListen.makeSynAck")
         return try self.makePacket(sequenceNumber: sequenceNumber, acknowledgementNumber: acknowledgementNumber, windowSize: windowSize, syn: true, ack: true)
     }
 }
