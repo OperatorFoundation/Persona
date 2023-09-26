@@ -122,7 +122,7 @@ func (p *Proxy) ReadFromServer(server net.Conn, identity *ip.Identity, output ch
 		bytesRead, readError := server.Read(buffer)
 		if bytesRead > 0 {
 			if bytesRead < readLength {
-				buffer = buffer[:readLength]
+				buffer = buffer[:bytesRead]
 			}
 
 			output <- NewDataResponse(identity, buffer)
