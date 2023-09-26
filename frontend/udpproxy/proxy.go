@@ -73,7 +73,7 @@ func (p *Proxy) Run() {
 					p.PersonaOutput <- NewErrorResponse(request.Identity, errors.New("error, short write"))
 					continue
 				}
-				log.Printf("udpproxy.Proxy.Run - wrote %d\n bytes upstream", byteWrote)
+				log.Printf("udpproxy.Proxy.Run - wrote %d\n bytes upstream", bytesWrote)
 			}
 		}
 	}

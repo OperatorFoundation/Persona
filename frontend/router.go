@@ -190,25 +190,23 @@ func (r *Router) RouteUdpproxy() {
 			}
 
 			message := make([]byte, 0)
-			message = append(message, byte(Tcpproxy))
+			message = append(message, byte(Udpproxy))
 			message = append(message, messageData...)
 
 			r.PersonaWriteChannel <- message
 
 		case udpproxy.ResponseError:
+			messageData, dataError := udpProxyResponse.Data()
+			if dataError != nil {
+				log.Println(dataError.Error())
+				continue
+			}
+
 			if udpProxyResponse.Error != nil {
 				log.Println(udpProxyResponse.Error.Error())
 
-				closeResponse := tcpproxy.NewCloseResponse(udpProxyResponse.Identity)
-
-				messageData, dataError := closeResponse.Data()
-				if dataError != nil {
-					log.Println(dataError.Error())
-					continue
-				}
-
 				message := make([]byte, 0)
-				message = append(message, byte(Tcpproxy))
+				message = append(message, byte(Udpproxy))
 				message = append(message, messageData...)
 
 				r.PersonaWriteChannel <- message
