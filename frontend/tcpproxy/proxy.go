@@ -125,13 +125,16 @@ func (p *Proxy) ReadFromServer(server net.Conn, identity *ip.Identity, output ch
 		}
 		if readError != nil {
 			// Ignore timeouts, timeouts are fine, they are what allow us to do short reads.
-			if readError.(*net.OpError).Timeout() {
-				continue
-			} else {
-				output <- NewErrorResponse(identity, readError)
-				delete(p.Connections, identity.String())
-				return
+			timeoutError, ok := readError.(*net.OpError)
+			if ok {
+				if timeoutError.Timeout() {
+					continue
+				}
 			}
+
+			output <- NewErrorResponse(identity, readError)
+			delete(p.Connections, identity.String())
+			return
 		}
 	}
 }
