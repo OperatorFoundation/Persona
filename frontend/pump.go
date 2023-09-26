@@ -31,13 +31,23 @@ func (p ReaderToChannel) Pump() {
 
 		length := int(binary.BigEndian.Uint32(lengthBytes))
 		data := make([]byte, length)
-		dataReadLength, dataReadError := p.Input.Read(data)
-		if dataReadError != nil {
-			p.Close(dataReadError)
+
+		totalLength := 0
+		for totalLength < length {
+			buffer := make([]byte, length-totalLength)
+			dataReadLength, dataReadError := p.Input.Read(buffer)
+			if dataReadLength > 0 {
+				copy(data[totalLength:totalLength+dataReadLength], buffer[:dataReadLength])
+				totalLength = totalLength + dataReadLength
+			}
+			if dataReadError != nil {
+				golog.Errorf("error reading from %v: %v", p.InputName, dataReadError.Error())
+				p.Close(dataReadError)
+				return
+			}
 		}
-		if dataReadLength != length {
-			p.Close(errors.New("short read of data from " + p.InputName))
-		}
+
+		golog.Debugf("read %d total bytes", length)
 
 		golog.Debugf("ReadToChannel.Pump - writing to channel %v -%d-> %v", p.InputName, len(data), p.OutputName)
 		p.Output <- data
