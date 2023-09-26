@@ -17,42 +17,37 @@ import InternetProtocols
 ///
 public class TcpCloseWait: TcpStateHandler
 {
-    override public func processUpstreamData(data: Data) async throws -> TcpStateTransition
+    override public func processDownstreamPacket(ipv4: IPv4, tcp: TCP, payload: Data?) async throws -> TcpStateTransition 
     {
-        if self.straw.isEmpty
-        {
-            if data.count > 0
-            {
-                try self.straw.write(data)
-                self.logger.debug("TcpEstablished.processUpstreamData: Persona <-- tcpproxy - \(data.count) bytes")
-            }
-            else
-            {
-                self.logger.debug("TcpEstablished.processUpstreamData: Persona <-- tcpproxy - no data")
-            }
-        }
-
-        var packets = try await self.pumpStrawToClient()
-
-        if packets.isEmpty
+        // FIXME:
+        if tcp.fin
         {
             let ack = try await makeAck()
-            packets.append(ack)
+            return TcpStateTransition(newState: self, packetsToSend: [ack])
         }
-
-        self.logger.debug("TcpCloseWait - server is still open, closing the upstream connection.")
-        try await self.close()
-
-        // Send FIN
-        let fin = try await makeFin()
-        packets.append(fin)
-
-        return TcpStateTransition(newState: TcpLastAck(self), packetsToSend: packets)
+        
+        return TcpStateTransition(newState: self)
     }
+    
+    override public func processUpstreamData(data: Data) async throws -> TcpStateTransition
+    {
+        try self.straw.write(data)
+        self.logger.debug("TcpCloseWait.processUpstreamData: Persona <-- tcpproxy - \(data.count) bytes")
 
+        let packets = try await self.pumpStrawToClient()
+
+        return TcpStateTransition(newState: self, packetsToSend: packets)
+    }
+    
     override public func processUpstreamClose() async throws -> TcpStateTransition
     {
-        return TcpStateTransition(newState: TcpLastAck(self))
+        var packets = try await self.pumpStrawToClient()
+        
+        // Send FIN
+        let fin = try await makeFinAck()
+        packets.append(fin)
+        
+        return TcpStateTransition(newState: TcpLastAck(self), packetsToSend: packets)
     }
 }
 

@@ -76,7 +76,7 @@ public class TcpEstablished: TcpStateHandler
         var packets = try await self.pumpStrawToClient(tcp)
 
         self.logger.debug("checking for closing conditions")
-        // There are three possible outcomes now:
+        
         if tcp.fin
         {
             self.logger.debug("TcpEstablished - open, FIN")
