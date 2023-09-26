@@ -37,7 +37,7 @@ public enum TcpProxyMessage: UInt8
 
 public class TcpStateHandler
 {
-    public let identity: TcpIdentity
+    public let identity: Identity
     public let downstream: AsyncConnection
     public let logger: Logger
     public let tcpLogger: Puppy
@@ -47,7 +47,7 @@ public class TcpStateHandler
     public var straw: TCPStraw
     public var open: Bool = true
 
-    public init(identity: TcpIdentity, downstream: AsyncConnection, logger: Logger, tcpLogger: Puppy, writeLogger: Puppy)
+    public init(identity: Identity, downstream: AsyncConnection, logger: Logger, tcpLogger: Puppy, writeLogger: Puppy)
     {
         self.identity = identity
         self.downstream = downstream

@@ -17,10 +17,10 @@ public class UdpProxyConnection
 {
     // These static properties and functions handle caching connections to the udpproxy subsystem.
     // We need one connection to the udpproxy subsystem for each source address/port pair.
-    static var connections: [UdpIdentity: UdpProxyConnection] = [:]
-    static var queue: [UdpIdentity] = []
+    static var connections: [Identity: UdpProxyConnection] = [:]
+    static var queue: [Identity] = []
 
-    static public func getConnection(identity: UdpIdentity, downstream: AsyncConnection, logger: Logger, udpLogger: Puppy, writeLogger: Puppy) async throws -> UdpProxyConnection
+    static public func getConnection(identity: Identity, downstream: AsyncConnection, logger: Logger, udpLogger: Puppy, writeLogger: Puppy) async throws -> UdpProxyConnection
     {
         if let connection = Self.connections[identity]
         {
@@ -34,7 +34,7 @@ public class UdpProxyConnection
         }
     }
 
-    static public func removeConnection(identity: UdpIdentity)
+    static public func removeConnection(identity: Identity)
     {
         self.connections.removeValue(forKey: identity)
     }
@@ -62,7 +62,7 @@ public class UdpProxyConnection
     }
     // End of static section
 
-    public let identity: UdpIdentity
+    public let identity: Identity
     public let downstream: AsyncConnection
     public let upstream: AsyncConnection
     public let logger: Logger
@@ -71,7 +71,7 @@ public class UdpProxyConnection
 
     public var lastUsed: Date
 
-    public init(identity: UdpIdentity, downstream: AsyncConnection, logger: Logger, udpLogger: Puppy, writeLogger: Puppy) async throws
+    public init(identity: Identity, downstream: AsyncConnection, logger: Logger, udpLogger: Puppy, writeLogger: Puppy) async throws
     {
         self.identity = identity
         self.downstream = downstream

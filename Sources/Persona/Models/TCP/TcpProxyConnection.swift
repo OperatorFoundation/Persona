@@ -18,10 +18,10 @@ public actor TcpProxyConnection
 {
     // These static properties and functions handle caching connections to the tcpproxy subsystem.
     // We need one connection to the tcpproxy subsystem for each source address/port pair.
-    static var connections: [TcpIdentity: TcpProxyConnection] = [:]
-    static var queue: [TcpIdentity] = []
+    static var connections: [Identity: TcpProxyConnection] = [:]
+    static var queue: [Identity] = []
 
-    static public func getConnection(identity: TcpIdentity) throws -> TcpProxyConnection
+    static public func getConnection(identity: Identity) throws -> TcpProxyConnection
     {
         guard let connection = Self.connections[identity] else
         {
@@ -31,7 +31,7 @@ public actor TcpProxyConnection
         return connection
     }
 
-    static public func getConnection(identity: TcpIdentity, downstream: AsyncConnection, ipv4: IPv4, tcp: TCP, payload: Data?, logger: Logger, tcpLogger: Puppy, writeLogger: Puppy) async throws -> (TcpProxyConnection, Bool)
+    static public func getConnection(identity: Identity, downstream: AsyncConnection, ipv4: IPv4, tcp: TCP, payload: Data?, logger: Logger, tcpLogger: Puppy, writeLogger: Puppy) async throws -> (TcpProxyConnection, Bool)
     {
         if let connection = Self.connections[identity]
         {
@@ -51,7 +51,7 @@ public actor TcpProxyConnection
         }
     }
 
-    static public func removeConnection(identity: TcpIdentity)
+    static public func removeConnection(identity: Identity)
     {
         self.connections.removeValue(forKey: identity)
         self.queue = self.queue.filter
@@ -84,7 +84,7 @@ public actor TcpProxyConnection
         return connection
     }
 
-    static public func close(identity: TcpIdentity) async throws
+    static public func close(identity: Identity) async throws
     {
         if let connection = self.connections[identity]
         {
@@ -93,7 +93,7 @@ public actor TcpProxyConnection
     }
     // End of static section
 
-    public let identity: TcpIdentity
+    public let identity: Identity
     public let firstPacket: (IPv4, TCP, Data?)
 
     let downstream: AsyncConnection
@@ -105,7 +105,7 @@ public actor TcpProxyConnection
     var state: TcpStateHandler
 
     // init() automatically send a syn-ack back for the syn (we only open a connect on receiving a syn)
-    public init(identity: TcpIdentity, downstream: AsyncConnection, ipv4: IPv4, tcp: TCP, payload: Data?, logger: Logger, tcpLogger: Puppy, writeLogger: Puppy) async throws
+    public init(identity: Identity, downstream: AsyncConnection, ipv4: IPv4, tcp: TCP, payload: Data?, logger: Logger, tcpLogger: Puppy, writeLogger: Puppy) async throws
     {
         self.identity = identity
         self.downstream = downstream

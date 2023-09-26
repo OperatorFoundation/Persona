@@ -67,10 +67,10 @@ public struct TcpProxyRequest: CustomStringConvertible
     }
 
     let type: TcpProxyRequestType
-    let identity: TcpIdentity
+    let identity: Identity
     let payload: Data?
 
-    public init(type: TcpProxyRequestType, identity: TcpIdentity, payload: Data? = nil)
+    public init(type: TcpProxyRequestType, identity: Identity, payload: Data? = nil)
     {
         self.type = type
         self.identity = identity
@@ -130,11 +130,11 @@ public struct TcpProxyResponse: CustomStringConvertible
     }
 
     let type: TcpProxyResponseType
-    let identity: TcpIdentity
+    let identity: Identity
     let payload: Data?
     let error: Error?
 
-    public init(type: TcpProxyResponseType, identity: TcpIdentity, payload: Data? = nil, error: Error? = nil)
+    public init(type: TcpProxyResponseType, identity: Identity, payload: Data? = nil, error: Error? = nil)
     {
         self.type = type
         self.identity = identity
@@ -158,7 +158,7 @@ public struct TcpProxyResponse: CustomStringConvertible
             throw TcpProxyError.badMessage
         }
 
-        let identity = try TcpIdentity(data: identityBytes)
+        let identity = try Identity(data: identityBytes)
 
         switch type
         {
@@ -231,7 +231,7 @@ public actor TcpProxy
     {
         // We need one udpproxy subsystem for each source address/port pair.
         // This is so we know how to route incoming traffic back to the client.
-        let identity = try TcpIdentity(ipv4: ipv4, tcp: tcp)
+        let identity = try Identity(ipv4: ipv4, tcp: tcp)
         let (connection, isPrestablishedConnection) = try await TcpProxyConnection.getConnection(identity: identity, downstream: self.client, ipv4: ipv4, tcp: tcp, payload: payload, logger: logger, tcpLogger: tcpLogger, writeLogger: writeLogger)
         if isPrestablishedConnection
         {
@@ -240,7 +240,7 @@ public actor TcpProxy
         }
     }
 
-    public func processUpstreamConnectSuccess(identity: TcpIdentity) async throws
+    public func processUpstreamConnectSuccess(identity: Identity) async throws
     {
         let connection = try TcpProxyConnection.getConnection(identity: identity)
 
@@ -250,21 +250,21 @@ public actor TcpProxy
         try await connection.processDownstreamPacket(ipv4: ipv4, tcp: tcp, payload: payload)
     }
 
-    public func processUpstreamConnectFailure(identity: TcpIdentity) async throws
+    public func processUpstreamConnectFailure(identity: Identity) async throws
     {
         let connection = try TcpProxyConnection.getConnection(identity: identity)
 
         try await connection.processUpstreamConnectFailure()
     }
 
-    public func processUpstreamData(identity: TcpIdentity, data: Data) async throws
+    public func processUpstreamData(identity: Identity, data: Data) async throws
     {
         let connection = try TcpProxyConnection.getConnection(identity: identity)
 
         try await connection.processUpstreamData(data: data)
     }
 
-    public func processUpstreamClose(identity: TcpIdentity) async throws
+    public func processUpstreamClose(identity: Identity) async throws
     {
         try await TcpProxyConnection.close(identity: identity)
     }

@@ -12,7 +12,7 @@ import Foundation
 import InternetProtocols
 import Net
 
-public struct TcpIdentity
+public struct Identity
 {
     public var data: Data
     {
@@ -53,6 +53,21 @@ public struct TcpIdentity
         self.init(localAddress: localAddress, localPort: tcp.sourcePort, remoteAddress: remoteAddress, remotePort: tcp.destinationPort)
     }
 
+    public init(ipv4: IPv4, udp: UDP) throws
+    {
+        guard let localAddress = IPv4Address(data: ipv4.sourceAddress) else
+        {
+            throw UdpProxyError.dataConversionFailed
+        }
+
+        guard let remoteAddress = IPv4Address(data: ipv4.destinationAddress) else
+        {
+            throw UdpProxyError.dataConversionFailed
+        }
+
+        self.init(localAddress: localAddress, localPort: udp.sourcePort, remoteAddress: remoteAddress, remotePort: udp.destinationPort)
+    }
+
     public init(localAddress: IPv4Address, localPort: UInt16, remoteAddress: IPv4Address, remotePort: UInt16)
     {
         self.localAddress = localAddress
@@ -65,7 +80,7 @@ public struct TcpIdentity
     {
         guard data.count == 12 else
         {
-            throw TcpIdentityError.badIdentity
+            throw IdentityError.badIdentity
         }
 
         let localAdddressBytes = Data(data[0..<4])
@@ -75,34 +90,34 @@ public struct TcpIdentity
 
         guard let localAddress = IPv4Address(data: localAdddressBytes) else
         {
-            throw TcpIdentityError.badIdentity
+            throw IdentityError.badIdentity
         }
         guard let localPort = localPortBytes.maybeNetworkUint16 else
         {
-            throw TcpIdentityError.badIdentity
+            throw IdentityError.badIdentity
         }
         guard let remoteAddress = IPv4Address(data: remoteAdddressBytes) else
         {
-            throw TcpIdentityError.badIdentity
+            throw IdentityError.badIdentity
         }
         guard let remotePort = remotePortBytes.maybeNetworkUint16 else
         {
-            throw TcpIdentityError.badIdentity
+            throw IdentityError.badIdentity
         }
 
         self.init(localAddress: localAddress, localPort: localPort, remoteAddress: remoteAddress, remotePort: remotePort)
     }
 }
 
-extension TcpIdentity: Equatable
+extension Identity: Equatable
 {
-    static public func ==(lhs: TcpIdentity, rhs: TcpIdentity) -> Bool
+    static public func ==(lhs: Identity, rhs: Identity) -> Bool
     {
         return (lhs.localAddress == rhs.localAddress) && (lhs.localPort == rhs.localPort) && (lhs.remoteAddress == rhs.remoteAddress) && (lhs.remotePort == rhs.remotePort)
     }
 }
 
-extension TcpIdentity: Hashable
+extension Identity: Hashable
 {
     public func hash(into hasher: inout Hasher)
     {
@@ -113,7 +128,7 @@ extension TcpIdentity: Hashable
     }
 }
 
-extension TcpIdentity: CustomStringConvertible
+extension Identity: CustomStringConvertible
 {
     public var description: String
     {
@@ -121,7 +136,7 @@ extension TcpIdentity: CustomStringConvertible
     }
 }
 
-public enum TcpIdentityError: Error
+public enum IdentityError: Error
 {
     case badIdentity
 }
