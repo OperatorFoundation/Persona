@@ -2,7 +2,7 @@ package tcpproxy
 
 import (
 	"frontend/ip"
-	"log"
+	"github.com/kataras/golog"
 )
 
 type RequestType byte
@@ -20,7 +20,7 @@ type Request struct {
 }
 
 func NewRequest(data []byte) *Request {
-	log.Printf("tcpproxy.NewRequest(%d bytes)\n", len(data))
+	golog.Debugf("tcpproxy.NewRequest(%d bytes)", len(data))
 
 	if len(data) < 13 {
 		return nil

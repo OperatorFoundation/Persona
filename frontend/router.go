@@ -4,7 +4,7 @@ import (
 	"errors"
 	"frontend/tcpproxy"
 	"frontend/udpproxy"
-	"log"
+	"github.com/kataras/golog"
 )
 
 type Router struct {
@@ -24,29 +24,29 @@ func NewRouter(clientRead chan []byte, clientWrite chan []byte, personaRead chan
 		return nil, errors.New("could not initialize TCP proxy")
 	}
 
-	log.Println("about to run tcpproxy")
+	golog.Debug("about to run tcpproxy")
 	go tcp.Run()
-	log.Println("tcpproxy was run")
+	golog.Debug("tcpproxy was run")
 
 	udp := udpproxy.New()
 	if udp == nil {
 		return nil, errors.New("could not initialize UDP proxy")
 	}
 
-	log.Println("about to run udpproxy")
+	golog.Debug("about to run udpproxy")
 	go udp.Run()
-	log.Println("udpproxy was run")
+	golog.Debug("udpproxy was run")
 
 	return &Router{tcp, udp, clientRead, clientWrite, personaRead, personaWrite}, nil
 }
 
 func (r *Router) Route() {
-	log.Println("Router.Route()")
+	golog.Debug("Router.Route()")
 	go r.RoutePersona()
 	go r.RouteTcpproxy()
 	go r.RouteUdpproxy()
 
-	log.Println("Router.Route - all router goroutines started, starting client router main loop")
+	golog.Debug("Router.Route - all router goroutines started, starting client router main loop")
 	r.RouteClient()
 }
 
@@ -54,7 +54,7 @@ func (r *Router) RouteClient() {
 	for {
 		// Received data from the client
 		clientData := <-r.ClientReadChannel
-		log.Println("Router.Route - ClientReadChannel")
+		golog.Debug("Router.Route - ClientReadChannel")
 		// Forward data to Persona
 		message := make([]byte, 0)
 		message = append(message, byte(Client))
@@ -67,9 +67,9 @@ func (r *Router) RouteClient() {
 func (r *Router) RoutePersona() {
 	for {
 		personaData := <-r.PersonaReadChannel
-		log.Println("Router.Route - PersonaReadChannel")
+		golog.Debug("Router.Route - PersonaReadChannel")
 		if len(personaData) < 1 {
-			log.Println("error, personaData was empty")
+			golog.Debug("error, personaData was empty")
 			continue
 		}
 
@@ -82,7 +82,7 @@ func (r *Router) RoutePersona() {
 		case Udpproxy:
 			request := udpproxy.NewRequest(data)
 			if request == nil {
-				log.Println("error, bad udpproxy request")
+				golog.Debug("error, bad udpproxy request")
 				continue
 			} else {
 				r.Udp.PersonaInput <- request
@@ -90,29 +90,29 @@ func (r *Router) RoutePersona() {
 		case Tcpproxy:
 			request := tcpproxy.NewRequest(data)
 			if request == nil {
-				log.Println("error, bad tcpproxy request")
+				golog.Debug("error, bad tcpproxy request")
 				continue
 			} else {
-				log.Println("sending Persona request to tcpproxy")
+				golog.Debug("sending Persona request to tcpproxy")
 				r.Tcp.PersonaInput <- request
-				log.Println("sent Persona request to tcpproxy")
+				golog.Debug("sent Persona request to tcpproxy")
 			}
 		default:
-			log.Println("bad message type")
+			golog.Debug("bad message type")
 		}
 	}
 }
 
 func (r *Router) RouteTcpproxy() {
 	for {
-		log.Println("Router.RouteTcpproxy - waiting for message")
+		golog.Debug("Router.RouteTcpproxy - waiting for message")
 		tcpProxyResponse := <-r.Tcp.PersonaOutput
-		log.Println("Router.RouteTcpproxy - read message")
+		golog.Debug("Router.RouteTcpproxy - read message")
 		switch tcpProxyResponse.Type {
 		case tcpproxy.ResponseData:
 			messageData, dataError := tcpProxyResponse.Data()
 			if dataError != nil {
-				log.Println(dataError.Error())
+				golog.Debug(dataError.Error())
 				continue
 			}
 
@@ -125,7 +125,7 @@ func (r *Router) RouteTcpproxy() {
 		case tcpproxy.ResponseClose:
 			messageData, dataError := tcpProxyResponse.Data()
 			if dataError != nil {
-				log.Println(dataError.Error())
+				golog.Debug(dataError.Error())
 				continue
 			}
 
@@ -137,11 +137,11 @@ func (r *Router) RouteTcpproxy() {
 
 		case tcpproxy.ResponseError:
 			if tcpProxyResponse.Error != nil {
-				log.Println(tcpProxyResponse.Error.Error())
+				golog.Debug(tcpProxyResponse.Error.Error())
 
 				messageData, dataError := tcpProxyResponse.Data()
 				if dataError != nil {
-					log.Println(dataError.Error())
+					golog.Debug(dataError.Error())
 					continue
 				}
 
@@ -155,7 +155,7 @@ func (r *Router) RouteTcpproxy() {
 		case tcpproxy.ResponseConnectSuccess:
 			messageData, dataError := tcpProxyResponse.Data()
 			if dataError != nil {
-				log.Println(dataError.Error())
+				golog.Debug(dataError.Error())
 				continue
 			}
 
@@ -168,7 +168,7 @@ func (r *Router) RouteTcpproxy() {
 		case tcpproxy.ResponseConnectFailure:
 			messageData, dataError := tcpProxyResponse.Data()
 			if dataError != nil {
-				log.Println(dataError.Error())
+				golog.Debug(dataError.Error())
 				continue
 			}
 
@@ -184,12 +184,12 @@ func (r *Router) RouteTcpproxy() {
 func (r *Router) RouteUdpproxy() {
 	for {
 		udpProxyResponse := <-r.Udp.PersonaOutput
-		log.Println("Router.Route - UdpProxyReadChannel")
+		golog.Debug("Router.Route - UdpProxyReadChannel")
 		switch udpProxyResponse.Type {
 		case udpproxy.ResponseData:
 			messageData, dataError := udpProxyResponse.Data()
 			if dataError != nil {
-				log.Println(dataError.Error())
+				golog.Debug(dataError.Error())
 				continue
 			}
 
@@ -202,12 +202,12 @@ func (r *Router) RouteUdpproxy() {
 		case udpproxy.ResponseError:
 			messageData, dataError := udpProxyResponse.Data()
 			if dataError != nil {
-				log.Println(dataError.Error())
+				golog.Debug(dataError.Error())
 				continue
 			}
 
 			if udpProxyResponse.Error != nil {
-				log.Println(udpProxyResponse.Error.Error())
+				golog.Debug(udpProxyResponse.Error.Error())
 
 				message := make([]byte, 0)
 				message = append(message, byte(Udpproxy))

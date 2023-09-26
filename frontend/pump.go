@@ -3,8 +3,8 @@ package main
 import (
 	"encoding/binary"
 	"errors"
+	"github.com/kataras/golog"
 	"io"
-	"log"
 )
 
 type ReaderToChannel struct {
@@ -19,7 +19,7 @@ type ReaderToChannel struct {
 
 func (p ReaderToChannel) Pump() {
 	for {
-		log.Println("ReadToChannel.Pump() - reading from reader")
+		golog.Debug("ReadToChannel.Pump() - reading from reader")
 		lengthBytes := make([]byte, 4)
 		lengthRead, lengthReadError := p.Input.Read(lengthBytes)
 		if lengthReadError != nil {
@@ -39,9 +39,9 @@ func (p ReaderToChannel) Pump() {
 			p.Close(errors.New("short read of data"))
 		}
 
-		log.Printf("ReadToChannel.Pump - writing to channel %v -%d-> %v\n", p.InputName, len(data), p.OutputName)
+		golog.Debugf("ReadToChannel.Pump - writing to channel %v -%d-> %v", p.InputName, len(data), p.OutputName)
 		p.Output <- data
-		log.Printf("ReadToChannel.Pump - wrote to channel %d -> %v\n", len(data), p.Output)
+		golog.Debugf("ReadToChannel.Pump - wrote to channel %d -> %v", len(data), p.Output)
 	}
 }
 
@@ -57,7 +57,7 @@ type ChannelToWriter struct {
 
 func (p ChannelToWriter) Pump() {
 	for {
-		log.Println("ChannelToWriter.Pump() - reading data to from channel")
+		golog.Debug("ChannelToWriter.Pump() - reading data to from channel")
 		data := <-p.Input
 
 		length := len(data)
@@ -72,7 +72,7 @@ func (p ChannelToWriter) Pump() {
 			p.Close(errors.New("short write on length"))
 		}
 
-		log.Printf("ChannelToWriter.Pump() - writing data to writer: %v -%d-> %v\n", p.InputName, len(data), p.OutputName)
+		golog.Debugf("ChannelToWriter.Pump() - writing data to writer: %v -%d-> %v", p.InputName, len(data), p.OutputName)
 		dataWritten, dataWriteError := p.Output.Write(data)
 		if dataWriteError != nil {
 			p.Close(dataWriteError)

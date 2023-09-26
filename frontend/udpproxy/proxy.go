@@ -3,7 +3,7 @@ package udpproxy
 import (
 	"errors"
 	"frontend/ip"
-	"log"
+	"github.com/kataras/golog"
 	"net"
 	"time"
 )
@@ -27,15 +27,15 @@ func New() *Proxy {
 func (p *Proxy) Run() {
 	go p.Cleanup()
 
-	log.Println("udpproxy.Proxy.Run()")
+	golog.Debug("udpproxy.Proxy.Run()")
 	for {
-		log.Println("udpproxy.Proxy.Run - main loop")
+		golog.Debug("udpproxy.Proxy.Run - main loop")
 		select {
 		case request := <-p.PersonaInput:
-			log.Println("udpproxy.Proxy.Run - request received")
+			golog.Debug("udpproxy.Proxy.Run - request received")
 			switch request.Type {
 			case RequestWrite:
-				log.Println("udpproxy.Proxy.Run - request is a write")
+				golog.Debug("udpproxy.Proxy.Run - request is a write")
 				if request.Data == nil || len(request.Data) == 0 {
 					p.PersonaOutput <- NewErrorResponse(request.Identity, errors.New("error, bad write request, no data to write"))
 					continue
@@ -43,7 +43,7 @@ func (p *Proxy) Run() {
 
 				connection, ok := p.Connections[request.Identity.String()]
 				if !ok {
-					log.Println("udpproxy.Proxy.Run - new UDP connection")
+					golog.Debug("udpproxy.Proxy.Run - new UDP connection")
 					addr, resolveError := net.ResolveUDPAddr("udp", request.Identity.Destination)
 					if resolveError != nil {
 						p.PersonaOutput <- NewErrorResponse(request.Identity, resolveError)
@@ -63,7 +63,7 @@ func (p *Proxy) Run() {
 					go p.ReadFromServer(connection, request.Identity, p.PersonaOutput)
 				}
 
-				log.Printf("udpproxy.Proxy.Run - writing %d\n bytes upstream", len(request.Data))
+				golog.Debugf("udpproxy.Proxy.Run - writing %d bytes upstream", len(request.Data))
 				bytesWrote, writeError := connection.Write(request.Data)
 				if writeError != nil {
 					p.PersonaOutput <- NewErrorResponse(request.Identity, errors.New("error, bad write"))
@@ -73,7 +73,7 @@ func (p *Proxy) Run() {
 					p.PersonaOutput <- NewErrorResponse(request.Identity, errors.New("error, short write"))
 					continue
 				}
-				log.Printf("udpproxy.Proxy.Run - wrote %d\n bytes upstream", bytesWrote)
+				golog.Debugf("udpproxy.Proxy.Run - wrote %d bytes upstream", bytesWrote)
 			}
 		}
 	}
@@ -96,7 +96,7 @@ func (p *Proxy) ReadFromServer(server *net.UDPConn, identity *ip.Identity, outpu
 		}
 
 		if sourceAddress.String() != identity.Destination {
-			log.Printf("source of incoming UDP packet %v does not match connection Identity %v", sourceAddress.String(), identity.Destination)
+			golog.Debugf("source of incoming UDP packet %v does not match connection Identity %v", sourceAddress.String(), identity.Destination)
 			continue
 		}
 
@@ -114,14 +114,14 @@ func (p *Proxy) Cleanup() {
 
 		for identityString, lastUsed := range p.LastUsed {
 			if now.Sub(lastUsed).Seconds() > 60 {
-				log.Printf("closing old connection %v\n", identityString)
+				golog.Debugf("closing old connection %v", identityString)
 				connection, ok := p.Connections[identityString]
 				if ok {
 					_ = connection.Close()
 					delete(p.Connections, identityString)
 					delete(p.LastUsed, identityString)
 				} else {
-					log.Println("error, lastUsed out of sync with connections")
+					golog.Debug("error, lastUsed out of sync with connections")
 				}
 			}
 		}
