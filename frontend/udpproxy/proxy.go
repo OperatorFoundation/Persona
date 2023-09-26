@@ -1,7 +1,6 @@
 package udpproxy
 
 import (
-	"encoding/binary"
 	"errors"
 	"frontend/ip"
 	"log"
@@ -39,82 +38,45 @@ func (p *Proxy) Run() {
 				}
 
 				connection, ok := p.Connections[request.Identity.String()]
-				if ok {
-					bytesWrote, writeError := connection.Write(request.Data)
-					if writeError != nil {
-						p.PersonaOutput <- NewErrorResponse(request.Identity, errors.New("error, bad write"))
-						continue
-					}
-					if bytesWrote != len(request.Data) {
-						p.PersonaOutput <- NewErrorResponse(request.Identity, errors.New("error, short write"))
-						continue
-					}
-				} else {
+				if !ok {
 					addr, resolveError := net.ResolveUDPAddr("udp", request.Identity.Destination)
 					if resolveError != nil {
 						p.PersonaOutput <- NewErrorResponse(request.Identity, resolveError)
 						continue
 					}
-					conn, dialError := net.DialUDP("udp", nil, addr)
+					newConnection, dialError := net.DialUDP("udp", nil, addr)
+					connection = newConnection
+
 					if dialError != nil {
 						p.PersonaOutput <- NewErrorResponse(request.Identity, dialError)
 						continue
 					}
 
-					bytesWritten, writeError := conn.Write(request.Identity.Data)
-					if writeError != nil {
-						p.PersonaOutput <- NewErrorResponse(request.Identity, writeError)
-						continue
-					}
-					if bytesWritten != len(request.Identity.Data) {
-						p.PersonaOutput <- NewErrorResponse(request.Identity, errors.New("short write setting identity for udpproxy"))
-						_ = conn.Close()
-						continue
-					}
-
-					p.Connections[request.Identity.String()] = conn
+					p.Connections[request.Identity.String()] = connection
 					p.LastUsed[request.Identity.String()] = time.Now()
 
-					bytesWrote, writeError := connection.Write(request.Data)
-					if writeError != nil {
-						p.PersonaOutput <- NewErrorResponse(request.Identity, errors.New("error, bad write"))
-						continue
-					}
-					if bytesWrote != len(request.Data) {
-						p.PersonaOutput <- NewErrorResponse(request.Identity, errors.New("error, short write"))
-						continue
-					}
+					go p.ReadFromServer(connection, request.Identity, p.PersonaOutput)
+				}
 
-					go p.ReadFromServer(conn, request.Identity, p.PersonaOutput)
+				bytesWrote, writeError := connection.Write(request.Data)
+				if writeError != nil {
+					p.PersonaOutput <- NewErrorResponse(request.Identity, errors.New("error, bad write"))
+					continue
+				}
+				if bytesWrote != len(request.Data) {
+					p.PersonaOutput <- NewErrorResponse(request.Identity, errors.New("error, short write"))
+					continue
 				}
 			}
 		}
 	}
 }
 
-func (p *Proxy) ReadFromServer(server net.Conn, identity *ip.Identity, output chan *Response) {
+func (p *Proxy) ReadFromServer(server *net.UDPConn, identity *ip.Identity, output chan *Response) {
 	for {
-		lengthBytes := make([]byte, 4)
-		lengthRead, lengthReadError := server.Read(lengthBytes)
-		if lengthReadError != nil {
-			output <- NewErrorResponse(identity, lengthReadError)
-			_ = server.Close()
-			delete(p.Connections, identity.String())
-			delete(p.LastUsed, identity.String())
-			return
-		}
-		if lengthRead != 4 {
-			output <- NewErrorResponse(identity, errors.New("short read of length"))
-			_ = server.Close()
-			delete(p.Connections, identity.String())
-			delete(p.LastUsed, identity.String())
-			return
-		}
-
-		length := int(binary.BigEndian.Uint32(lengthBytes))
-
+		length := 2048
 		data := make([]byte, length)
-		dataReadLength, dataReadError := server.Read(data)
+		dataReadLength, sourceAddress, dataReadError := server.ReadFromUDP(data)
 		if dataReadError != nil {
 			output <- NewErrorResponse(identity, dataReadError)
 			_ = server.Close()
@@ -123,11 +85,12 @@ func (p *Proxy) ReadFromServer(server net.Conn, identity *ip.Identity, output ch
 			return
 		}
 		if dataReadLength != length {
-			output <- NewErrorResponse(identity, errors.New("short read of data"))
-			_ = server.Close()
-			delete(p.Connections, identity.String())
-			delete(p.LastUsed, identity.String())
-			return
+			data = data[:dataReadLength]
+		}
+
+		if sourceAddress.String() != identity.Destination {
+			log.Printf("source of incoming UDP packet %v does not match connection Identity %v", sourceAddress.String(), identity.Destination)
+			continue
 		}
 
 		output <- NewDataResponse(identity, data)
