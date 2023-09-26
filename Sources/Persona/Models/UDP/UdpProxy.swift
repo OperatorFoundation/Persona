@@ -195,7 +195,7 @@ public class UdpProxy
         // We need one udpproxy subsystem for each source address/port pair.
         // This is so we know how to route incoming traffic back to the client.
         let identity = try Identity(ipv4: ipv4, udp: udp)
-        let message = UdpProxyRequest(type: .RequestWrite, identity: identity)
+        let message = UdpProxyRequest(type: .RequestWrite, identity: identity, payload: payload)
 
         self.logger.info("<< UDP \(message)")
         try await self.downstream.writeWithLengthPrefix(message.data, 32)
