@@ -56,7 +56,7 @@ public class TcpLastAck: TcpStateHandler
         let (sequenceNumber, _, _) = self.getState()
         guard SequenceNumber(tcp.acknowledgementNumber) == sequenceNumber.increment() else
         {
-            let fin = try await self.makeFin()
+            let fin = try await self.makeFinAck()
 
             return TcpStateTransition(newState: self, packetsToSend: [fin])
         }

@@ -219,19 +219,19 @@ public class TcpStateHandler
         }
     }
     
-    func makeFin(window: SequenceNumberRange? = nil) async throws -> IPv4
+    func makeFinAck(window: SequenceNumberRange? = nil) async throws -> IPv4
     {
         if let window
         {
             let (_, acknowledgementNumber, windowSize) = self.getState()
 
             let segment = try self.straw.read(window: window)
-            return try self.makePacket(sequenceNumber: segment.window.lowerBound, acknowledgementNumber: acknowledgementNumber, windowSize: windowSize, fin: true)
+            return try self.makePacket(sequenceNumber: segment.window.lowerBound, acknowledgementNumber: acknowledgementNumber, windowSize: windowSize, ack: true, fin: true)
         }
         else
         {
             let (sequenceNumber, acknowledgementNumber, windowSize) = self.getState()
-            return try self.makePacket(sequenceNumber: sequenceNumber, acknowledgementNumber: acknowledgementNumber, windowSize: windowSize, fin: true)
+            return try self.makePacket(sequenceNumber: sequenceNumber, acknowledgementNumber: acknowledgementNumber, windowSize: windowSize, ack: true, fin: true)
         }
     }
 
