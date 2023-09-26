@@ -14,7 +14,7 @@ func main() {
 	} else {
 		defer logFile.Close()
 		golog.AddOutput(logFile)
-		golog.SetLevel("error")
+		golog.SetLevel("debug")
 	}
 
 	client := os.NewFile(3, "systemd")
