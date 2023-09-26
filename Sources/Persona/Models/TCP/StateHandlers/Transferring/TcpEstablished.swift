@@ -68,6 +68,7 @@ public class TcpEstablished: TcpStateHandler
         if let payload = tcp.payload
         {
             let message = TcpProxyRequest(type: .RequestWrite, identity: self.identity, payload: payload)
+            self.logger.info("<< ESTABLISHED \(message)")
             try await self.downstream.writeWithLengthPrefix(message.data, 32)
             self.straw.increaseAcknowledgementNumber(payload.count)
         }

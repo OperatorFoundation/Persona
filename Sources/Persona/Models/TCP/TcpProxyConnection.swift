@@ -303,7 +303,7 @@ public actor TcpProxyConnection
         {
             self.writeLogger.info("TcpProxyConnection.sendPacket - write \(ipv4.data.count) bytes to client")
 
-            self.logger.info("<- \(description(ipv4, tcp))")
+            self.logger.info("<<- \(description(ipv4, tcp))")
 
             let clientMessage = Data(array: [Subsystem.Client.rawValue]) + ipv4.data
             try await self.downstream.writeWithLengthPrefix(clientMessage, 32)

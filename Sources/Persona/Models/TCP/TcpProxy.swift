@@ -201,7 +201,7 @@ public actor TcpProxy
     public func handleMessage(_ data: Data) async throws
     {
         let message = try TcpProxyResponse(data: data)
-        self.logger.info("TcpProxy.handleMesssage(\(message))")
+        self.logger.info(">> \(message)")
         switch message.type
         {
             case .ResponseData:
