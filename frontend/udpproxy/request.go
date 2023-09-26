@@ -5,7 +5,6 @@ import "frontend/ip"
 type RequestType byte
 
 const (
-	RequestOpen  RequestType = 1
 	RequestWrite RequestType = 2
 )
 
@@ -28,8 +27,6 @@ func NewRequest(data []byte) *Request {
 	identity := ip.NewIdentity(identityBytes)
 
 	switch requestType {
-	case RequestOpen:
-		return &Request{requestType, identity, nil}
 	case RequestWrite:
 		return &Request{requestType, identity, rest}
 	default:

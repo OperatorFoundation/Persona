@@ -157,11 +157,6 @@ public class Persona
 
     func close() async
     {
-        for udpConnection in UdpProxyConnection.getConnections()
-        {
-            try? await udpConnection.close()
-        }
-
         for tcpConnection in TcpProxyConnection.getConnections()
         {
             try? await tcpConnection.close()

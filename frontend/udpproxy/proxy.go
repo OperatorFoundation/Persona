@@ -25,36 +25,6 @@ func New() *Proxy {
 	return &Proxy{connections, lastUsed, input, output}
 }
 
-func (p *Proxy) Cleanup() {
-	for {
-		timer := time.NewTimer(60 * time.Second) // 60 seconds
-
-		<-timer.C // wait on timer channel to fire
-
-		now := time.Now()
-
-		for identityString, lastUsed := range p.LastUsed {
-			identity, identityError := ip.NewIdentityFromString(identityString)
-			if identityError != nil {
-				log.Println("error, malformed identity string")
-				continue
-			}
-
-			if now.Sub(lastUsed).Seconds() > 60 {
-				p.PersonaOutput <- NewCloseResponse(identity)
-				connection, ok := p.Connections[identityString]
-				if ok {
-					_ = connection.Close()
-					delete(p.Connections, identityString)
-					delete(p.LastUsed, identityString)
-				} else {
-					log.Println("error, lastUsed out of sync with connections")
-				}
-			}
-		}
-	}
-}
-
 func (p *Proxy) Run() {
 	go p.Cleanup()
 
@@ -62,11 +32,23 @@ func (p *Proxy) Run() {
 		select {
 		case request := <-p.PersonaInput:
 			switch request.Type {
-			case RequestOpen:
-				_, ok := p.Connections[request.Identity.String()]
-				if ok {
-					p.PersonaOutput <- NewErrorResponse(request.Identity, errors.New("error, Persona is asking us to open a connection that we already have open"))
+			case RequestWrite:
+				if request.Data == nil || len(request.Data) == 0 {
+					p.PersonaOutput <- NewErrorResponse(request.Identity, errors.New("error, bad write request, no data to write"))
 					continue
+				}
+
+				connection, ok := p.Connections[request.Identity.String()]
+				if ok {
+					bytesWrote, writeError := connection.Write(request.Data)
+					if writeError != nil {
+						p.PersonaOutput <- NewErrorResponse(request.Identity, errors.New("error, bad write"))
+						continue
+					}
+					if bytesWrote != len(request.Data) {
+						p.PersonaOutput <- NewErrorResponse(request.Identity, errors.New("error, short write"))
+						continue
+					}
 				} else {
 					addr, resolveError := net.ResolveUDPAddr("udp", request.Identity.Destination)
 					if resolveError != nil {
@@ -93,17 +75,6 @@ func (p *Proxy) Run() {
 					p.Connections[request.Identity.String()] = conn
 					p.LastUsed[request.Identity.String()] = time.Now()
 
-					go p.ReadFromServer(conn, request.Identity, p.PersonaOutput)
-				}
-
-			case RequestWrite:
-				if request.Data == nil || len(request.Data) == 0 {
-					p.PersonaOutput <- NewErrorResponse(request.Identity, errors.New("error, bad write request, no data to write"))
-					continue
-				}
-
-				connection, ok := p.Connections[request.Identity.String()]
-				if ok {
 					bytesWrote, writeError := connection.Write(request.Data)
 					if writeError != nil {
 						p.PersonaOutput <- NewErrorResponse(request.Identity, errors.New("error, bad write"))
@@ -113,9 +84,8 @@ func (p *Proxy) Run() {
 						p.PersonaOutput <- NewErrorResponse(request.Identity, errors.New("error, short write"))
 						continue
 					}
-				} else {
-					p.PersonaOutput <- NewErrorResponse(request.Identity, errors.New("error, Persona is asking us to close a connection that we do not have"))
-					continue
+
+					go p.ReadFromServer(conn, request.Identity, p.PersonaOutput)
 				}
 			}
 		}
@@ -161,5 +131,29 @@ func (p *Proxy) ReadFromServer(server net.Conn, identity *ip.Identity, output ch
 		}
 
 		output <- NewDataResponse(identity, data)
+	}
+}
+
+func (p *Proxy) Cleanup() {
+	for {
+		timer := time.NewTimer(60 * time.Second) // 60 seconds
+
+		<-timer.C // wait on timer channel to fire
+
+		now := time.Now()
+
+		for identityString, lastUsed := range p.LastUsed {
+			if now.Sub(lastUsed).Seconds() > 60 {
+				log.Printf("closing old connection %v\n", identityString)
+				connection, ok := p.Connections[identityString]
+				if ok {
+					_ = connection.Close()
+					delete(p.Connections, identityString)
+					delete(p.LastUsed, identityString)
+				} else {
+					log.Println("error, lastUsed out of sync with connections")
+				}
+			}
+		}
 	}
 }

@@ -6,7 +6,6 @@ type ResponseType byte
 
 const (
 	ResponseData  ResponseType = 1
-	ResponseClose ResponseType = 2
 	ResponseError ResponseType = 3
 )
 
@@ -19,10 +18,6 @@ type Response struct {
 
 func NewDataResponse(identity *ip.Identity, payload []byte) *Response {
 	return &Response{ResponseData, identity, payload, nil}
-}
-
-func NewCloseResponse(identity *ip.Identity) *Response {
-	return &Response{ResponseClose, identity, nil, nil}
 }
 
 func NewErrorResponse(identity *ip.Identity, responseError error) *Response {
