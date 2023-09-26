@@ -15,8 +15,23 @@ import Net
 import Puppy
 import TransmissionAsync
 
-public enum TcpProxyRequestType: UInt8
+public enum TcpProxyRequestType: UInt8, CustomStringConvertible
 {
+    public var description: String
+    {
+        switch self
+        {
+            case .RequestOpen:
+                return "OPEN"
+
+            case .RequestWrite:
+                return "WRITE"
+
+            case .RequestClose:
+                return "CLOSE"
+        }
+    }
+
     case RequestOpen = 1
     case RequestWrite = 2
     case RequestClose = 3
