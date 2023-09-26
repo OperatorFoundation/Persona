@@ -50,7 +50,7 @@ public class TcpEstablished: TcpStateHandler
             return TcpStateTransition(newState: self, packetsToSend: [ack])
         }
 
-        self.logger.error("✅ TcpEstablished - \(clientWindow.lowerBound) <= \(packetLowerBound)..<\(packetUpperBound) <= \(clientWindow.upperBound)")
+        self.logger.debug("✅ TcpEstablished - \(clientWindow.lowerBound) <= \(packetLowerBound)..<\(packetUpperBound) <= \(clientWindow.upperBound)")
 
         if tcp.ack
         {
