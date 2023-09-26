@@ -36,7 +36,7 @@ func (p ReaderToChannel) Pump() {
 			p.Close(dataReadError)
 		}
 		if dataReadLength != length {
-			p.Close(errors.New("short read of data"))
+			p.Close(errors.New("short read of data from " + p.InputName))
 		}
 
 		golog.Debugf("ReadToChannel.Pump - writing to channel %v -%d-> %v", p.InputName, len(data), p.OutputName)
