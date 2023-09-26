@@ -167,8 +167,11 @@ public class Persona
 
     func handleMessage(_ data: Data) async throws
     {
+        self.logger.info("Persona.handleMessage(\(data.count) bytes)")
+
         guard data.count > 0 else
         {
+            self.logger.error("Persona.handleMessage - no data")
             throw PersonaError.noData
         }
 
@@ -177,18 +180,22 @@ public class Persona
 
         guard let subsystem = Subsystem(rawValue: subsystemByte) else
         {
+            self.logger.error("Persona.handleMessage - unknown subsystem \(subsystemByte)")
             throw PersonaError.unknownSubsystem(subsystemByte)
         }
 
         switch subsystem
         {
             case .Client:
+                self.logger.info("Persona.handleMessage - client message")
                 try await self.handleClientMessage(rest)
 
             case .Tcpproxy:
+                self.logger.info("Persona.handleMessage - tcpproxy message")
                 try await self.handleTcpproxyMessage(rest)
 
             case .Udpproxy:
+                self.logger.info("Persona.handleMessage - udpproxy message")
                 try await self.handleUdpproxyMessage(rest)
         }
     }
@@ -216,7 +223,7 @@ public class Persona
 
             self.packetLogger.debug("🪀 -> TCP: \(description(ipv4, tcp))")
 
-            // Process TCP packets
+             // Process TCP packets
             try await self.tcpProxy.processDownstreamPacket(ipv4: ipv4, tcp: tcp, payload: tcp.payload)
         }
         else if let ipv4 = packet.ipv4, let udp = packet.udp
