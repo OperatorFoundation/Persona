@@ -229,7 +229,10 @@ public class UdpProxy
         // We have a valid UDP packet, so we send it downstream to the client.
         // The client expects raw IPv4 packets prefixed with a 4-byte length.
         let message = Data(array: [Subsystem.Client.rawValue]) + ipv4.data
+
+        self.logger.info("sending UDP client message")
         try await self.downstream.writeWithLengthPrefix(message, 32)
+        self.logger.info("sent UDP client message")
     }
 }
 
