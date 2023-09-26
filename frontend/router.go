@@ -101,8 +101,9 @@ func (r *Router) RoutePersona() {
 
 func (r *Router) RouteTcpproxy() {
 	for {
+		log.Println("Router.RouteTcpproxy - waiting for message")
 		tcpProxyResponse := <-r.Tcp.PersonaOutput
-		log.Println("Router.Route - TcpProxyReadChannel")
+		log.Println("Router.RouteTcpproxy - read message")
 		switch tcpProxyResponse.Type {
 		case tcpproxy.ResponseData:
 			messageData, dataError := tcpProxyResponse.Data()
@@ -146,6 +147,32 @@ func (r *Router) RouteTcpproxy() {
 
 				r.PersonaWriteChannel <- message
 			}
+
+		case tcpproxy.ResponseConnectSuccess:
+			messageData, dataError := tcpProxyResponse.Data()
+			if dataError != nil {
+				log.Println(dataError.Error())
+				continue
+			}
+
+			message := make([]byte, 0)
+			message = append(message, byte(Tcpproxy))
+			message = append(message, messageData...)
+
+			r.PersonaWriteChannel <- message
+
+		case tcpproxy.ResponseConnectFailure:
+			messageData, dataError := tcpProxyResponse.Data()
+			if dataError != nil {
+				log.Println(dataError.Error())
+				continue
+			}
+
+			message := make([]byte, 0)
+			message = append(message, byte(Tcpproxy))
+			message = append(message, messageData...)
+
+			r.PersonaWriteChannel <- message
 		}
 	}
 }

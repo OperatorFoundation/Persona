@@ -99,12 +99,13 @@ func (p *Proxy) Connect(identity *ip.Identity) {
 		return
 	}
 
-	log.Printf("success dialing %s\n", identity.Destination)
-	p.PersonaOutput <- NewConnectSuccessResponse(identity)
-
 	p.Connections[identity.String()] = conn
 
 	go p.ReadFromServer(conn, identity, p.PersonaOutput)
+
+	log.Printf("success dialing %s\n", identity.Destination)
+	log.Println("sending connect success response")
+	p.PersonaOutput <- NewConnectSuccessResponse(identity)
 }
 
 func (p *Proxy) ReadFromServer(server net.Conn, identity *ip.Identity, output chan *Response) {
