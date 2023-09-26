@@ -31,7 +31,9 @@ func NewRouter(clientRead chan []byte, clientWrite chan []byte, personaRead chan
 		return nil, errors.New("could not initialize UDP proxy")
 	}
 
+	log.Println("about to run udpproxy")
 	go udp.Run()
+	log.Println("udpproxy was run")
 
 	return &Router{tcp, udp, clientRead, clientWrite, personaRead, personaWrite}, nil
 }
