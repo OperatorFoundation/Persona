@@ -86,6 +86,10 @@ public class TcpEstablished: TcpStateHandler
             let ack = try await makeAck()
             packets.append(ack) // ACK the FIN
 
+            let message = TcpProxyRequest(type: .RequestClose, identity: self.identity)
+            self.logger.info("<< ESTABLISHED \(message)")
+            try await self.downstream.writeWithLengthPrefix(message.data, 32)
+
             return TcpStateTransition(newState: TcpCloseWait(self), packetsToSend: packets)
         }
         else
