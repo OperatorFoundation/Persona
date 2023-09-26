@@ -24,9 +24,19 @@ func (p ReaderToChannel) Pump() {
 		lengthRead, lengthReadError := p.Input.Read(lengthBytes)
 		if lengthReadError != nil {
 			p.Close(lengthReadError)
+			return
 		}
-		if lengthRead != 4 {
-			p.Close(errors.New("short read of length"))
+
+		totalLengthRead := lengthRead
+		for totalLengthRead < 4 {
+			buffer := make([]byte, 4-totalLengthRead)
+			lengthRead, lengthReadError = p.Input.Read(buffer)
+			if lengthReadError != nil {
+				p.Close(lengthReadError)
+				return
+			}
+			copy(lengthBytes[totalLengthRead:totalLengthRead+lengthRead], buffer[:lengthRead])
+			totalLengthRead = totalLengthRead + lengthRead
 		}
 
 		length := int(binary.BigEndian.Uint32(lengthBytes))

@@ -13,10 +13,10 @@ go get frontend
 go install
 popd
 
-systemctl stop persona.socket
-systemctl stop udpproxy.socket
-systemctl stop tcpproxy.socket
 systemctl stop frontend.socket
+systemctl stop persona.socket
+systemctl stop udpproxy.socket >/dev/null 2>/dev/null
+systemctl stop tcpproxy.socket >/dev/null 2>/dev/null
 
 killall tcpproxy.py >/dev/null 2>/dev/null
 killall -9 tcpproxy.py >/dev/null 2>/dev/null

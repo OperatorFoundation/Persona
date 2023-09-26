@@ -1,5 +1,5 @@
 git pull origin main
-swift build
+swift build -c release
 
 apt install golang
 pushd frontend
@@ -13,9 +13,7 @@ rm /etc/systemd/system/udpproxy* >/dev/null 2>/dev/null
 cp etc/systemd/* /etc/systemd/system
 systemctl daemon-reload
 systemctl start persona.socket
-systemctl status persona.socket
 systemctl start frontend.socket
-systemctl status frontend.socket
 
 apt install xinetd
 cp etc/xinetd/* /etc/xinetd.d
@@ -25,4 +23,4 @@ ufw allow 22   # ssh
 ufw allow 1234 # frontend
 ufw allow 1230 # Persona
 ufw deny 7     # echo
-ufw enable
+ufw --force enable

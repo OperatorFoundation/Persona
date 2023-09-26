@@ -37,11 +37,12 @@ public class Persona
     var udpProxy: UdpProxy! = nil
     var tcpProxy: TcpProxy! = nil
 
-    public init() async throws
+    public init(socket: Bool) async throws
     {
+        print("Persona.init(\(socket))")
         // First we set up the logging. There are several loggers that log different specific events that are helpful for debugging.
         // The location of the log files assumes that you have Persona checked out in the home directory of the root user.
-        let mainLogURL = URL(fileURLWithPath: "/root/Persona/Persona.log")
+        let mainLogURL = File.homeDirectory().appendingPathComponent("Persona/Persona.log", isDirectory: false)
         var logger = try FileLogging.logger(label: "Persona", localFile: mainLogURL)
         logger.logLevel = .info
         self.logger = logger
@@ -112,7 +113,20 @@ public class Persona
 
         // Connect to systemd input and output streams
         // Persona only runs under systemd. You cannot run it directly on the command line.
-        self.connection = AsyncSystemdConnection(logger)
+        if socket
+        {
+            print("listening 127.0.0.1:1230")
+            let listener = try AsyncTcpSocketListener(port: 1230, self.logger)
+
+            print("accepting connection...")
+            self.connection = try await listener.accept()
+
+            print("connection accepted!")
+        }
+        else
+        {
+            self.connection = AsyncSystemdConnection(logger)
+        }
 
         // Run Persona's UDP proxying control logic
         self.udpProxy = try await UdpProxy(client: self.connection, logger: logger, udpLogger: udpLogger, writeLogger: clientWriteLog)
