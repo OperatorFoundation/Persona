@@ -30,7 +30,5 @@ killall -9 Persona >/dev/null 2>/dev/null
 killall frontend >/dev/null 2>/dev/null
 killall -9 frontend >/dev/null 2>/dev/null
 
-systemctl start tcpproxy.socket
-systemctl start udpproxy.socket
 systemctl start persona.socket
 systemctl start frontend.socket
