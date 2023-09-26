@@ -169,6 +169,12 @@ public class Persona
     {
         self.logger.debug("Persona.handleMessage(\(data.count) bytes)")
 
+        self.stats.messages = self.stats.messages + 1
+        if self.stats.messages % 10 == 0 // Every 10 messages, write stats log
+        {
+            self.stats.writeLog()
+        }
+
         guard data.count > 0 else
         {
             self.logger.error("Persona.handleMessage - no data")

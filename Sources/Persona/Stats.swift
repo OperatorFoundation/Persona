@@ -15,6 +15,7 @@ public class Stats
 {
     static let writeInterval: TimeInterval = 1 * 60 // 1 minute in seconds
 
+    public var messages: Int = 0
     public var nonIPv4: Int = 0
     public var nonTcpUdpIPv4: Int = 0
     public var ipv4: Int = 0
@@ -28,14 +29,7 @@ public class Stats
 
     public init()
     {
-        self.logFileURL = File.homeDirectory().appendingPathComponent("Persona/PersonaStats.log", isDirectory: false)
-
-        let timer = Timer(timeInterval: Self.writeInterval, repeats: true, block: self.writeLog)
-        self.timer = timer
-    }
-
-    public func writeLog(_ timer: Timer)
-    {
+        self.logFileURL = File.homeDirectory().appendingPathComponent("/root/Persona/PersonaStats.log", isDirectory: false)
         if File.exists(self.logFileURL.path)
         {
             let _ = File.delete(atPath: self.logFileURL.path)
@@ -48,7 +42,10 @@ public class Stats
         {
             self.logger.add(file)
         }
+    }
 
+    public func writeLog()
+    {
         self.logger.info("--------------")
         self.logger.info(self.description)
         self.logger.info("--------------")
