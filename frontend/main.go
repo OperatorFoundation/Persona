@@ -34,7 +34,7 @@ func main() {
 		}()
 
 		golog.AddOutput(logFile)
-		golog.SetLevel("error")
+		golog.SetLevel("debug")
 	}
 
 	var client io.Closer
@@ -64,6 +64,7 @@ func main() {
 		clientWriter = systemd
 	}
 
+	golog.Debug("launching Persona subprocess")
 	context, cancel := context.WithCancel(context.Background())
 	persona := exec.CommandContext(context, home+"/Persona/Persona")
 	personaInput, inputError := persona.StdinPipe()
