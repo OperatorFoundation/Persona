@@ -6,7 +6,7 @@ rm -rf .swiftpm >/dev/null
 rm -rf Package.resolved >/dev/null
 
 swift package update
-swift build
+swift build -c release
 
 pushd frontend
 go get frontend
