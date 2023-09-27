@@ -17,9 +17,14 @@ public class TcpEstablished: TcpStateHandler
         if tcp.syn { stats.syn += 1}
         if tcp.fin { stats.syn += 1}
         if tcp.rst { stats.rst += 1}
-        if tcp.ack { stats.ack += 1}
         if !tcp.syn, !tcp.fin, !tcp.rst, !tcp.ack { stats.noFlags += 1 }
-        if tcp.payload == nil { stats.noPayload += 1 } else { stats.payload += 1 }
+        if tcp.ack
+        {
+            stats.ack += 1
+
+            if self.straw.inWindow(tcp) { stats.inWindow += 1 } else { stats.outOfWindow += 1 }
+            if tcp.payload == nil { stats.noPayload += 1 } else { stats.payload += 1 }
+        }
 
         self.lastUsed = Date() // now
 

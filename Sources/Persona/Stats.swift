@@ -40,6 +40,8 @@ public class Stats
     public var noFlags: Int = 0
     public var payload: Int = 0
     public var noPayload: Int = 0
+    public var inWindow: Int = 0
+    public var outOfWindow: Int = 0
 
     let logger: Puppy
 
@@ -63,26 +65,28 @@ extension Stats: CustomStringConvertible
         return """
         non-IPv4         - \(self.nonIPv4)
         non-TCP/UDP IPv4 - \(self.nonTcpUdpIPv4)
-        IPv4             - \(self.ipv4)
-        \tIPv4/UDP         - \(self.udp)
-        \tIPv4/TCP         - \(self.tcp)
-        \t\tCLOSED         - \(self.closed)
-        \t\tCLOSE-WAIT     - \(self.closeWait)
-        \t\tCLOSINGvvv     - \(self.closing)
-        \t\tFIN-WAIT-1     - \(self.finWait1)
-        \t\tFIN-WAIT-2     - \(self.finWait2)
-        \t\tLAST-ACK        - \(self.lastAck)
-        \t\tNEW            - \(self.new)
-        \t\tSYN-RECEIVED   - \(self.synReceived)
-        \t\tSYN-SENT       - \(self.synSent)
-        \t\tESTABLISHED    - \(self.established)
-        \t\t\tSYN          - \(self.syn)
-        \t\t\tFIN          - \(self.fin)
-        \t\t\tRST          - \(self.rst)
-        \t\t\tACK          - \(self.ack)
-        \t\t\tno flags     - \(self.noFlags)
-        \t\t\tpayload      - \(self.payload)
-        \t\t\tno payload   - \(self.noPayload)
+        IPv4                    - \(self.ipv4)
+        \tIPv4/UDP              - \(self.udp)
+        \tIPv4/TCP              - \(self.tcp)
+        \t\tCLOSED              - \(self.closed)
+        \t\tCLOSE-WAIT          - \(self.closeWait)
+        \t\tCLOSINGvvv          - \(self.closing)
+        \t\tFIN-WAIT-1          - \(self.finWait1)
+        \t\tFIN-WAIT-2          - \(self.finWait2)
+        \t\tLAST-ACK            - \(self.lastAck)
+        \t\tNEW                 - \(self.new)
+        \t\tSYN-RECEIVED        - \(self.synReceived)
+        \t\tSYN-SENT            - \(self.synSent)
+        \t\tESTABLISHED         - \(self.established)
+        \t\t\tno flags          - \(self.noFlags)
+        \t\t\tSYN               - \(self.syn)
+        \t\t\tFIN               - \(self.fin)
+        \t\t\tRST               - \(self.rst)
+        \t\t\tACK               - \(self.ack)
+        \t\t\t\tin window       - \(self.inWindow)
+        \t\t\t\tout of window   - \(self.outOfWindow)
+        \t\t\t\tpayload         - \(self.payload)
+        \t\t\t\tno payload      - \(self.noPayload)
         """
     }
 }
