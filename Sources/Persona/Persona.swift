@@ -125,7 +125,7 @@ public class Persona
         }
         else
         {
-            self.connection = AsyncSystemdConnection(logger)
+            self.connection = AsyncStdioConnection(logger)
         }
 
         // Run Persona's UDP proxying control logic

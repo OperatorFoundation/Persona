@@ -65,7 +65,7 @@ func main() {
 	}
 
 	context, cancel := context.WithCancel(context.Background())
-	persona := exec.CommandContext(context, home+"/Persona/.build/x86_64-unknown-linux-gnu/release/Persona")
+	persona := exec.CommandContext(context, home+"/Persona/Persona")
 	personaInput, inputError := persona.StdinPipe()
 	if inputError != nil {
 		golog.Errorf("error getting Persona stdin: %v", inputError.Error())
