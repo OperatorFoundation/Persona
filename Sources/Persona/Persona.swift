@@ -179,6 +179,7 @@ public class Persona
         self.stats.messages = self.stats.messages + 1
         if self.stats.messages % 10 == 0 // Every 10 messages, write stats log
         {
+            self.logger.info("writing stats log, packet #\(self.stats.messages)")
             self.stats.writeLog()
         }
 
