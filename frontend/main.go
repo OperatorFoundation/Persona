@@ -34,7 +34,7 @@ func main() {
 		}()
 
 		golog.AddOutput(logFile)
-		golog.SetLevel("debug")
+		golog.SetLevel("error")
 	}
 
 	var client io.Closer
