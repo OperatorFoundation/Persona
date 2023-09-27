@@ -32,7 +32,6 @@ public class TcpCloseWait: TcpStateHandler
     override public func processUpstreamData(data: Data) async throws -> TcpStateTransition
     {
         try self.straw.write(data)
-        self.logger.debug("TcpCloseWait.processUpstreamData: Persona <-- tcpproxy - \(data.count) bytes")
 
         let packets = try await self.pumpStrawToClient()
 

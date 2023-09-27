@@ -173,7 +173,11 @@ public class UdpProxy
     public func handleMessage(_ data: Data) async throws
     {
         let message = try UdpProxyResponse(data: data)
+
+        #if DEBUG
         self.logger.debug(">> \(message)")
+        #endif
+
         switch message.type
         {
             case .ResponseData:
@@ -224,7 +228,9 @@ public class UdpProxy
             return
         }
 
+        #if DEBUG
         self.logger.debug("<<- UDP \(ipv4.sourceAddress.ipv4AddressString ?? "not an ipv4 address"):\(udp.sourcePort) -> \(ipv4.destinationAddress.ipv4AddressString ?? "not an ipv4 address"):\(udp.destinationPort) - \(data.count) byte payload")
+        #endif
 
         // We have a valid UDP packet, so we send it downstream to the client.
         // The client expects raw IPv4 packets prefixed with a 4-byte length.

@@ -15,16 +15,12 @@ public class TcpListen: TcpStateHandler
     {
         guard !tcp.rst else
         {
-            self.logger.debug("TcpListen.processDownstreamPacket: packet rejected because of RST")
-
             // No need to send a RST for a RST, just fail on this packet and move to the next one.
             throw TcpListenError.rstReceived
         }
 
         guard !tcp.fin else
         {
-            self.logger.debug("TcpListen.processDownstreamPacket: packet rejected because of FIN")
-
             /// Do not process the FIN if the state is CLOSED, LISTEN or SYN-SENT
             /// since the SEG.SEQ cannot be validated; drop the segment and return.
             return TcpStateTransition(newState: self)
@@ -32,8 +28,6 @@ public class TcpListen: TcpStateHandler
 
         guard !tcp.ack else
         {
-            self.logger.debug("TcpListen.processDownstreamPacket: packet rejected because of ACK")
-
             // Send a RST and close.
             return try await self.panicOnDownstream(ipv4: ipv4, tcp: tcp, payload: payload, sequenceNumber: SequenceNumber(0), acknowledgementNumber: SequenceNumber(0), windowSize: 0)
         }
@@ -41,8 +35,6 @@ public class TcpListen: TcpStateHandler
         // In the LISTEN state, we only accept a SYN.
         guard tcp.syn else
         {
-            self.logger.debug("TcpListen.processDownstreamPacket: packet rejected because of lack of SYN")
-
             // Send a RST and close.
             return try await self.panicOnDownstream(ipv4: ipv4, tcp: tcp, payload: payload, sequenceNumber: SequenceNumber(0), acknowledgementNumber: SequenceNumber(0), windowSize: 0)
         }

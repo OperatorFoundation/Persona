@@ -50,7 +50,9 @@ public class TcpEstablished: TcpStateHandler
             return TcpStateTransition(newState: self, packetsToSend: [ack])
         }
 
+        #if DEBUG
         self.logger.debug("✅ TcpEstablished - \(clientWindow.lowerBound) <= \(packetLowerBound)..<\(packetUpperBound) <= \(clientWindow.upperBound)")
+        #endif
 
         if tcp.ack
         {
@@ -59,43 +61,51 @@ public class TcpEstablished: TcpStateHandler
             if acknowledgementNumber != self.straw.sequenceNumber
             {
                 let difference = acknowledgementNumber - self.straw.sequenceNumber
+
+                #if DEBUG
                 self.logger.debug("New ACK# - clearing \(difference) of \(self.straw.count) bytes")
+                #endif
+
                 try self.straw.acknowledge(acknowledgementNumber)
+
+                #if DEBUG
                 self.logger.debug("Straw now has \(self.straw.count) bytes in the buffer")
+                #endif
             }
         }
 
         if let payload = tcp.payload
         {
             let message = TcpProxyRequest(type: .RequestWrite, identity: self.identity, payload: payload)
+
+            #if DEBUG
             self.logger.debug("<< ESTABLISHED \(message)")
+            #endif
+
             try await self.downstream.writeWithLengthPrefix(message.data, 32)
             self.straw.increaseAcknowledgementNumber(payload.count)
         }
 
         var packets = try await self.pumpStrawToClient(tcp)
 
-        self.logger.debug("checking for closing conditions")
-        
         if tcp.fin
         {
-            self.logger.debug("TcpEstablished - open, FIN")
-            // - server is open, FIN      - CLOSE-WAIT
-
             self.straw.increaseAcknowledgementNumber(1)
             let ack = try await makeAck()
             packets.append(ack) // ACK the FIN
 
             let message = TcpProxyRequest(type: .RequestClose, identity: self.identity)
+
+            #if DEBUG
             self.logger.debug("<< ESTABLISHED \(message)")
+            #endif
+
             try await self.downstream.writeWithLengthPrefix(message.data, 32)
 
             return TcpStateTransition(newState: TcpCloseWait(self), packetsToSend: packets)
         }
         else
         {
-            self.logger.debug("TcpEstablished - open, no FIN")
-            // - server is open, no FIN   - ESTABLISHED
             if packets.isEmpty
             {
                 let ack = try await makeAck()
@@ -114,7 +124,6 @@ public class TcpEstablished: TcpStateHandler
         }
 
         try self.straw.write(data)
-        self.logger.debug("TcpEstablished.processUpstreamData: Persona <-- tcpproxy - \(data.count) bytes")
 
         var packets = try await self.pumpStrawToClient()
 

@@ -140,19 +140,14 @@ public class Persona
     {
         while true
         {
-            self.logger.debug("Persona.run - main loop")
-
             do
             {
-                self.logger.debug("Persona.run - reading message from client, blocking")
                 let message = try await self.connection.readWithLengthPrefix(prefixSizeInBits: 32)
 
                 do
                 {
                     // Process the packet that we received from the downstream client
-                    self.logger.debug("Persona.run - handling message")
                     try await self.handleMessage(message)
-                    self.logger.debug("Persona.run - done")
                 }
                 catch
                 {
@@ -181,8 +176,6 @@ public class Persona
 
     func handleMessage(_ data: Data) async throws
     {
-        self.logger.debug("Persona.handleMessage(\(data.count) bytes)")
-
         self.stats.messages = self.stats.messages + 1
         if self.stats.messages % 10 == 0 // Every 10 messages, write stats log
         {
@@ -207,22 +200,18 @@ public class Persona
         switch subsystem
         {
             case .Client:
-                self.logger.debug("Persona.handleMessage - client message")
                 try await self.handleClientMessage(rest)
 
             case .Tcpproxy:
-                self.logger.debug("Persona.handleMessage - tcpproxy message")
                 try await self.handleTcpproxyMessage(rest)
 
             case .Udpproxy:
-                self.logger.debug("Persona.handleMessage - udpproxy message")
                 try await self.handleUdpproxyMessage(rest)
         }
     }
 
     public func handleClientMessage(_ data: Data) async throws
     {
-        self.logger.debug("Persona.handleClientMessage(\(data.count) bytes)")
         // Attempt to parse the data we received from the downstream client as an IPv4 packet.
         // Note that we only support IPv4 packets and we only support TCP and UDP packets.
         let packet = Packet(ipv4Bytes: data, timestamp: Date())
@@ -234,14 +223,9 @@ public class Persona
             self.stats.ipv4 += 1
             self.stats.tcp += 1
 
+            #if DEBUG
             self.logger.debug("🪀 -> TCP: \(description(ipv4, tcp))")
-
-            if tcp.destinationPort == 7
-            {
-                self.tcpLogger.debug("🪀 -> TCP: \(description(ipv4, tcp))")
-            }
-
-            self.packetLogger.debug("🪀 -> TCP: \(description(ipv4, tcp))")
+            #endif
 
              // Process TCP packets
             try await self.tcpProxy.processDownstreamPacket(ipv4: ipv4, tcp: tcp, payload: tcp.payload)
@@ -255,16 +239,18 @@ public class Persona
 
             if let payload = udp.payload
             {
+                #if DEBUG
                 self.logger.debug("🏓 UDP: \(ipv4.sourceAddress.ipv4AddressString ?? "not an ipv4 address"):\(udp.sourcePort) -> \(ipv4.destinationAddress.ipv4AddressString ?? "not an ipv4 address"):\(udp.destinationPort) - \(payload.count) byte payload")
-                self.packetLogger.debug("🏓 UDP: \(ipv4.sourceAddress.ipv4AddressString ?? "not an ipv4 address"):\(udp.sourcePort) -> \(ipv4.destinationAddress.ipv4AddressString ?? "not an ipv4 address"):\(udp.destinationPort) - \(payload.count) byte payload")
+                #endif
 
                 // Process only UDP packets with payloads
                 try await self.udpProxy.processDownstreamPacket(ipv4: ipv4, udp: udp, payload: payload)
             }
             else
             {
+                #if DEBUG
                 self.logger.debug("🏓 UDP: \(ipv4.sourceAddress.ipv4AddressString ?? "not an ipv4 address"):\(udp.sourcePort) -> \(ipv4.destinationAddress.ipv4AddressString ?? "not an ipv4 address"):\(udp.destinationPort) - no payload")
-                self.packetLogger.debug("🏓 UDP: \(ipv4.sourceAddress.ipv4AddressString ?? "not an ipv4 address"):\(udp.sourcePort) -> \(ipv4.destinationAddress.ipv4AddressString ?? "not an ipv4 address"):\(udp.destinationPort) - no payload")
+                #endif
 
                 // Reject UDP packets without payloads
                 throw PersonaError.emptyPayload
@@ -289,13 +275,11 @@ public class Persona
 
     public func handleTcpproxyMessage(_ data: Data) async throws
     {
-        self.logger.debug("Persona.handleTcpproxyMessage(\(data.count) bytes)")
         try await self.tcpProxy.handleMessage(data)
     }
 
     public func handleUdpproxyMessage(_ data: Data) async throws
     {
-        self.logger.debug("Persona.handleUdpproxyMessage(\(data.count) bytes)")
         try await self.udpProxy.handleMessage(data)
     }
 }

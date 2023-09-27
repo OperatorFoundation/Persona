@@ -128,7 +128,10 @@ public actor TcpProxyConnection
         let (sequenceNumber, acknowledgementNumber, _) = self.state.getState()
         let sequenceDifference = tcpSequenceNumber - acknowledgementNumber
         let acknowledgementDifference = tcpAcknowledgementNumber - sequenceNumber
+
+        #if DEBUG
         self.logger.debug("TcpProxyConnection.processDownstreamPacket - SEQ#:\(tcpSequenceNumber) (\(sequenceDifference) difference), ACK#:\(tcpAcknowledgementNumber) (\(acknowledgementDifference) difference)")
+        #endif
 
         let transition = try await self.state.processDownstreamPacket(ipv4: ipv4, tcp: tcp, payload: nil)
 
@@ -182,7 +185,11 @@ public actor TcpProxyConnection
             default:
                 // Nothing to do here
                 packetsToSend = transition.packetsToSend
+
+                #if DEBUG
                 self.logger.debug("@ \(self.state) => \(transition.newState), \(packetsToSend.count) packets to send")
+                #endif
+
                 self.state = transition.newState
         }
         
@@ -191,26 +198,19 @@ public actor TcpProxyConnection
             let outPacket = Packet(ipv4Bytes: packet.data, timestamp: Date())
             if let outTcp = outPacket.tcp
             {
+                #if DEBUG
                 self.logger.debug("@ <- \(description(packet, outTcp))")
-
-                if outTcp.sourcePort == 7
-                {
-                    self.tcpLogger.debug("@ <- \(description(packet, outTcp))")
-                }
+                #endif
             }
 
-            self.logger.trace("About to send packet.")
             try await self.sendPacket(packet)
-            self.logger.trace("Sent packet.")
         }
 
         guard self.state.open else
         {
+            #if DEBUG
             self.logger.debug("TcpProxyConnection.processDownstreamPacket - connection was closed")
-            if tcp.destinationPort == 7 || tcp.destinationPort == 853
-            {
-                self.tcpLogger.debug("TcpProxyConnection.processDownstreamPacket - connection was closed")
-            }
+            #endif
 
             do
             {
@@ -258,12 +258,9 @@ public actor TcpProxyConnection
             let outPacket = Packet(ipv4Bytes: packet.data, timestamp: Date())
             if let outTcp = outPacket.tcp
             {
+                #if DEBUG
                 self.logger.debug("$ <- \(description(packet, outTcp))")
-
-                if outTcp.sourcePort == 7
-                {
-                    self.tcpLogger.debug("$ <- \(description(packet, outTcp))")
-                }
+                #endif
             }
 
             try await self.sendPacket(packet)
@@ -273,7 +270,9 @@ public actor TcpProxyConnection
 
         guard self.state.open else
         {
+            #if DEBUG
             self.logger.debug("TcpProxyConnection.pump - connection was closed")
+            #endif
 
             do
             {
@@ -301,14 +300,12 @@ public actor TcpProxyConnection
         let packet = Packet(ipv4Bytes: ipv4.data, timestamp: Date())
         if let ipv4 = packet.ipv4, let tcp = packet.tcp
         {
-            self.writeLogger.info("TcpProxyConnection.sendPacket - write \(ipv4.data.count) bytes to client")
-
+            #if DEBUG
             self.logger.debug("<<- \(description(ipv4, tcp))")
+            #endif
 
             let clientMessage = Data(array: [Subsystem.Client.rawValue]) + ipv4.data
             try await self.downstream.writeWithLengthPrefix(clientMessage, 32)
-
-            self.writeLogger.info("TcpProxyConnection.sendPacket - succesfully wrote \(ipv4.data.count) bytes to client")
         }
     }
 }
