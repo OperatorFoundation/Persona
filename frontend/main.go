@@ -1,18 +1,26 @@
 package main
 
 import (
+	"context"
 	"flag"
 	"fmt"
 	"github.com/kataras/golog"
 	"io"
 	"net"
 	"os"
+	"os/exec"
 )
 
 func main() {
 	fmt.Println("frontend is go!")
 
-	logpath := flag.String("logpath", "/root/Persona/frontend.log", "path for log file")
+	home, homeError := os.UserHomeDir()
+	if homeError != nil {
+		print("could not find home directory")
+		os.Exit(100)
+	}
+
+	logpath := flag.String("logpath", home+"/Persona/frontend.log", "path for log file")
 	socket := flag.Bool("socket", false, "enable single-connection socket mode for testing, by default uses systemd mode instead")
 	flag.Parse()
 
@@ -56,14 +64,22 @@ func main() {
 		clientWriter = systemd
 	}
 
-	persona, dialError := net.Dial("tcp", "127.0.0.1:1230")
-	if dialError != nil {
-		golog.Debug(dialError.Error())
-		_ = client.Close()
-		os.Exit(1)
+	context, cancel := context.WithCancel(context.Background())
+	persona := exec.CommandContext(context, home+"/Persona/.build/x86_64-unknown-linux-gnu/release/Persona")
+	personaInput, inputError := persona.StdinPipe()
+	if inputError != nil {
+		golog.Errorf("error getting Persona stdin: %v", inputError.Error())
+		os.Exit(12)
+	}
+	personaOutput, outputError := persona.StdoutPipe()
+	if outputError != nil {
+		golog.Errorf("error getting Persona stdout: %v", outputError.Error())
+		os.Exit(13)
 	}
 
-	golog.Debug("dialed persona")
+	persona.Start()
+
+	golog.Debug("launched persona")
 
 	clientReadChannel := make(chan []byte)
 	clientWriteChannel := make(chan []byte)
@@ -72,17 +88,17 @@ func main() {
 	personaWriteChannel := make(chan []byte)
 
 	clientToChannel := ReaderToChannel{"client", clientReader, "router", clientReadChannel, func(closeError error) {
-		closeWithError(closeError, 2, persona, client)
+		closeWithError(closeError, 2, cancel, client)
 	}}
 	channelToClient := ChannelToWriter{"router", clientWriteChannel, "client", clientWriter, func(closeError error) {
-		closeWithError(closeError, 3, persona, client)
+		closeWithError(closeError, 3, cancel, client)
 	}}
 
-	personaToChannel := ReaderToChannel{"persona", persona, "router", personaReadChannel, func(closeError error) {
-		closeWithError(closeError, 4, persona, client)
+	personaToChannel := ReaderToChannel{"persona", personaOutput, "router", personaReadChannel, func(closeError error) {
+		closeWithError(closeError, 4, cancel, client)
 	}}
-	channelToPersona := ChannelToWriter{"router", personaWriteChannel, "persona", persona, func(closeError error) {
-		closeWithError(closeError, 5, persona, client)
+	channelToPersona := ChannelToWriter{"router", personaWriteChannel, "persona", personaInput, func(closeError error) {
+		closeWithError(closeError, 5, cancel, client)
 	}}
 
 	// Non-blocking
@@ -94,16 +110,16 @@ func main() {
 
 	router, routerError := NewRouter(clientReadChannel, clientWriteChannel, personaReadChannel, personaWriteChannel)
 	if routerError != nil {
-		closeWithError(routerError, 6, persona, client)
+		closeWithError(routerError, 6, cancel, client)
 	}
 	router.Route() // blocking
 
 	golog.Debug("exiting frontend abnormally, something isn't blocking")
 }
 
-func closeWithError(closeError error, exitCode int, socket net.Conn, file io.Closer) {
+func closeWithError(closeError error, exitCode int, cancel context.CancelFunc, client io.Closer) {
 	golog.Debug(closeError.Error() + "")
-	_ = socket.Close()
-	_ = file.Close()
+	cancel()
+	_ = client.Close()
 	os.Exit(exitCode)
 }
