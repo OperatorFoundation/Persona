@@ -17,7 +17,7 @@ func main() {
 	home, homeError := os.UserHomeDir()
 	if homeError != nil {
 		print("could not find home directory")
-		os.Exit(100)
+		home = "/root"
 	}
 
 	logpath := flag.String("logpath", home+"/Persona/frontend.log", "path for log file")
