@@ -24,7 +24,7 @@ public enum Subsystem: UInt8
 
 public class Persona
 {
-    public let stats: Stats = Stats()
+    public let stats: Stats
 
     let connection: AsyncConnection
     let logger: Logger
@@ -51,6 +51,7 @@ public class Persona
         let logFileURL2 = File.homeDirectory().appendingPathComponent("Persona/PersonaUdpLog.log", isDirectory: false)
         let logFileURL3 = File.homeDirectory().appendingPathComponent("Persona/PersonaPacketLog.log", isDirectory: false)
         let logFileURL4 = File.homeDirectory().appendingPathComponent("Persona/PersonaClientWriteLog.log", isDirectory: false)
+        self.stats = try Stats()
 
         if File.exists(logFileURL.path)
         {

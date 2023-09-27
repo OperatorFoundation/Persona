@@ -27,7 +27,7 @@ public class Stats
 
     let logFileURL: URL
 
-    public init()
+    public init() throws
     {
         self.logFileURL = File.homeDirectory().appendingPathComponent("/root/Persona/PersonaStats.log", isDirectory: false)
         if File.exists(self.logFileURL.path)
@@ -35,13 +35,11 @@ public class Stats
             let _ = File.delete(atPath: self.logFileURL.path)
         }
 
-        if let file = try? FileLogger("PersonaStatsLogger",
+        let file = try FileLogger("PersonaStatsLogger",
                                       logLevel: .debug,
                                       fileURL: self.logFileURL,
                                       filePermission: "600")  // Default permission is "640".
-        {
-            self.logger.add(file)
-        }
+        self.logger.add(file)
 
         self.logger.info("Persona started")
     }
