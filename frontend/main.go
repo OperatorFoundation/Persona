@@ -48,22 +48,30 @@ func main() {
 			os.Exit(10)
 		}
 
-		connection, acceptError := listener.Accept()
-		if acceptError != nil {
-			golog.Errorf("error accepting: %v", acceptError.Error())
-			os.Exit(11)
-		}
+		for {
+			connection, acceptError := listener.Accept()
+			if acceptError != nil {
+				golog.Errorf("error accepting: %v", acceptError.Error())
+				os.Exit(11)
+			}
 
-		client = connection
-		clientReader = connection
-		clientWriter = connection
+			client = connection
+			clientReader = connection
+			clientWriter = connection
+
+			go handleConnection(home, client, clientReader, clientWriter)
+		}
 	} else {
 		systemd := os.NewFile(3, "systemd")
 		client = systemd
 		clientReader = systemd
 		clientWriter = systemd
-	}
 
+		handleConnection(home, client, clientReader, clientWriter)
+	}
+}
+
+func handleConnection(home string, client io.Closer, clientReader io.Reader, clientWriter io.Writer) {
 	golog.Debug("launching Persona subprocess")
 	context, cancel := context.WithCancel(context.Background())
 	persona := exec.CommandContext(context, home+"/Persona/Persona")
