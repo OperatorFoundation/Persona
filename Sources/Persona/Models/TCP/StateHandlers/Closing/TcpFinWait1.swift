@@ -24,8 +24,10 @@ import InternetProtocols
 
 public class TcpFinWait1: TcpStateHandler
 {
-    override public func processDownstreamPacket(ipv4: IPv4, tcp: TCP, payload: Data?) async throws -> TcpStateTransition
+    override public func processDownstreamPacket(stats: Stats, ipv4: IPv4, tcp: TCP, payload: Data?) async throws -> TcpStateTransition
     {
+        stats.finWait1 = stats.finWait1 + 1
+
         let clientWindow = self.straw.clientWindow(size: tcp.windowSize)
         let packetLowerBound = SequenceNumber(tcp.sequenceNumber)
         let packetUpperBound = packetLowerBound

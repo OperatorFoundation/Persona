@@ -16,8 +16,10 @@ import InternetProtocols
 public class TcpNew: TcpStateHandler
 {
     // Quietly ignore all incoming packets, we're waiting to hear back on our upstream connection attempt.
-    override public func processDownstreamPacket(ipv4: IPv4, tcp: TCP, payload: Data?) async throws -> TcpStateTransition
+    override public func processDownstreamPacket(stats: Stats, ipv4: IPv4, tcp: TCP, payload: Data?) async throws -> TcpStateTransition
     {
+        stats.new = stats.new + 1
+
         return TcpStateTransition(newState: self)
     }
 

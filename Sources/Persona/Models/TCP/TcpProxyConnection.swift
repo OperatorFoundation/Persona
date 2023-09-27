@@ -121,7 +121,7 @@ public actor TcpProxyConnection
         self.state = TcpNew(identity: identity, downstream: downstream, logger: logger, tcpLogger: tcpLogger, writeLogger: writeLogger)
     }
 
-    public func processDownstreamPacket(ipv4: IPv4, tcp: TCP, payload: Data?) async throws
+    public func processDownstreamPacket(stats: Stats, ipv4: IPv4, tcp: TCP, payload: Data?) async throws
     {
         let tcpSequenceNumber = SequenceNumber(tcp.sequenceNumber)
         let tcpAcknowledgementNumber = SequenceNumber(tcp.acknowledgementNumber)
@@ -133,7 +133,7 @@ public actor TcpProxyConnection
         self.logger.debug("TcpProxyConnection.processDownstreamPacket - SEQ#:\(tcpSequenceNumber) (\(sequenceDifference) difference), ACK#:\(tcpAcknowledgementNumber) (\(acknowledgementDifference) difference)")
         #endif
 
-        let transition = try await self.state.processDownstreamPacket(ipv4: ipv4, tcp: tcp, payload: nil)
+        let transition = try await self.state.processDownstreamPacket(stats: stats, ipv4: ipv4, tcp: tcp, payload: nil)
 
         var packetsToSend: [IPv4]
         

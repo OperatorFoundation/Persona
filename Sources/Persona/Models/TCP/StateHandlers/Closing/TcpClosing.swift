@@ -12,8 +12,10 @@ import InternetProtocols
 // FIXME me - implement this state
 public class TcpClosing: TcpStateHandler
 {
-    override public func processDownstreamPacket(ipv4: IPv4, tcp: TCP, payload: Data?) async throws -> TcpStateTransition
+    override public func processDownstreamPacket(stats: Stats, ipv4: IPv4, tcp: TCP, payload: Data?) async throws -> TcpStateTransition
     {
+        stats.closing = stats.closing + 1
+
         let clientWindow = self.straw.clientWindow(size: tcp.windowSize)
         let packetLowerBound = SequenceNumber(tcp.sequenceNumber)
         let packetUpperBound = packetLowerBound

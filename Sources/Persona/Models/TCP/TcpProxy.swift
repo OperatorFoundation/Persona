@@ -186,13 +186,15 @@ public struct TcpProxyResponse: CustomStringConvertible
 public actor TcpProxy
 {
     let client: AsyncConnection
+    let stats: Stats
     let logger: Logger
     let tcpLogger: Puppy
     let writeLogger: Puppy
 
-    public init(client: AsyncConnection, logger: Logger, tcpLogger: Puppy, writeLogger: Puppy)
+    public init(client: AsyncConnection, stats: Stats, logger: Logger, tcpLogger: Puppy, writeLogger: Puppy)
     {
         self.client = client
+        self.stats = stats
         self.logger = logger
         self.tcpLogger = tcpLogger
         self.writeLogger = writeLogger
@@ -240,7 +242,7 @@ public actor TcpProxy
         if isPrestablishedConnection
         {
             // Only process packets on preestablished connections. If it's a new connetion, it will process the packet internally in the constructor.
-            try await connection.processDownstreamPacket(ipv4: ipv4, tcp: tcp, payload: payload)
+            try await connection.processDownstreamPacket(stats: self.stats, ipv4: ipv4, tcp: tcp, payload: payload)
         }
     }
 
@@ -251,7 +253,7 @@ public actor TcpProxy
         try await connection.processUpstreamConnectSuccess()
 
         let (ipv4, tcp, payload) = connection.firstPacket
-        try await connection.processDownstreamPacket(ipv4: ipv4, tcp: tcp, payload: payload)
+        try await connection.processDownstreamPacket(stats: self.stats, ipv4: ipv4, tcp: tcp, payload: payload)
     }
 
     public func processUpstreamConnectFailure(identity: Identity) async throws

@@ -149,7 +149,7 @@ public class Persona
         self.udpProxy = try await UdpProxy(client: self.connection, logger: logger, udpLogger: udpLogger, writeLogger: clientWriteLog)
 
         // Run Persona's TCP proxying control logic
-        self.tcpProxy = TcpProxy(client: self.connection, logger: self.logger, tcpLogger: self.tcpLogger, writeLogger: self.clientWriteLog)
+        self.tcpProxy = TcpProxy(client: self.connection, stats: self.stats, logger: self.logger, tcpLogger: self.tcpLogger, writeLogger: self.clientWriteLog)
     }
 
     // Start the Persona processing loop. Please note that each client gets its own Persona instance.

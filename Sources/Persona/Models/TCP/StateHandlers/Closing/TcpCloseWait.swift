@@ -17,9 +17,10 @@ import InternetProtocols
 ///
 public class TcpCloseWait: TcpStateHandler
 {
-    override public func processDownstreamPacket(ipv4: IPv4, tcp: TCP, payload: Data?) async throws -> TcpStateTransition 
+    override public func processDownstreamPacket(stats: Stats, ipv4: IPv4, tcp: TCP, payload: Data?) async throws -> TcpStateTransition
     {
-        // FIXME:
+        stats.closeWait = stats.closeWait + 1
+
         if tcp.fin
         {
             let ack = try await makeAck()

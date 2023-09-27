@@ -11,8 +11,10 @@ import InternetProtocols
 
 public class TcpSynReceived: TcpStateHandler
 {
-    override public func processDownstreamPacket(ipv4: IPv4, tcp: TCP, payload: Data?) async throws -> TcpStateTransition
+    override public func processDownstreamPacket(stats: Stats, ipv4: IPv4, tcp: TCP, payload: Data?) async throws -> TcpStateTransition
     {
+        stats.synReceived = stats.synReceived + 1
+
         // We should not be receiving a RST.
         guard !tcp.rst else
         {

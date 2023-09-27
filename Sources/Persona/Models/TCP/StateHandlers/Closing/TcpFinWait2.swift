@@ -16,8 +16,10 @@ import InternetProtocols
 /// FIN-WAIT-2 - represents waiting for a connection termination request from the remote TCP.
 public class TcpFinWait2: TcpStateHandler
 {
-    public override func processDownstreamPacket(ipv4: IPv4, tcp: TCP, payload: Data?) async throws -> TcpStateTransition
+    public override func processDownstreamPacket(stats: Stats, ipv4: IPv4, tcp: TCP, payload: Data?) async throws -> TcpStateTransition
     {
+        stats.finWait2 = stats.finWait2 + 1
+
         let clientWindow = self.straw.clientWindow(size: tcp.windowSize)
         let packetLowerBound = SequenceNumber(tcp.sequenceNumber)
         let packetUpperBound = packetLowerBound

@@ -11,8 +11,10 @@ import InternetProtocols
 
 public class TcpListen: TcpStateHandler
 {
-    override public func processDownstreamPacket(ipv4: IPv4, tcp: TCP, payload: Data?) async throws -> TcpStateTransition
+    override public func processDownstreamPacket(stats: Stats, ipv4: IPv4, tcp: TCP, payload: Data?) async throws -> TcpStateTransition
     {
+        stats.listen = stats.listen + 1
+
         guard !tcp.rst else
         {
             // No need to send a RST for a RST, just fail on this packet and move to the next one.

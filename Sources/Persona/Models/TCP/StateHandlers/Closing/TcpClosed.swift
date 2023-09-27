@@ -22,6 +22,13 @@ public class TcpClosed: TcpStateHandler
         self.open = false
     }
 
+    public override func processDownstreamPacket(stats: Stats, ipv4: IPv4, tcp: TCP, payload: Data?) async throws -> TcpStateTransition
+    {
+        stats.closed = stats.closed + 1
+
+        return try await super.processDownstreamPacket(stats: stats, ipv4: ipv4, tcp: tcp, payload: payload)
+    }
+
     public override init(_ oldState: TcpStateHandler)
     {
         super.init(oldState)

@@ -11,8 +11,10 @@ import InternetProtocols
 
 public class TcpEstablished: TcpStateHandler
 {
-    override public func processDownstreamPacket(ipv4: IPv4, tcp: TCP, payload: Data?) async throws -> TcpStateTransition
+    override public func processDownstreamPacket(stats: Stats, ipv4: IPv4, tcp: TCP, payload: Data?) async throws -> TcpStateTransition
     {
+        stats.established = stats.established + 1
+
         self.lastUsed = Date() // now
 
         let clientWindow = self.straw.clientWindow(size: tcp.windowSize)

@@ -22,6 +22,18 @@ public class Stats
     public var tcp: Int = 0
     public var udp: Int = 0
 
+    public var closed: Int = 0
+    public var closeWait: Int = 0
+    public var closing: Int = 0
+    public var finWait1: Int = 0
+    public var finWait2: Int = 0
+    public var lastAck: Int = 0
+    public var listen: Int = 0
+    public var new: Int = 0
+    public var synReceived: Int = 0
+    public var synSent: Int = 0
+    public var established: Int = 0
+
     let logger: Puppy
 
     public init(logger: Puppy)
@@ -45,8 +57,18 @@ extension Stats: CustomStringConvertible
         non-IPv4         - \(self.nonIPv4)
         non-TCP/UDP IPv4 - \(self.nonTcpUdpIPv4)
         IPv4             - \(self.ipv4)
-        IPv4/TCP         - \(self.tcp)
-        IPv4/UDP         - \(self.udp)
+        \tIPv4/UDP         - \(self.udp)
+        \tIPv4/TCP         - \(self.tcp)
+        \t\tCLOSED         - \(self.closed)
+        \t\tCLOSE-WAIT     - \(self.closeWait)
+        \t\tCLOSINGvvv     - \(self.closing)
+        \t\tFIN-WAIT-1     - \(self.finWait1)
+        \t\tFIN-WAIT-2     - \(self.finWait2)
+        \t\tLAST-ACK        - \(self.lastAck)
+        \t\tNEW            - \(self.new)
+        \t\tSYN-RECEIVED   - \(self.synReceived)
+        \t\tSYN-SENT       - \(self.synSent)
+        \t\tESTABLISHED    - \(self.established)
         """
     }
 }
