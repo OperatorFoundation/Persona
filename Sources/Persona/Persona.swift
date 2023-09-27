@@ -33,6 +33,7 @@ public class Persona
     var udpLogger = Puppy()
     var packetLogger = Puppy()
     var clientWriteLog = Puppy()
+    var statusLog = Puppy()
 
     var udpProxy: UdpProxy! = nil
     var tcpProxy: TcpProxy! = nil
@@ -51,7 +52,7 @@ public class Persona
         let logFileURL2 = File.homeDirectory().appendingPathComponent("Persona/PersonaUdpLog.log", isDirectory: false)
         let logFileURL3 = File.homeDirectory().appendingPathComponent("Persona/PersonaPacketLog.log", isDirectory: false)
         let logFileURL4 = File.homeDirectory().appendingPathComponent("Persona/PersonaClientWriteLog.log", isDirectory: false)
-        self.stats = try Stats()
+        let statusFileURL = File.homeDirectory().appendingPathComponent("Persona/PersonaStats.log", isDirectory: false)
 
         if File.exists(logFileURL.path)
         {
@@ -71,6 +72,11 @@ public class Persona
         if File.exists(logFileURL4.path)
         {
             let _ = File.delete(atPath: logFileURL4.path)
+        }
+
+        if File.exists(statusFileURL.path)
+        {
+            let _ = File.delete(atPath: statusFileURL.path)
         }
 
         if let file = try? FileLogger("PersonaTCPLogger",
@@ -105,12 +111,22 @@ public class Persona
             clientWriteLog.add(file4)
         }
 
+        if let statusFile = try? FileLogger("PersonaStatusLogger",
+                                       logLevel: .debug,
+                                       fileURL: statusFileURL,
+                                       filePermission: "600")  // Default permission is "640".
+        {
+            statusLog.add(statusFile)
+        }
+
         let now = Date()
         self.logger.info("🏀 Persona Start \(now) 🏀") // General log for debugging with probably too much information to follow
         self.packetLogger.info("🏀 PersonaPacketLogger Start \(now)🏀") // Logs of only events related to packets
         self.tcpLogger.info("🏀 PersonaTCPLogger Start \(now)🏀") // Log of only events related to TCP packets that are part of the client TCP test
         self.udpLogger.info("🏀 PersonaUDPLogger Start \(now)🏀") // Log of only events related to UDP packets that are part of the client UDP test
         self.clientWriteLog.info("🏀 PersonaClientWriteLogger Start \(now)🏀") // Log of only writes to the client
+
+        self.stats = Stats(logger: statusLog)
 
         // Connect to systemd input and output streams
         // Persona only runs under systemd. You cannot run it directly on the command line.

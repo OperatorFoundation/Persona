@@ -22,26 +22,11 @@ public class Stats
     public var tcp: Int = 0
     public var udp: Int = 0
 
-    var timer: Timer? = nil
-    var logger: Puppy = Puppy()
+    let logger: Puppy
 
-    let logFileURL: URL
-
-    public init() throws
+    public init(logger: Puppy)
     {
-        self.logFileURL = File.homeDirectory().appendingPathComponent("/root/Persona/PersonaStats.log", isDirectory: false)
-        if File.exists(self.logFileURL.path)
-        {
-            let _ = File.delete(atPath: self.logFileURL.path)
-        }
-
-        let file = try FileLogger("PersonaStatsLogger",
-                                      logLevel: .debug,
-                                      fileURL: self.logFileURL,
-                                      filePermission: "600")  // Default permission is "640".
-        self.logger.add(file)
-
-        self.logger.info("Persona started")
+        self.logger = logger
     }
 
     public func writeLog()
