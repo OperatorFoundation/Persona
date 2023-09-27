@@ -13,7 +13,13 @@ public class TcpEstablished: TcpStateHandler
 {
     override public func processDownstreamPacket(stats: Stats, ipv4: IPv4, tcp: TCP, payload: Data?) async throws -> TcpStateTransition
     {
-        stats.established = stats.established + 1
+        stats.established += 1
+        if tcp.syn { stats.syn += 1}
+        if tcp.fin { stats.syn += 1}
+        if tcp.rst { stats.rst += 1}
+        if tcp.ack { stats.ack += 1}
+        if !tcp.syn, !tcp.fin, !tcp.rst, !tcp.ack { stats.noFlags += 1 }
+        if tcp.payload == nil { stats.noPayload += 1 } else { stats.payload += 1 }
 
         self.lastUsed = Date() // now
 

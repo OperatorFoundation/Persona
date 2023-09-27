@@ -33,6 +33,13 @@ public class Stats
     public var synReceived: Int = 0
     public var synSent: Int = 0
     public var established: Int = 0
+    public var syn: Int = 0
+    public var fin: Int = 0
+    public var rst: Int = 0
+    public var ack: Int = 0
+    public var noFlags: Int = 0
+    public var payload: Int = 0
+    public var noPayload: Int = 0
 
     let logger: Puppy
 
@@ -69,6 +76,13 @@ extension Stats: CustomStringConvertible
         \t\tSYN-RECEIVED   - \(self.synReceived)
         \t\tSYN-SENT       - \(self.synSent)
         \t\tESTABLISHED    - \(self.established)
+        \t\t\tSYN          - \(self.syn)
+        \t\t\tFIN          - \(self.fin)
+        \t\t\tRST          - \(self.rst)
+        \t\t\tACK          - \(self.ack)
+        \t\t\tno flags     - \(self.noFlags)
+        \t\t\tpayload      - \(self.payload)
+        \t\t\tno payload   - \(self.noPayload)
         """
     }
 }
