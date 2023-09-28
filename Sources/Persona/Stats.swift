@@ -125,8 +125,8 @@ extension Stats: CustomStringConvertible
         \t\t\t\tpayload           - \(self.sentpayload)
         \t\t\t\tno payload        - \(self.sentnopayload)
         \t\t\t\twindow correction - \(self.windowCorrection)
-        \t\t\t\tretransmission\t- \(self.sentnopayload)
-        \t\t\t\tfresh\t- \(self.windowCorrection)
+        \t\t\t\tretransmission\t- \(self.retransmission)
+        \t\t\t\tfresh\t- \(self.fresh)
 
         Metrics:
         \toptimism                - \(TcpProxy.optimism)
