@@ -116,7 +116,7 @@ extension Stats: CustomStringConvertible
 
         Metrics:
         \toptimism                - \(TcpProxy.optimism)
-        \tack ratio               - \(Int((Double(self.sentpayload) / Double(self.noPayload)) * 100))
+        \tack ratio               - \(Int((Double(self.sentpayload) / Double(self.noPayload)) * 100))%
         """
     }
 }
