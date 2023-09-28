@@ -194,7 +194,7 @@ public class Persona
     func handleMessage(_ data: Data) async throws
     {
         self.stats.messages = self.stats.messages + 1
-        if self.stats.messages % 1000 == 0 // Every 1000 messages, write stats log
+        if self.stats.messages % Stats.writeInterval == 0
         {
             self.logger.info("writing stats log, packet #\(self.stats.messages)")
             self.stats.writeLog()

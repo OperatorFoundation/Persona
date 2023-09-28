@@ -13,7 +13,7 @@ import Puppy
 
 public class Stats
 {
-    static let writeInterval: TimeInterval = 1 * 60 // 1 minute in seconds
+    static public let writeInterval: Int = 100 // packets
 
     public var messages: Int = 0
     public var nonIPv4: Int = 0
