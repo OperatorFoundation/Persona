@@ -150,9 +150,7 @@ public class TcpStateHandler
             let nextPacketSize = min(sizeToSend - totalPayloadSize, 1400)
 
             let window = SequenceNumberRange(lowerBound: nextSequenceNumber, size: UInt32(nextPacketSize))
-            self.logger.info("TcpStateHandler.pumpStrawToClient - 3 - \(window.lowerBound) \(nextPacketSize)")
             let packet = try await self.makeAck(window: window)
-            self.logger.info("TcpStateHandler.pumpStrawToClient - 4")
             packets.append(packet)
 
             totalPayloadSize = totalPayloadSize + nextPacketSize

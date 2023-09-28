@@ -153,6 +153,12 @@ public class TcpEstablished: TcpStateHandler
 
         var packets = try await self.pumpStrawToClient(stats)
 
+        stats.sentipv4 += packets.count
+        stats.senttcp += packets.count
+        stats.sentestablished += packets.count
+        stats.sentack += packets.count
+        stats.payload += packets.count
+
         if packets.isEmpty
         {
             stats.sentipv4 += 1
