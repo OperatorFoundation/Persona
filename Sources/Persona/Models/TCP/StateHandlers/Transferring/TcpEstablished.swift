@@ -26,8 +26,6 @@ public class TcpEstablished: TcpStateHandler
             if tcp.payload == nil { stats.noPayload += 1 } else { stats.payload += 1 }
         }
 
-        self.lastUsed = Date() // now
-
         let clientWindow = self.straw.clientWindow(size: tcp.windowSize)
         let packetLowerBound = SequenceNumber(tcp.sequenceNumber)
 

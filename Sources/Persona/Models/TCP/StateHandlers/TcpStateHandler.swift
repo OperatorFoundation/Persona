@@ -43,7 +43,6 @@ public class TcpStateHandler
     public let tcpLogger: Puppy
     public let writeLogger: Puppy
 
-    public var lastUsed: Date
     public var straw: TCPStraw
     public var open: Bool = true
 
@@ -55,8 +54,6 @@ public class TcpStateHandler
         self.tcpLogger = tcpLogger
         self.writeLogger = writeLogger
 
-        self.lastUsed = Date()
-
         self.straw = TCPStraw(sequenceNumber: isn(), acknowledgementNumber: SequenceNumber(0))
     }
 
@@ -67,8 +64,6 @@ public class TcpStateHandler
         self.logger = oldState.logger
         self.tcpLogger = oldState.tcpLogger
         self.writeLogger = oldState.writeLogger
-
-        self.lastUsed = oldState.lastUsed
 
         self.straw = oldState.straw
     }
