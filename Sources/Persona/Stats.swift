@@ -93,13 +93,13 @@ extension Stats: CustomStringConvertible
         }
 
         let packetloss: Int
-        if self.retransmission == 0
+        if self.retransmission + self.fresh == 0
         {
             packetloss = 0
         }
         else
         {
-            packetloss = Int(Double(self.fresh) / Double(self.retransmission) * 100)
+            packetloss = Int(Double(self.retransmission) / Double(self.fresh + self.retransmission) * 100)
         }
 
         let now: Date = Date() // now
