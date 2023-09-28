@@ -151,15 +151,6 @@ public class TcpStateHandler
 
             let window = SequenceNumberRange(lowerBound: nextSequenceNumber, size: UInt32(nextPacketSize))
 
-            if window.contains(sequenceNumber: self.straw.highWaterMark)
-            {
-                stats.retransmission += 1
-            }
-            else
-            {
-                stats.fresh += 1
-            }
-
             let packet = try await self.makeAck(stats: stats, window: window)
             packets.append(packet)
 
@@ -220,9 +211,7 @@ public class TcpStateHandler
         {
             let (_, acknowledgementNumber, windowSize) = self.getState()
 
-            let segment = try self.straw.read(window: window)
-
-            if segment.window.contains(sequenceNumber: self.straw.highWaterMark)
+            if window.contains(sequenceNumber: self.straw.highWaterMark)
             {
                 stats.retransmission += 1
             }
@@ -230,6 +219,8 @@ public class TcpStateHandler
             {
                 stats.fresh += 1
             }
+
+            let segment = try self.straw.read(window: window)
 
             return try self.makePacket(sequenceNumber: segment.window.lowerBound, acknowledgementNumber: acknowledgementNumber, windowSize: windowSize, ack: true, payload: segment.data)
         }
