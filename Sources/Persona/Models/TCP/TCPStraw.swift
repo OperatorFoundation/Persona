@@ -130,8 +130,11 @@ public class TCPStraw
 
     public func read(window: SequenceNumberRange) throws -> SegmentData
     {
+        print("TCPStraw.read - 1")
         let offset = window.lowerBound - self.sequenceNumber
+        print("TCPStraw.read - 2")
         let size = window.upperBound - window.lowerBound
+        print("TCPStraw.read - 3")
         return try self.read(offset: Int(offset), size: Int(size))
     }
 
