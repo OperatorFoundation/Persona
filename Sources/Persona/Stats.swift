@@ -74,6 +74,16 @@ extension Stats: CustomStringConvertible
 {
     public var description: String
     {
+        let ackRatio: Int
+        if self.noPayload == 0
+        {
+            ackRatio = 0
+        }
+        else
+        {
+            ackRatio = Int((Double(self.sentpayload) / Double(self.noPayload)) * 100)
+        }
+
         return """
         Received:
         non-IPv4         - \(self.nonIPv4)
@@ -116,7 +126,7 @@ extension Stats: CustomStringConvertible
 
         Metrics:
         \toptimism                - \(TcpProxy.optimism)
-        \tack ratio               - \(Int((Double(self.sentpayload) / Double(self.noPayload)) * 100))%
+        \tack ratio               - \(ackRatio)%
         """
     }
 }
