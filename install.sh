@@ -10,7 +10,7 @@ go install
 popd
 
 rm /etc/systemd/system/frontend*
-rm /etc/systemd/system/Persona*
+rm /etc/systemd/system/persona*
 
 cp etc/systemd/* /etc/systemd/system
 systemctl daemon-reload
