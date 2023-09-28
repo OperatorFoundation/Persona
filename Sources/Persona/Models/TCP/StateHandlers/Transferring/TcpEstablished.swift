@@ -66,6 +66,7 @@ public class TcpEstablished: TcpStateHandler
             stats.sentestablished += 1
             stats.sentack += 1
             stats.sentnopayload += 1
+            stats.windowCorrection += 1
             let ack = try await self.makeAck()
             return TcpStateTransition(newState: self, packetsToSend: [ack])
         }
@@ -126,16 +127,16 @@ public class TcpEstablished: TcpStateHandler
         }
         else
         {
-            if packets.isEmpty
-            {
-                stats.sentipv4 += 1
-                stats.senttcp += 1
-                stats.sentestablished += 1
-                stats.sentack += 1
-                stats.sentnopayload += 1
-                let ack = try await makeAck()
-                packets.append(ack)
-            }
+//            if packets.isEmpty
+//            {
+//                stats.sentipv4 += 1
+//                stats.senttcp += 1
+//                stats.sentestablished += 1
+//                stats.sentack += 1
+//                stats.sentnopayload += 1
+//                let ack = try await makeAck()
+//                packets.append(ack)
+//            }
 
             return TcpStateTransition(newState: self, packetsToSend: packets)
         }
