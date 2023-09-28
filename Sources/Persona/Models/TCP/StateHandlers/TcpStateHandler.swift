@@ -163,15 +163,15 @@ public class TcpStateHandler
             let packet = try await self.makeAck(stats: stats, window: window)
             packets.append(packet)
 
+            stats.sentipv4 += 1
+            stats.senttcp += 1
+            stats.sentestablished += 1
+            stats.sentack += 1
+            stats.sentpayload += 1
+
             totalPayloadSize = totalPayloadSize + nextPacketSize
             nextSequenceNumber = nextSequenceNumber.add(nextPacketSize)
         }
-
-        stats.sentipv4 += packets.count
-        stats.senttcp += packets.count
-        stats.sentestablished += packets.count
-        stats.sentack += packets.count
-        stats.sentpayload += packets.count
 
         return packets
     }
