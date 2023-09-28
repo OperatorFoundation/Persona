@@ -150,6 +150,16 @@ public class TcpStateHandler
             let nextPacketSize = min(sizeToSend - totalPayloadSize, 1400)
 
             let window = SequenceNumberRange(lowerBound: nextSequenceNumber, size: UInt32(nextPacketSize))
+
+            if window.contains(sequenceNumber: self.straw.highWaterMark)
+            {
+                stats.retransmission += 1
+            }
+            else
+            {
+                stats.fresh += 1
+            }
+
             let packet = try await self.makeAck(stats: stats, window: window)
             packets.append(packet)
 
