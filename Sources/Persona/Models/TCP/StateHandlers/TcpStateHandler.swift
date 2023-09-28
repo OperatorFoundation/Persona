@@ -148,16 +148,24 @@ public class TcpStateHandler
 
         while totalPayloadSize < sizeToSend, packets.count < TcpProxy.optimism
         {
+            self.logger.info("TcpStateHandler.pumpStrawToClient - 1")
             // Each packet is limited is by the amount left to send and the MTU (which we guess).
             let nextPacketSize = min(sizeToSend - totalPayloadSize, 1400)
+            self.logger.info("TcpStateHandler.pumpStrawToClient - 2")
 
             let window = SequenceNumberRange(lowerBound: nextSequenceNumber, size: UInt32(nextPacketSize))
+            self.logger.info("TcpStateHandler.pumpStrawToClient - 3")
             let packet = try await self.makeAck(window: window)
+            self.logger.info("TcpStateHandler.pumpStrawToClient - 4")
             packets.append(packet)
+            self.logger.info("TcpStateHandler.pumpStrawToClient - 5")
 
             totalPayloadSize = totalPayloadSize + nextPacketSize
+            self.logger.info("TcpStateHandler.pumpStrawToClient - 6")
             nextSequenceNumber = nextSequenceNumber.add(nextPacketSize)
+            self.logger.info("TcpStateHandler.pumpStrawToClient - 7")
         }
+        self.logger.info("TcpStateHandler.pumpStrawToClient - 8")
 
         stats.sentipv4 += packets.count
         stats.senttcp += packets.count
@@ -165,6 +173,7 @@ public class TcpStateHandler
         stats.sentack += packets.count
         stats.sentpayload += packets.count
 
+        self.logger.info("TcpStateHandler.pumpStrawToClient - 9")
         self.logger.info("TcpStateHandler.pumpStrawToClient - \(packets.count) packets")
 
         return packets
