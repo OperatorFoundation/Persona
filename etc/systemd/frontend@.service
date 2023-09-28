@@ -1,7 +1,0 @@
-# frontend@.service
-
-[Unit]
-Description = frontend server service
-
-[Service]
-ExecStart=/root/go/bin/frontend
