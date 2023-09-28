@@ -92,14 +92,14 @@ extension Stats: CustomStringConvertible
             ackRatio = Int(Double(self.noPayload) / (Double(self.sentpayload)) * 100)
         }
 
-        let retransmissionRatio: Int
-        if self.fresh == 0
+        let packetloss: Int
+        if self.retransmission == 0
         {
-            retransmissionRatio = 0
+            packetloss = 0
         }
         else
         {
-            retransmissionRatio = Int(Double(self.retransmission) / Double(self.fresh) * 100)
+            packetloss = Int(Double(self.fresh) / Double(self.retransmission) * 100)
         }
 
         let now: Date = Date() // now
@@ -161,7 +161,7 @@ extension Stats: CustomStringConvertible
         Metrics:
         \toptimism                - \(TcpProxy.optimism)
         \tack ratio               - \(ackRatio)%
-        \tretransmisison ratio\t- \(retransmissionRatio)%
+        \tpacket loss\t- \(packetloss)%
         \tpackets per second\t- \(pps) pps
         """
     }
