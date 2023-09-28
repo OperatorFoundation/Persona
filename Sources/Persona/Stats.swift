@@ -113,6 +113,10 @@ extension Stats: CustomStringConvertible
         \t\t\t\tpayload           - \(self.sentpayload)
         \t\t\t\tno payload        - \(self.sentnopayload)
         \t\t\t\twindow correction - \(self.windowCorrection)
+
+        Metrics:
+        \toptimism                - \(TcpProxy.optimism)
+        \tack ratio               - \(Int((Double(self.sentpayload) / Double(self.noPayload)) * 100))
         """
     }
 }
