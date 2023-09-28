@@ -157,7 +157,7 @@ public class TcpEstablished: TcpStateHandler
         stats.senttcp += packets.count
         stats.sentestablished += packets.count
         stats.sentack += packets.count
-        stats.payload += packets.count
+        stats.sentpayload += packets.count
 
         if packets.isEmpty
         {
