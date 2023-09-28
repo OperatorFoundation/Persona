@@ -43,6 +43,17 @@ public class Stats
     public var inWindow: Int = 0
     public var outOfWindow: Int = 0
 
+    public var sentipv4: Int = 0
+    public var sentudp: Int = 0
+    public var senttcp: Int = 0
+    public var sentestablished: Int = 0
+    public var sentsyn: Int = 0
+    public var sentfin: Int = 0
+    public var sentrst: Int = 0
+    public var sentack: Int = 0
+    public var sentpayload: Int = 0
+    public var sentnopayload: Int = 0
+
     let logger: Puppy
 
     public init(logger: Puppy)
@@ -63,6 +74,7 @@ extension Stats: CustomStringConvertible
     public var description: String
     {
         return """
+        Received:
         non-IPv4         - \(self.nonIPv4)
         non-TCP/UDP IPv4 - \(self.nonTcpUdpIPv4)
         IPv4                    - \(self.ipv4)
@@ -87,6 +99,18 @@ extension Stats: CustomStringConvertible
         \t\t\t\tout of window   - \(self.outOfWindow)
         \t\t\t\tpayload         - \(self.payload)
         \t\t\t\tno payload      - \(self.noPayload)
+
+        Sent:
+        IPv4                    - \(self.sentipv4)
+        \tIPv4/UDP              - \(self.sentudp)
+        \tIPv4/TCP              - \(self.senttcp)
+        \t\tESTABLISHED         - \(self.sentestablished)
+        \t\t\tSYN               - \(self.sentsyn)
+        \t\t\tFIN               - \(self.sentfin)
+        \t\t\tRST               - \(self.sentrst)
+        \t\t\tACK               - \(self.sentack)
+        \t\t\t\tpayload         - \(self.sentpayload)
+        \t\t\t\tno payload      - \(self.sentnopayload)
         """
     }
 }

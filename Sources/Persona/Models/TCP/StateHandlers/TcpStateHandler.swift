@@ -94,12 +94,12 @@ public class TcpStateHandler
         return TcpStateTransition(newState: self)
     }
 
-    public func processUpstreamData(data: Data) async throws -> TcpStateTransition
+    public func processUpstreamData(stats: Stats, data: Data) async throws -> TcpStateTransition
     {
         return self.panicOnUpstream(data: data)
     }
 
-    public func processUpstreamClose() async throws -> TcpStateTransition
+    public func processUpstreamClose(stats: Stats) async throws -> TcpStateTransition
     {
         return self.panicOnUpstreamClose()
     }
@@ -123,7 +123,7 @@ public class TcpStateHandler
         return TcpStateTransition(newState: self)
     }
 
-    func pumpStrawToClient(_ tcp: TCP? = nil) async throws -> [IPv4]
+    func pumpStrawToClient(_ stats: Stats, _ tcp: TCP? = nil) async throws -> [IPv4]
     {
         guard !self.straw.isEmpty else
         {
@@ -162,6 +162,11 @@ public class TcpStateHandler
             nextSequenceNumber = nextSequenceNumber.add(nextPacketSize)
         }
 
+        stats.sentipv4 += packets.count
+        stats.senttcp += packets.count
+        stats.sentestablished += packets.count
+        stats.sentack += packets.count
+        stats.sentpayload += packets.count
         return packets
     }
 

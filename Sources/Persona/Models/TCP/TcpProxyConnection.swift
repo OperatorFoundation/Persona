@@ -249,9 +249,9 @@ public actor TcpProxyConnection
         }
     }
 
-    public func processUpstreamData(data: Data) async throws
+    public func processUpstreamData(stats: Stats, data: Data) async throws
     {
-        let transition = try await self.state.processUpstreamData(data: data)
+        let transition = try await self.state.processUpstreamData(stats: stats, data: data)
 
         for packet in transition.packetsToSend
         {

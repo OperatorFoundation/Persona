@@ -43,6 +43,10 @@ public class TcpEstablished: TcpStateHandler
 
             let (sequenceNumber, acknowledgementNumber, windowSize) = self.getState()
 
+            stats.sentipv4 += 1
+            stats.senttcp += 1
+            stats.sentestablished += 1
+            stats.sentrst += 1
             let rst = try self.makeRst(ipv4: ipv4, tcp: tcp, sequenceNumber: sequenceNumber, acknowledgementNumber: acknowledgementNumber, windowSize: windowSize)
 
             let closed = TcpClosed(self)
@@ -59,6 +63,11 @@ public class TcpEstablished: TcpStateHandler
             self.logger.error("❌ TcpEstablished - \(clientWindow.lowerBound) <= \(packetLowerBound)..<\(packetUpperBound) <= \(clientWindow.upperBound)")
 
             // Send an ACK to let the client know that they are outside of the TCP window.
+            stats.sentipv4 += 1
+            stats.senttcp += 1
+            stats.sentestablished += 1
+            stats.sentack += 1
+            stats.sentnopayload += 1
             let ack = try await self.makeAck()
             return TcpStateTransition(newState: self, packetsToSend: [ack])
         }
@@ -99,7 +108,7 @@ public class TcpEstablished: TcpStateHandler
             self.straw.increaseAcknowledgementNumber(payload.count)
         }
 
-        var packets = try await self.pumpStrawToClient(tcp)
+        var packets = try await self.pumpStrawToClient(stats, tcp)
 
         if tcp.fin
         {
@@ -121,6 +130,11 @@ public class TcpEstablished: TcpStateHandler
         {
             if packets.isEmpty
             {
+                stats.sentipv4 += 1
+                stats.senttcp += 1
+                stats.sentestablished += 1
+                stats.sentack += 1
+                stats.sentnopayload += 1
                 let ack = try await makeAck()
                 packets.append(ack)
             }
@@ -129,7 +143,7 @@ public class TcpEstablished: TcpStateHandler
         }
     }
 
-    override public func processUpstreamData(data: Data) async throws -> TcpStateTransition
+    override public func processUpstreamData(stats: Stats, data: Data) async throws -> TcpStateTransition
     {
         guard data.count > 0 else
         {
@@ -138,10 +152,15 @@ public class TcpEstablished: TcpStateHandler
 
         try self.straw.write(data)
 
-        var packets = try await self.pumpStrawToClient()
+        var packets = try await self.pumpStrawToClient(stats)
 
         if packets.isEmpty
         {
+            stats.sentipv4 += 1
+            stats.senttcp += 1
+            stats.sentestablished += 1
+            stats.sentack += 1
+            stats.sentnopayload += 1
             let ack = try await makeAck()
             packets.append(ack)
         }
@@ -149,7 +168,7 @@ public class TcpEstablished: TcpStateHandler
         return TcpStateTransition(newState: self, packetsToSend: packets, progress: true)
     }
 
-    override public func processUpstreamClose() async throws -> TcpStateTransition
+    override public func processUpstreamClose(stats: Stats) async throws -> TcpStateTransition
     {
         return TcpStateTransition(newState: TcpFinWait1(self))
     }

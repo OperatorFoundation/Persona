@@ -267,7 +267,7 @@ public actor TcpProxy
     {
         let connection = try TcpProxyConnection.getConnection(identity: identity)
 
-        try await connection.processUpstreamData(data: data)
+        try await connection.processUpstreamData(stats: self.stats, data: data)
     }
 
     public func processUpstreamClose(identity: Identity) async throws

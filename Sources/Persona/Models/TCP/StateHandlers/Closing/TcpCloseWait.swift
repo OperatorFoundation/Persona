@@ -30,19 +30,19 @@ public class TcpCloseWait: TcpStateHandler
         return TcpStateTransition(newState: self)
     }
     
-    override public func processUpstreamData(data: Data) async throws -> TcpStateTransition
+    override public func processUpstreamData(stats: Stats, data: Data) async throws -> TcpStateTransition
     {
         try self.straw.write(data)
 
-        let packets = try await self.pumpStrawToClient()
+        let packets = try await self.pumpStrawToClient(stats)
 
         return TcpStateTransition(newState: self, packetsToSend: packets)
     }
     
-    override public func processUpstreamClose() async throws -> TcpStateTransition
+    override public func processUpstreamClose(stats: Stats) async throws -> TcpStateTransition
     {
-        var packets = try await self.pumpStrawToClient()
-        
+        var packets = try await self.pumpStrawToClient(stats)
+
         // Send FIN
         let fin = try await makeFinAck()
         packets.append(fin)
