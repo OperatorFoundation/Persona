@@ -5,6 +5,7 @@ import (
 	"frontend/tcpproxy"
 	"frontend/udpproxy"
 	"github.com/kataras/golog"
+	"time"
 )
 
 type Router struct {
@@ -78,6 +79,8 @@ func (r *Router) RoutePersona() {
 
 		switch subsystem {
 		case Client:
+			// FIXME - remove this temporary hack
+			time.Sleep(100 * time.Millisecond) // 100 ms
 			r.ClientWriteChannel <- data
 		case Udpproxy:
 			request := udpproxy.NewRequest(data)
