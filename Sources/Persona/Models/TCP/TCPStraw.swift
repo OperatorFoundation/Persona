@@ -125,24 +125,17 @@ public class TCPStraw
 
     public func read(offset: Int, size: Int) throws -> SegmentData
     {
-        self.logger.info("TCPStraw.read(offset:size:) - 1")
         let data = try self.straw.peek(offset: offset, size: size)
-        self.logger.info("TCPStraw.read(offset:size:) - 2")
         let window = SequenceNumberRange(lowerBound: self.sequenceNumber.add(offset), size: UInt32(data.count))
-        self.logger.info("TCPStraw.read(offset:size:) - 3")
         let result = SegmentData(data: data, window: window)
-        self.logger.info("TCPStraw.read(offset:size:) - 4")
 
         return result
     }
 
     public func read(window: SequenceNumberRange) throws -> SegmentData
     {
-        self.logger.info("TCPStraw.read - 1")
         let offset = window.lowerBound - self.sequenceNumber
-        self.logger.info("TCPStraw.read - 2")
         let size = window.upperBound - window.lowerBound
-        self.logger.info("TCPStraw.read - 3 \(self.count) \(offset) \(size)")
         return try self.read(offset: Int(offset), size: Int(size))
     }
 
