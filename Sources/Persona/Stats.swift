@@ -162,7 +162,7 @@ extension Stats: CustomStringConvertible
         \toptimism                - \(TcpProxy.optimism)
         \tack ratio               - \(ackRatio)%
         \tretransmisison ratio\t- \(retransmissionRatio)%
-        \tpackets per second\t-(pps) pps
+        \tpackets per second\t- \(pps) pps
         """
     }
 }
