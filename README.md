@@ -1,12 +1,12 @@
 # Persona
 
-Persona is the server for the Moonbounce VPN. It is written in Swift and runs on Linux.
+Persona is the server for the Moonbounce VPN. It is written in Go and Swift and runs on Linux.
 
 ## Installing
 
-This is experimental software and is still under development.
-You need the Swift compiler to be installed and in the PATH.
+You need the Swift compiler to be installed and in the PATH. Currently, Swift 5.8 is supported.
 Persona runs as a daemon under systemd, so systemd needs to already be installed.
+
 The install script is intended to be run on a fresh Ubuntu 22.04 installation with nothing else running on the system.
 
 * You must check out Persona as the root user into the /root diretory (the root user's home directory).

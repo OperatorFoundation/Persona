@@ -57,6 +57,9 @@ public class Stats
     public var retransmission: Int = 0
     public var fresh: Int = 0
 
+    var lastWrite: Date = Date() // now
+    var lastSentPayload: Int = 0
+
     let logger: Puppy
 
     public init(logger: Puppy)
@@ -69,6 +72,9 @@ public class Stats
         self.logger.info("--------------")
         self.logger.info(self.description)
         self.logger.info("--------------")
+
+        self.lastWrite = Date() // now
+        self.lastSentPayload = self.sentpayload
     }
 }
 
@@ -94,6 +100,20 @@ extension Stats: CustomStringConvertible
         else
         {
             retransmissionRatio = Int(Double(self.retransmission) / Double(self.fresh) * 100)
+        }
+
+        let now: Date = Date() // now
+        let elapsed = Double(now.timeIntervalSince1970 - self.lastWrite.timeIntervalSince1970)
+
+        let pps: Int
+        if elapsed == 0
+        {
+            pps = 0
+        }
+        else
+        {
+            let accumulated = Double(self.sentpayload - self.lastSentPayload)
+            pps = Int(accumulated / elapsed)
         }
 
         return """
@@ -142,6 +162,7 @@ extension Stats: CustomStringConvertible
         \toptimism                - \(TcpProxy.optimism)
         \tack ratio               - \(ackRatio)%
         \tretransmisison ratio\t- \(retransmissionRatio)%
+        \tpackets per second\t-(pps) pps
         """
     }
 }
