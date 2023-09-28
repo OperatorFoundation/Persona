@@ -144,6 +144,8 @@ public class TcpStateHandler
 
         // We're trying to hit this limit exactly, but if we send to many packets at once they'll get discarded.
         // So try our best, but limit it to 3 packets max.
+        self.logger.info("TcpStateHandler.pumpStrawToClient - making packets")
+
         while totalPayloadSize < sizeToSend, packets.count < TcpProxy.optimism
         {
             // Each packet is limited is by the amount left to send and the MTU (which we guess).
@@ -163,7 +165,7 @@ public class TcpStateHandler
         stats.sentack += packets.count
         stats.sentpayload += packets.count
 
-        self.logger.info("TcpStateHandler.pumpStrawToClient - \(packets.count)")
+        self.logger.info("TcpStateHandler.pumpStrawToClient - \(packets.count) packets")
 
         return packets
     }
