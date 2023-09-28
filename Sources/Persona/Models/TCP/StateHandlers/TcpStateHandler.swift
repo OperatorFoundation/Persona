@@ -210,9 +210,12 @@ public class TcpStateHandler
     {
         if let window
         {
+            self.logger.info("TcpSateHandler.makeAck - 1")
             let (_, acknowledgementNumber, windowSize) = self.getState()
+            self.logger.info("TcpSateHandler.makeAck - 2")
 
             let segment = try self.straw.read(window: window)
+            self.logger.info("TcpSateHandler.makeAck - 3")
             return try self.makePacket(sequenceNumber: segment.window.lowerBound, acknowledgementNumber: acknowledgementNumber, windowSize: windowSize, ack: true, payload: segment.data)
         }
         else
