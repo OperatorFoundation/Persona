@@ -17,6 +17,8 @@ type Router struct {
 
 	PersonaReadChannel  chan []byte
 	PersonaWriteChannel chan []byte
+
+	LastClientWrite time.Time
 }
 
 func NewRouter(clientRead chan []byte, clientWrite chan []byte, personaRead chan []byte, personaWrite chan []byte) (*Router, error) {
@@ -38,7 +40,9 @@ func NewRouter(clientRead chan []byte, clientWrite chan []byte, personaRead chan
 	go udp.Run()
 	golog.Debug("udpproxy was run")
 
-	return &Router{tcp, udp, clientRead, clientWrite, personaRead, personaWrite}, nil
+	now := time.Now()
+
+	return &Router{tcp, udp, clientRead, clientWrite, personaRead, personaWrite, now}, nil
 }
 
 func (r *Router) Route() {
@@ -79,8 +83,13 @@ func (r *Router) RoutePersona() {
 
 		switch subsystem {
 		case Client:
-			// FIXME - remove this temporary hack
-			time.Sleep(10 * time.Millisecond) // 10 ms
+			now := time.Now()
+			elapsed := now.Sub(r.LastClientWrite)
+			if elapsed < 10 {
+				time.Sleep((10 - elapsed) * time.Millisecond)
+			}
+
+			r.LastClientWrite = time.Now()
 			r.ClientWriteChannel <- data
 		case Udpproxy:
 			request := udpproxy.NewRequest(data)
