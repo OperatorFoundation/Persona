@@ -6,6 +6,7 @@
 //
 
 import Foundation
+import Logging
 
 import InternetProtocols
 import Straw
@@ -31,6 +32,8 @@ public class TCPStraw
     // Private let properties
     let straw = UnsafeStraw() // No need for thread safety in this implementation as only one thread accesses the Straw.
 
+    let logger: Logger
+
     // Private var properties
 
     // The starting sequence number of the buffered data moving from server to client.
@@ -41,8 +44,9 @@ public class TCPStraw
     var open = true
 
     // Public constructors
-    public init(sequenceNumber: SequenceNumber, acknowledgementNumber: SequenceNumber)
+    public init(logger: Logger, sequenceNumber: SequenceNumber, acknowledgementNumber: SequenceNumber)
     {
+        self.logger = logger
         self.sequenceNumber = sequenceNumber
         self.acknowledgementNumber = acknowledgementNumber
     }

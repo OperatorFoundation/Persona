@@ -51,7 +51,7 @@ public class TcpListen: TcpStateHandler
 
         // Set the acknowledgement number to the sequence number instead of 0. This signifies that nothing has been acknowledged yet and the math works out better than special casing zero.
         // Don't forget to actually send this acknowledgementNumber downstream, or else we'll be out of sync.
-        self.straw = TCPStraw(sequenceNumber: upstreamSequenceNumber, acknowledgementNumber: downstreamSequenceNumber)
+        self.straw = TCPStraw(logger: self.logger, sequenceNumber: upstreamSequenceNumber, acknowledgementNumber: downstreamSequenceNumber)
 
         do
         {

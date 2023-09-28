@@ -54,7 +54,7 @@ public class TcpStateHandler
         self.tcpLogger = tcpLogger
         self.writeLogger = writeLogger
 
-        self.straw = TCPStraw(sequenceNumber: isn(), acknowledgementNumber: SequenceNumber(0))
+        self.straw = TCPStraw(logger: self.logger, sequenceNumber: isn(), acknowledgementNumber: SequenceNumber(0))
     }
 
     public init(_ oldState: TcpStateHandler)
