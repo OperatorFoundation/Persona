@@ -80,7 +80,7 @@ func (r *Router) RoutePersona() {
 		switch subsystem {
 		case Client:
 			// FIXME - remove this temporary hack
-			time.Sleep(100 * time.Millisecond) // 100 ms
+			time.Sleep(10 * time.Millisecond) // 10 ms
 			r.ClientWriteChannel <- data
 		case Udpproxy:
 			request := udpproxy.NewRequest(data)
