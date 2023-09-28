@@ -1,6 +1,6 @@
 module frontend
 
-go 1.21
+go 1.19
 
 require (
 	github.com/kataras/golog v0.1.9 // indirect

@@ -83,11 +83,11 @@ func (r *Router) RoutePersona() {
 
 		switch subsystem {
 		case Client:
-			targetTime := 20 // 20 ms
-			now := time.Now()
-			elapsed := now.Sub(r.LastClientWrite)
+			targetTime := int64(20) // 20 ms
+			now := time.Now().Unix()
+			elapsed := now - r.LastClientWrite.Unix()
 			if elapsed < targetTime {
-				time.Sleep((targetTime - elapsed) * time.Millisecond)
+				time.Sleep(time.Duration(targetTime-elapsed) * time.Millisecond)
 			}
 
 			r.LastClientWrite = time.Now()
