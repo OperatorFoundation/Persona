@@ -16,6 +16,7 @@ go install
 popd
 
 systemctl stop frontend.socket
+systemctl stop frontend
 
 killall Persona >/dev/null 2>/dev/null
 killall -9 Persona >/dev/null 2>/dev/null
@@ -23,4 +24,4 @@ killall -9 Persona >/dev/null 2>/dev/null
 killall frontend >/dev/null 2>/dev/null
 killall -9 frontend >/dev/null 2>/dev/null
 
-systemctl start frontend.socket
+systemctl start frontend

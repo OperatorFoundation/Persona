@@ -14,7 +14,7 @@ rm /etc/systemd/system/persona*
 
 cp etc/systemd/* /etc/systemd/system
 systemctl daemon-reload
-systemctl start frontend.socket
+systemctl start frontend
 
 apt install xinetd
 cp etc/xinetd/* /etc/xinetd.d
