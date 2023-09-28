@@ -1,12 +1,11 @@
-# frontend.socket
+# frontend.service
 
 [Unit]
 Description = frontend server
 
-[Socket]
-ListenStream = 1234
-Accept = yes
-ReusePort = yes
+[Service]
+Type=simple
+ExecStart=/root/go/bin/frontend -socket
 
 [Install]
-WantedBy = sockets.target
+WantedBy = multi-user.target

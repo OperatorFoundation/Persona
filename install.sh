@@ -9,6 +9,9 @@ go get frontend
 go install
 popd
 
+rm /etc/systemd/service/frontend*
+rm /etc/systemd/service/Persona*
+
 cp etc/systemd/* /etc/systemd/system
 systemctl daemon-reload
 systemctl start frontend.socket
