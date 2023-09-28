@@ -211,7 +211,7 @@ public class TcpStateHandler
         {
             let (_, acknowledgementNumber, windowSize) = self.getState()
 
-            if window.contains(sequenceNumber: self.straw.highWaterMark)
+            if window.lowerBound.uint32 < self.straw.highWaterMark.uint32 // Ignore wrapover for simple statistics gathering purposes
             {
                 stats.retransmission += 1
             }
