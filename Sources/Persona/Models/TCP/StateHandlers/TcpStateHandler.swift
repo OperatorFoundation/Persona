@@ -150,17 +150,7 @@ public class TcpStateHandler
             let nextPacketSize = min(sizeToSend - totalPayloadSize, 1400)
 
             let window = SequenceNumberRange(lowerBound: nextSequenceNumber, size: UInt32(nextPacketSize))
-
-            if window.contains(sequenceNumber: self.straw.highWaterMark)
-            {
-                stats.retransmission += 1
-            }
-            else
-            {
-                stats.fresh += 1
-            }
-
-            let packet = try await self.makeAck(window: window)
+            let packet = try await self.makeAck(stats: stats, window: window)
             packets.append(packet)
 
             totalPayloadSize = totalPayloadSize + nextPacketSize
@@ -187,7 +177,7 @@ public class TcpStateHandler
     /// A reset is valid if its sequence number is in the window.
     ///
     /// The receiver of a RST first validates it, then changes state.
-    func handleRstSynchronizedState(ipv4: IPv4, tcp: TCP) async throws -> TcpStateTransition
+    func handleRstSynchronizedState(stats: Stats, ipv4: IPv4, tcp: TCP) async throws -> TcpStateTransition
     {
         let packetLowerBound = SequenceNumber(tcp.sequenceNumber)
         var packetUpperBound = packetLowerBound
@@ -196,7 +186,7 @@ public class TcpStateHandler
         {
             self.logger.error("❌ handleRstSynchronizedState - sequenceNumber (\(packetLowerBound)) not in window")
 
-            let ack = try await self.makeAck()
+            let ack = try await self.makeAck(stats: stats)
             return TcpStateTransition(newState: self, packetsToSend: [ack])
         }
         
@@ -214,13 +204,23 @@ public class TcpStateHandler
         return try self.makePacket(sequenceNumber: sequenceNumber, acknowledgementNumber: acknowledgementNumber, windowSize: windowSize, rst: true)
     }
     
-    func makeAck(window: SequenceNumberRange? = nil) async throws -> IPv4
+    func makeAck(stats: Stats, window: SequenceNumberRange? = nil) async throws -> IPv4
     {
         if let window
         {
             let (_, acknowledgementNumber, windowSize) = self.getState()
 
             let segment = try self.straw.read(window: window)
+
+            if segment.window.contains(sequenceNumber: self.straw.highWaterMark)
+            {
+                stats.retransmission += 1
+            }
+            else
+            {
+                stats.fresh += 1
+            }
+
             return try self.makePacket(sequenceNumber: segment.window.lowerBound, acknowledgementNumber: acknowledgementNumber, windowSize: windowSize, ack: true, payload: segment.data)
         }
         else

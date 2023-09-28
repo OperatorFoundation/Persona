@@ -23,7 +23,7 @@ public class TcpCloseWait: TcpStateHandler
 
         if tcp.fin
         {
-            let ack = try await makeAck()
+            let ack = try await makeAck(stats: stats)
             return TcpStateTransition(newState: self, packetsToSend: [ack])
         }
         

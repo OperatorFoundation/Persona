@@ -36,7 +36,7 @@ public class TcpFinWait1: TcpStateHandler
         /// it aborts the connection and informs its user.
         if tcp.rst
         {
-            return try await handleRstSynchronizedState(ipv4: ipv4, tcp: tcp)
+            return try await handleRstSynchronizedState(stats: stats, ipv4: ipv4, tcp: tcp)
         }
         
         /// If the connection is in a synchronized state (ESTABLISHED, FIN-WAIT-1, FIN-WAIT-2, CLOSE-WAIT, CLOSING, LAST-ACK, TIME-WAIT),
@@ -48,13 +48,13 @@ public class TcpFinWait1: TcpStateHandler
         {
             self.logger.error("❌ TcpFinWait1 - \(clientWindow.lowerBound) <= \(packetLowerBound)..<\(packetUpperBound) <= \(clientWindow.upperBound)")
 
-            let ack = try await self.makeAck()
+            let ack = try await self.makeAck(stats: stats)
             return TcpStateTransition(newState: self, packetsToSend: [ack])
         }
         
         if tcp.fin
         {
-            let ack = try await makeAck()
+            let ack = try await makeAck(stats: stats)
             return TcpStateTransition(newState: TcpClosing(self), packetsToSend: [ack])
         }
         

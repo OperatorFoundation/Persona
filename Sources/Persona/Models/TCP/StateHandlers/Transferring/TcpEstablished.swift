@@ -53,7 +53,7 @@ public class TcpEstablished: TcpStateHandler
         
         if tcp.rst
         {
-            return try await handleRstSynchronizedState(ipv4: ipv4, tcp: tcp)
+            return try await handleRstSynchronizedState(stats: stats, ipv4: ipv4, tcp: tcp)
         }
 
         guard self.straw.inWindow(tcp) else
@@ -67,7 +67,7 @@ public class TcpEstablished: TcpStateHandler
             stats.sentack += 1
             stats.sentnopayload += 1
             stats.windowCorrection += 1
-            let ack = try await self.makeAck()
+            let ack = try await self.makeAck(stats: stats)
             return TcpStateTransition(newState: self, packetsToSend: [ack])
         }
 
@@ -112,7 +112,7 @@ public class TcpEstablished: TcpStateHandler
         if tcp.fin
         {
             self.straw.increaseAcknowledgementNumber(1)
-            let ack = try await makeAck()
+            let ack = try await makeAck(stats: stats)
             packets.append(ack) // ACK the FIN
 
             let message = TcpProxyRequest(type: .RequestClose, identity: self.identity)
@@ -166,7 +166,7 @@ public class TcpEstablished: TcpStateHandler
             stats.sentestablished += 1
             stats.sentack += 1
             stats.sentnopayload += 1
-            let ack = try await makeAck()
+            let ack = try await makeAck(stats: stats)
             packets.append(ack)
         }
 

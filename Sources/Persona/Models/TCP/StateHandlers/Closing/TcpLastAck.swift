@@ -23,7 +23,7 @@ public class TcpLastAck: TcpStateHandler
         /// it aborts the connection and informs its user.
         if tcp.rst
         {
-            return try await handleRstSynchronizedState(ipv4: ipv4, tcp: tcp)
+            return try await handleRstSynchronizedState(stats: stats, ipv4: ipv4, tcp: tcp)
         }
         
         /// If the connection is in a synchronized state (ESTABLISHED, FIN-WAIT-1, FIN-WAIT-2, CLOSE-WAIT, CLOSING, LAST-ACK, TIME-WAIT),
@@ -35,7 +35,7 @@ public class TcpLastAck: TcpStateHandler
         {
             self.logger.error("❌ TcpLastAck - \(clientWindow.lowerBound) <= \(packetLowerBound)..<\(packetUpperBound) <= \(clientWindow.upperBound)")
 
-            let ack = try await self.makeAck()
+            let ack = try await self.makeAck(stats: stats)
             return TcpStateTransition(newState: self, packetsToSend: [ack])
         }
         
