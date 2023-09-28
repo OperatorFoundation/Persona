@@ -162,6 +162,9 @@ public class TcpStateHandler
         stats.sentestablished += packets.count
         stats.sentack += packets.count
         stats.sentpayload += packets.count
+
+        self.logger.info("TcpStateHandler.pumpStrawToClient - \(packets.count)")
+
         return packets
     }
 
