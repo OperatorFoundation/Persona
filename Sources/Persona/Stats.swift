@@ -54,6 +54,8 @@ public class Stats
     public var sentpayload: Int = 0
     public var sentnopayload: Int = 0
     public var windowCorrection: Int = 0
+    public var retransmission: Int = 0
+    public var fresh: Int = 0
 
     let logger: Puppy
 
@@ -123,6 +125,8 @@ extension Stats: CustomStringConvertible
         \t\t\t\tpayload           - \(self.sentpayload)
         \t\t\t\tno payload        - \(self.sentnopayload)
         \t\t\t\twindow correction - \(self.windowCorrection)
+        \t\t\t\tretransmission\t- \(self.sentnopayload)
+        \t\t\t\tfresh\t- \(self.windowCorrection)
 
         Metrics:
         \toptimism                - \(TcpProxy.optimism)

@@ -29,6 +29,8 @@ public class TCPStraw
         return self.straw.count
     }
 
+    public var highWaterMark: SequenceNumber
+
     // Private let properties
     let straw = UnsafeStraw() // No need for thread safety in this implementation as only one thread accesses the Straw.
 
@@ -49,6 +51,8 @@ public class TCPStraw
         self.logger = logger
         self.sequenceNumber = sequenceNumber
         self.acknowledgementNumber = acknowledgementNumber
+
+        self.highWaterMark = sequenceNumber
     }
 
     public func getState() -> (SequenceNumber, SequenceNumber, UInt16)
@@ -111,6 +115,8 @@ public class TCPStraw
         let window = SequenceNumberRange(lowerBound: self.sequenceNumber, size: UInt32(data.count))
         let result = SegmentData(data: data, window: window)
 
+        self.highWaterMark = window.upperBound
+
         return result
     }
 
@@ -119,6 +125,8 @@ public class TCPStraw
         let data = try self.straw.peek(size: size)
         let window = SequenceNumberRange(lowerBound: self.sequenceNumber, size: UInt32(data.count))
         let result = SegmentData(data: data, window: window)
+
+        self.highWaterMark = window.upperBound
 
         return result
     }
@@ -129,6 +137,8 @@ public class TCPStraw
         let window = SequenceNumberRange(lowerBound: self.sequenceNumber.add(offset), size: UInt32(data.count))
         let result = SegmentData(data: data, window: window)
 
+        self.highWaterMark = window.upperBound
+
         return result
     }
 
@@ -136,6 +146,7 @@ public class TCPStraw
     {
         let offset = window.lowerBound - self.sequenceNumber
         let size = window.upperBound - window.lowerBound
+
         return try self.read(offset: Int(offset), size: Int(size))
     }
 
@@ -144,6 +155,8 @@ public class TCPStraw
         let data = try self.straw.peek(maxSize: maxSize)
         let window = SequenceNumberRange(lowerBound: self.sequenceNumber, size: UInt32(data.count))
         let result = SegmentData(data: data, window: window)
+
+        self.highWaterMark = window.upperBound
 
         return result
     }
