@@ -86,6 +86,16 @@ extension Stats: CustomStringConvertible
             ackRatio = Int(Double(self.noPayload) / (Double(self.sentpayload)) * 100)
         }
 
+        let retransmissionRatio: Int
+        if self.fresh == 0
+        {
+            retransmissionRatio = 0
+        }
+        else
+        {
+            retransmissionRatio = Int(Double(self.retransmission) / Double(self.fresh) * 100)
+        }
+
         return """
         Received:
         non-IPv4         - \(self.nonIPv4)
@@ -131,6 +141,7 @@ extension Stats: CustomStringConvertible
         Metrics:
         \toptimism                - \(TcpProxy.optimism)
         \tack ratio               - \(ackRatio)%
+        \tretransmisison ratio\t- \(retransmissionRatio)%
         """
     }
 }
