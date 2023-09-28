@@ -13,7 +13,7 @@ import Puppy
 
 public class Stats
 {
-    static public let writeInterval: Int = 100 // packets
+    static public let writeInterval: Int = 1000 // packets
 
     public var messages: Int = 0
     public var nonIPv4: Int = 0
@@ -81,7 +81,7 @@ extension Stats: CustomStringConvertible
         }
         else
         {
-            ackRatio = Int((Double(self.sentpayload) / Double(self.noPayload)) * 100)
+            ackRatio = Int(Double(self.noPayload) / (Double(self.sentpayload)) * 100)
         }
 
         return """
