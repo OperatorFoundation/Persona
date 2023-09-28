@@ -9,8 +9,8 @@ go get frontend
 go install
 popd
 
-rm /etc/systemd/service/frontend*
-rm /etc/systemd/service/Persona*
+rm /etc/systemd/system/frontend*
+rm /etc/systemd/system/Persona*
 
 cp etc/systemd/* /etc/systemd/system
 systemctl daemon-reload
