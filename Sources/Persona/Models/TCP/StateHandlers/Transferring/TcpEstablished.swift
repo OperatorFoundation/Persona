@@ -149,22 +149,19 @@ public class TcpEstablished: TcpStateHandler
             return TcpStateTransition(newState: self)
         }
 
+        let wasEmpty = self.straw.isEmpty
+
         try self.straw.write(data)
 
-        var packets = try await self.pumpStrawToClient(stats)
-
-        if packets.isEmpty
+        if wasEmpty
         {
-            stats.sentipv4 += 1
-            stats.senttcp += 1
-            stats.sentestablished += 1
-            stats.sentack += 1
-            stats.sentnopayload += 1
-            let ack = try await makeAck(stats: stats)
-            packets.append(ack)
+            let packets = try await self.pumpStrawToClient(stats)
+            return TcpStateTransition(newState: self, packetsToSend: packets)
         }
-
-        return TcpStateTransition(newState: self, packetsToSend: packets, progress: true)
+        else
+        {
+            return TcpStateTransition(newState: self)
+        }
     }
 
     override public func processUpstreamClose(stats: Stats) async throws -> TcpStateTransition
