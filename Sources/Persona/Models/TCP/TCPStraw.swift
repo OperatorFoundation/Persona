@@ -138,7 +138,7 @@ public class TCPStraw
         let offset = window.lowerBound - self.sequenceNumber
         self.logger.info("TCPStraw.read - 2")
         let size = window.upperBound - window.lowerBound
-        self.logger.info("TCPStraw.read - 3")
+        self.logger.info("TCPStraw.read - 3 \(self.count) \(offset) \(size)")
         return try self.read(offset: Int(offset), size: Int(size))
     }
 
