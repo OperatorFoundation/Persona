@@ -9,6 +9,9 @@ import Foundation
 
 import InternetProtocols
 
+/// LAST-ACK - represents waiting for an acknowledgment of the connection termination request previously sent to the remote TCP
+/// (which includes an acknowledgment of its connection termination request).
+///
 public class TcpLastAck: TcpStateHandler
 {
     override public func processDownstreamPacket(stats: Stats, ipv4: IPv4, tcp: TCP, payload: Data?) async throws -> TcpStateTransition
@@ -42,7 +45,7 @@ public class TcpLastAck: TcpStateHandler
         guard tcp.ack else
         {
             let acknowledgementNumber = SequenceNumber(tcp.acknowledgementNumber)
-            self.logger.debug("TcpLastAck.processDownstreamPacket - received an ACK")
+            self.logger.debug("TcpLastAck.processDownstreamPacket - received something other than ACK")
             self.logger.debug(" acknowledgement number: \(acknowledgementNumber)")
             self.logger.debug(" straw.sequenceNumber: \(self.straw.sequenceNumber)")
             
@@ -58,12 +61,34 @@ public class TcpLastAck: TcpStateHandler
         let (sequenceNumber, _, _) = self.getState()
         guard SequenceNumber(tcp.acknowledgementNumber) == sequenceNumber.increment() else
         {
+            self.logger.debug("TcpLastAck.processDownstreamPacket - received an ACK with an acknowledgement number that does not match our FIN sequence number. Rebroadcasting our FIN.")
+            self.logger.debug(" acknowledgement number: \(SequenceNumber(tcp.acknowledgementNumber))")
+            self.logger.debug(" should be: \(sequenceNumber) + 1")
+            
             let fin = try await self.makeFinAck()
 
             return TcpStateTransition(newState: self, packetsToSend: [fin])
         }
 
         return TcpStateTransition(newState: TcpClosed(self))
+    }
+    
+    override public func processUpstreamData(stats: Stats, data: Data) async throws -> TcpStateTransition
+    {
+        // LAST-ACK: We have already told downstream we would not send anymore data
+        self.logger.debug("TcpLastAck.processUpstreamData - received upstream data, we've already sent a FIN downstream, ignoring.")
+        return TcpStateTransition(newState: self)
+    }
+    
+    override public func processUpstreamClose(stats: Stats) async throws -> TcpStateTransition
+    {
+        /**
+        CLOSE Call - LAST-ACK STATE
+        Respond with "error:  connection closing".
+         */
+        
+        self.logger.debug("TcpLastAck.processUpstreamClose - Upstream closed called when a CLOSE has already been received (this is considered an error).")
+        return TcpStateTransition(newState: self)
     }
 }
 
