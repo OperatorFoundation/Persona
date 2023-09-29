@@ -9,7 +9,8 @@ import Foundation
 
 import InternetProtocols
 
-// FIXME me - implement this state
+/// CLOSING - represents waiting for a connection termination request acknowledgment from the remote TCP.
+/// 
 public class TcpClosing: TcpStateHandler
 {
     override public func processDownstreamPacket(stats: Stats, ipv4: IPv4, tcp: TCP, payload: Data?) async throws -> TcpStateTransition
@@ -43,7 +44,7 @@ public class TcpClosing: TcpStateHandler
         guard tcp.ack else
         {
             let acknowledgementNumber = SequenceNumber(tcp.acknowledgementNumber)
-            self.logger.debug("TcpClosing.processDownstreamPacket - received an ACK")
+            self.logger.debug("TcpClosing.processDownstreamPacket - did not receive an ACK")
             self.logger.debug(" acknowledgement number: \(acknowledgementNumber)")
             self.logger.debug(" straw.sequenceNumber: \(self.straw.sequenceNumber)")
             
@@ -51,8 +52,25 @@ public class TcpClosing: TcpStateHandler
         }
         
         // We are expecting an ack so everything is proceeding according to plan!
-        // FIXME: We should be going to TIME WAIT before closed
         return TcpStateTransition(newState: TcpClosed(self))
+    }
+    
+    override public func processUpstreamData(stats: Stats, data: Data) async throws -> TcpStateTransition
+    {
+        // We have already sent a FIN downstream, No further SENDs will be accepted by the TCP
+        self.logger.debug("TcpClosing.processUpstreamData - received upstream data, ignoring.")
+        return TcpStateTransition(newState: self)
+    }
+    
+    override public func processUpstreamClose(stats: Stats) async throws -> TcpStateTransition
+    {
+        /**
+        CLOSE Call - CLOSING State
+        Respond with "error:  connection closing".
+         */
+        
+        self.logger.debug("TcpClosing.processUpstreamClose - Upstream closed called when a CLOSE has already been received (this is considered an error).")
+        return TcpStateTransition(newState: self)
     }
 }
 

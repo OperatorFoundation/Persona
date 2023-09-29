@@ -10,6 +10,10 @@ import Foundation
 import InternetProtocols
 
 /**
+ FIN-WAIT-1 - represents waiting for a connection termination request
+ from the remote TCP, or an acknowledgment of the connection
+ termination request previously sent.
+ 
  Case 1:  Local user initiates the close
 
    In this case, a FIN segment can be constructed and placed on the
@@ -51,24 +55,56 @@ public class TcpFinWait1: TcpStateHandler
             let ack = try await self.makeAck(stats: stats)
             return TcpStateTransition(newState: self, packetsToSend: [ack])
         }
-        
-        if tcp.fin
-        {
-            let ack = try await makeAck(stats: stats)
-            return TcpStateTransition(newState: TcpClosing(self), packetsToSend: [ack])
-        }
-        
-        guard tcp.ack else
+
+        if tcp.ack
         {
             let acknowledgementNumber = SequenceNumber(tcp.acknowledgementNumber)
             self.logger.debug("TcpFinWait1.processDownstreamPacket - received an ACK")
             self.logger.debug(" acknowledgement number: \(acknowledgementNumber)")
             self.logger.debug(" straw.sequenceNumber: \(self.straw.sequenceNumber)")
             
-            return TcpStateTransition(newState: self)
+            if tcp.fin
+            {
+                /**
+                If the FIN bit is set, signal the user "connection closing" and return any pending RECEIVEs with same message,
+                advance RCV.NXT over the FIN, and send an acknowledgment for the FIN.
+                Note that FIN implies PUSH for any segment text not yet delivered to the user.
+                
+                FIN-WAIT-1 STATE
+                If our FIN has been ACKed (perhaps in this segment), then
+                enter TIME-WAIT, start the time-wait timer, turn off the other
+                timers; otherwise enter the CLOSING state.
+                */
+                
+                let ack = try await makeAck(stats: stats)
+                return TcpStateTransition(newState: TcpClosing(self), packetsToSend: [ack])
+            }
+            else
+            {
+                return TcpStateTransition(newState: TcpFinWait2(self))
+            }
         }
         
-        return TcpStateTransition(newState: TcpFinWait2(self))
+        return TcpStateTransition(newState: self)
+    }
+    
+    override public func processUpstreamData(stats: Stats, data: Data) async throws -> TcpStateTransition 
+    {
+        // FIN WAIT-1: We have already sent a FIN downstream, No further SENDs will be accepted by the TCP
+        self.logger.debug("TcpFinWait1.processUpstreamData - received upstream data, ignoring.")
+        return TcpStateTransition(newState: self)
+    }
+    
+    override public func processUpstreamClose(stats: Stats) async throws -> TcpStateTransition 
+    {
+        /**
+        Strictly speaking, this is an error and should receive a "error:
+        connection closing" response.  An "ok" response would be
+        acceptable, too, as long as a second FIN is not emitted (the first
+        FIN may be retransmitted though).
+         */
+        self.logger.debug("TcpFinWait1.processUpstreamClose - Upstream closed called when a CLOSE has already been received.")
+        return TcpStateTransition(newState: self)
     }
 }
 

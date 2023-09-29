@@ -7,13 +7,10 @@
 
 import Foundation
 
-import Foundation
-
 import InternetProtocols
 
-// FIXME: implement this state
-
 /// FIN-WAIT-2 - represents waiting for a connection termination request from the remote TCP.
+/// 
 public class TcpFinWait2: TcpStateHandler
 {
     public override func processDownstreamPacket(stats: Stats, ipv4: IPv4, tcp: TCP, payload: Data?) async throws -> TcpStateTransition
@@ -57,6 +54,25 @@ public class TcpFinWait2: TcpStateHandler
         // FIXME: TIME WAIT should be the next state
         let ack = try await makeAck(stats: stats)
         return TcpStateTransition(newState: TcpClosed(self), packetsToSend: [ack])
+    }
+    
+    override public func processUpstreamData(stats: Stats, data: Data) async throws -> TcpStateTransition
+    {
+        // FIN WAIT-2: We have already sent a FIN downstream, No further SENDs will be accepted by the TCP
+        self.logger.debug("TcpFinWait2.processUpstreamData - received upstream data, ignoring.")
+        return TcpStateTransition(newState: self)
+    }
+    
+    override public func processUpstreamClose(stats: Stats) async throws -> TcpStateTransition
+    {
+        /**
+        Strictly speaking, this is an error and should receive a "error:
+        connection closing" response.  An "ok" response would be
+        acceptable, too, as long as a second FIN is not emitted (the first
+        FIN may be retransmitted though).
+         */
+        self.logger.debug("TcpFinWait2.processUpstreamClose - Upstream closed called when a CLOSE has already been received.")
+        return TcpStateTransition(newState: self)
     }
 }
 

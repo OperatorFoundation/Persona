@@ -21,17 +21,19 @@ public class TcpCloseWait: TcpStateHandler
     {
         stats.closeWait = stats.closeWait + 1
 
-        if tcp.fin
+        if tcp.fin // We received the FIN again, re-send our ACK
         {
             let ack = try await makeAck(stats: stats)
             return TcpStateTransition(newState: self, packetsToSend: [ack])
         }
         
+        // We received something after receiving a FIN, do nothing
         return TcpStateTransition(newState: self)
     }
     
     override public func processUpstreamData(stats: Stats, data: Data) async throws -> TcpStateTransition
     {
+        // Keep sending along the upstream data we receive
         try self.straw.write(data)
 
         let packets = try await self.pumpStrawToClient(stats)
