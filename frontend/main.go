@@ -57,23 +57,29 @@ func main() {
 
 		go handleConnection(home, connection, &handlers)
 	}
-
-	golog.Debug("exiting frontend abnormally, something isn't blocking")
 }
 
 func handleConnection(home string, connection net.Conn, handlers *[]context.CancelFunc) {
 	golog.Debug("launching router subprocess")
-	context, cancel := context.WithCancel(context.Background())
+	ctx, cancel := context.WithCancel(context.Background())
 	*handlers = append(*handlers, cancel)
 
-	router := exec.CommandContext(context, home+"/go/bin/router")
+	router := exec.CommandContext(ctx, home+"/go/bin/router")
 	file, castError := connection.(*net.TCPConn).File()
 	if castError != nil {
 		golog.Errorf("error casting to TCPConn %v", castError.Error())
 		return
 	}
 	router.ExtraFiles = []*os.File{file}
-	router.Start()
+	startError := router.Start()
+	if startError != nil {
+		golog.Errorf("error starting process %v", startError.Error())
+		return
+	}
 
 	golog.Debug("launched router")
+
+	go func() {
+		router.Wait()
+	}()
 }
