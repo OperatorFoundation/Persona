@@ -4,7 +4,7 @@
  Description = frontend server
 
  [Service]
- ExecStart=/root/go/bin/frontend -socket
+ ExecStart=/root/go/bin/frontend
 
  [Install]
  WantedBy = multi-user.target

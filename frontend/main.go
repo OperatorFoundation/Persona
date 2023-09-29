@@ -5,7 +5,6 @@ import (
 	"flag"
 	"fmt"
 	"github.com/kataras/golog"
-	"io"
 	"net"
 	"os"
 	"os/exec"
@@ -14,6 +13,13 @@ import (
 func main() {
 	fmt.Println("frontend is go!")
 
+	handlers := make([]context.CancelFunc, 0)
+	defer func() {
+		for _, handler := range handlers {
+			handler()
+		}
+	}()
+
 	home, homeError := os.UserHomeDir()
 	if homeError != nil {
 		print("could not find home directory")
@@ -21,7 +27,6 @@ func main() {
 	}
 
 	logpath := flag.String("logpath", home+"/Persona/frontend.log", "path for log file")
-	socket := flag.Bool("socket", false, "enable single-connection socket mode for testing, by default uses systemd mode instead")
 	flag.Parse()
 
 	// If the file doesn't exist, create it or append to the file
@@ -37,97 +42,38 @@ func main() {
 		golog.SetLevel("error")
 	}
 
-	var client io.Closer
-	var clientReader io.Reader
-	var clientWriter io.Writer
+	listener, listenError := net.Listen("tcp", "0.0.0.0:1234")
+	if listenError != nil {
+		golog.Errorf("error listening: %v", listenError.Error())
+		os.Exit(10)
+	}
 
-	if *socket {
-		listener, listenError := net.Listen("tcp", "0.0.0.0:1234")
-		if listenError != nil {
-			golog.Errorf("error listening: %v", listenError.Error())
-			os.Exit(10)
+	for {
+		connection, acceptError := listener.Accept()
+		if acceptError != nil {
+			golog.Errorf("error accepting: %v", acceptError.Error())
+			os.Exit(11)
 		}
 
-		for {
-			connection, acceptError := listener.Accept()
-			if acceptError != nil {
-				golog.Errorf("error accepting: %v", acceptError.Error())
-				os.Exit(11)
-			}
-
-			client = connection
-			clientReader = connection
-			clientWriter = connection
-
-			go handleConnection(home, client, clientReader, clientWriter)
-		}
-	} else {
-		systemd := os.NewFile(3, "systemd")
-		client = systemd
-		clientReader = systemd
-		clientWriter = systemd
-
-		handleConnection(home, client, clientReader, clientWriter)
+		go handleConnection(home, connection, &handlers)
 	}
-}
-
-func handleConnection(home string, client io.Closer, clientReader io.Reader, clientWriter io.Writer) {
-	golog.Debug("launching Persona subprocess")
-	context, cancel := context.WithCancel(context.Background())
-	persona := exec.CommandContext(context, home+"/Persona/Persona")
-	personaInput, inputError := persona.StdinPipe()
-	if inputError != nil {
-		golog.Errorf("error getting Persona stdin: %v", inputError.Error())
-		os.Exit(12)
-	}
-	personaOutput, outputError := persona.StdoutPipe()
-	if outputError != nil {
-		golog.Errorf("error getting Persona stdout: %v", outputError.Error())
-		os.Exit(13)
-	}
-
-	persona.Start()
-
-	golog.Debug("launched persona")
-
-	clientReadChannel := make(chan []byte)
-	clientWriteChannel := make(chan []byte)
-
-	personaReadChannel := make(chan []byte)
-	personaWriteChannel := make(chan []byte)
-
-	clientToChannel := ReaderToChannel{"client", clientReader, "router", clientReadChannel, func(closeError error) {
-		closeWithError(closeError, 0, cancel, client)
-	}}
-	channelToClient := ChannelToWriter{"router", clientWriteChannel, "client", clientWriter, func(closeError error) {
-		closeWithError(closeError, 0, cancel, client)
-	}}
-
-	personaToChannel := ReaderToChannel{"persona", personaOutput, "router", personaReadChannel, func(closeError error) {
-		closeWithError(closeError, 4, cancel, client)
-	}}
-	channelToPersona := ChannelToWriter{"router", personaWriteChannel, "persona", personaInput, func(closeError error) {
-		closeWithError(closeError, 5, cancel, client)
-	}}
-
-	// Non-blocking
-	go clientToChannel.Pump()
-	go channelToClient.Pump()
-
-	go personaToChannel.Pump()
-	go channelToPersona.Pump()
-
-	router, routerError := NewRouter(clientReadChannel, clientWriteChannel, personaReadChannel, personaWriteChannel)
-	if routerError != nil {
-		closeWithError(routerError, 6, cancel, client)
-	}
-	router.Route() // blocking
 
 	golog.Debug("exiting frontend abnormally, something isn't blocking")
 }
 
-func closeWithError(closeError error, exitCode int, cancel context.CancelFunc, client io.Closer) {
-	golog.Debug(closeError.Error() + "")
-	cancel()
-	_ = client.Close()
+func handleConnection(home string, connection net.Conn, handlers *[]context.CancelFunc) {
+	golog.Debug("launching router subprocess")
+	context, cancel := context.WithCancel(context.Background())
+	*handlers = append(*handlers, cancel)
+
+	router := exec.CommandContext(context, home+"/go/bin/router")
+	file, castError := connection.(*net.TCPConn).File()
+	if castError != nil {
+		golog.Errorf("error casting to TCPConn %v", castError.Error())
+		return
+	}
+	router.ExtraFiles = []*os.File{file}
+	router.Start()
+
+	golog.Debug("launched router")
 }
