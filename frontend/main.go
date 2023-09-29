@@ -130,5 +130,4 @@ func closeWithError(closeError error, exitCode int, cancel context.CancelFunc, c
 	golog.Debug(closeError.Error() + "")
 	cancel()
 	_ = client.Close()
-	os.Exit(exitCode)
 }
