@@ -97,10 +97,10 @@ func handleConnection(home string, client io.Closer, clientReader io.Reader, cli
 	personaWriteChannel := make(chan []byte)
 
 	clientToChannel := ReaderToChannel{"client", clientReader, "router", clientReadChannel, func(closeError error) {
-		closeWithError(closeError, 2, cancel, client)
+		closeWithError(closeError, 0, cancel, client)
 	}}
 	channelToClient := ChannelToWriter{"router", clientWriteChannel, "client", clientWriter, func(closeError error) {
-		closeWithError(closeError, 3, cancel, client)
+		closeWithError(closeError, 0, cancel, client)
 	}}
 
 	personaToChannel := ReaderToChannel{"persona", personaOutput, "router", personaReadChannel, func(closeError error) {
