@@ -88,6 +88,7 @@ public class TcpEstablished: TcpStateHandler
                 #endif
 
                 try self.straw.acknowledge(acknowledgementNumber)
+                self.retransmissionQueue.acknowledge(acknowledgementNumber: acknowledgementNumber)
 
                 #if DEBUG
                 self.logger.debug("Straw now has \(self.straw.count) bytes in the buffer")
@@ -97,13 +98,7 @@ public class TcpEstablished: TcpStateHandler
 
         if let payload = tcp.payload
         {
-            let message = TcpProxyRequest(type: .RequestWrite, identity: self.identity, payload: payload)
-
-            #if DEBUG
-            self.logger.debug("<< ESTABLISHED \(message)")
-            #endif
-
-            try await self.downstream.writeWithLengthPrefix(message.data, 32)
+            try await self.write(payload: payload)
             self.straw.increaseAcknowledgementNumber(payload.count)
         }
 
@@ -115,13 +110,7 @@ public class TcpEstablished: TcpStateHandler
             let ack = try await makeAck(stats: stats)
             packets.append(ack) // ACK the FIN
 
-            let message = TcpProxyRequest(type: .RequestClose, identity: self.identity)
-
-            #if DEBUG
-            self.logger.debug("<< ESTABLISHED \(message)")
-            #endif
-
-            try await self.downstream.writeWithLengthPrefix(message.data, 32)
+            try await self.close()
 
             return TcpStateTransition(newState: TcpCloseWait(self), packetsToSend: packets)
         }

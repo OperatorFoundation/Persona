@@ -45,6 +45,7 @@ public class TcpStateHandler
 
     public var straw: TCPStraw
     public var open: Bool = true
+    var retransmissionQueue: RetransmissionQueue = RetransmissionQueue()
 
     public init(identity: Identity, downstream: AsyncConnection, logger: Logger, tcpLogger: Puppy, writeLogger: Puppy)
     {
@@ -99,6 +100,28 @@ public class TcpStateHandler
         return self.panicOnUpstreamClose()
     }
 
+    public func write(payload: Data) async throws
+    {
+        let message = TcpProxyRequest(type: .RequestWrite, identity: self.identity, payload: payload)
+
+        #if DEBUG
+        self.logger.debug("<< ESTABLISHED \(message)")
+        #endif
+
+        try await self.downstream.writeWithLengthPrefix(message.data, 32)
+    }
+
+    func close() async throws
+    {
+        let message = TcpProxyRequest(type: .RequestClose, identity: self.identity)
+
+        #if DEBUG
+        self.logger.debug("<< ESTABLISHED \(message)")
+        #endif
+
+        try await self.downstream.writeWithLengthPrefix(message.data, 32)
+    }
+
     func getState() -> (sequenceNumber: SequenceNumber, acknowledgeNumber: SequenceNumber, windowSize: UInt16)
     {
         // Our sequence number is taken from upstream.
@@ -133,6 +156,15 @@ public class TcpStateHandler
         if let tcp
         {
             sizeToSend = min(Int(tcp.windowSize), self.straw.count)
+
+            if tcp.ack
+            {
+                if let segment = try? self.retransmissionQueue.next()
+                {
+                    let result = try await self.makeAck(stats: stats, segment: segment)
+                    return [result]
+                }
+            }
         }
         else
         {
@@ -152,7 +184,13 @@ public class TcpStateHandler
             let window = SequenceNumberRange(lowerBound: nextSequenceNumber, size: UInt32(nextPacketSize))
 
             let packet = try await self.makeAck(stats: stats, window: window)
-            packets.append(packet)
+            if let payload = packet.payload
+            {
+                packets.append(packet)
+
+                let segment = Segment(data: payload, sequenceNumber: window.lowerBound)
+                self.retransmissionQueue.add(segment: segment)
+            }
 
             stats.sentipv4 += 1
             stats.senttcp += 1
@@ -165,13 +203,6 @@ public class TcpStateHandler
         }
 
         return packets
-    }
-
-    func close() async throws
-    {
-        self.logger.trace("TcpStateHandler.close()")
-        let message = TcpProxyRequest(type: .RequestClose, identity: self.identity)
-        try await self.downstream.writeWithLengthPrefix(message.data, 32)
     }
 
     /// In all states except SYN-SENT, all reset (RST) segments are validated by checking their SEQ-fields.
@@ -204,7 +235,27 @@ public class TcpStateHandler
     {
         return try self.makePacket(sequenceNumber: sequenceNumber, acknowledgementNumber: acknowledgementNumber, windowSize: windowSize, rst: true)
     }
-    
+
+    func makeAck(stats: Stats, segment: Segment) async throws -> IPv4
+    {
+        let (_, acknowledgementNumber, windowSize) = self.getState()
+
+        stats.retransmission += 1
+
+        return try self.makePacket(sequenceNumber: segment.window.lowerBound, acknowledgementNumber: acknowledgementNumber, windowSize: windowSize, ack: true, payload: segment.data)
+    }
+
+    func makeAck(stats: Stats, maxSize: Int) async throws -> IPv4
+    {
+        stats.fresh += 1
+
+        let (_, acknowledgementNumber, windowSize) = self.getState()
+
+        let segment = try self.straw.read(maxSize: maxSize)
+
+        return try self.makePacket(sequenceNumber: segment.window.lowerBound, acknowledgementNumber: acknowledgementNumber, windowSize: windowSize, ack: true, payload: segment.data)
+    }
+
     func makeAck(stats: Stats, window: SequenceNumberRange? = nil) async throws -> IPv4
     {
         if let window
