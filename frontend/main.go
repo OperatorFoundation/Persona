@@ -27,6 +27,7 @@ func main() {
 	}
 
 	logpath := flag.String("logpath", home+"/Persona/frontend.log", "path for log file")
+	writePcap := flag.Bool("writePcap", false, "record packets to a pcap file")
 	flag.Parse()
 
 	// If the file doesn't exist, create it or append to the file
@@ -55,16 +56,23 @@ func main() {
 			os.Exit(11)
 		}
 
-		go handleConnection(home, connection, &handlers)
+		go handleConnection(home, connection, *writePcap, &handlers)
 	}
 }
 
-func handleConnection(home string, connection net.Conn, handlers *[]context.CancelFunc) {
+func handleConnection(home string, connection net.Conn, writePcap bool, handlers *[]context.CancelFunc) {
 	golog.Debug("launching router subprocess")
 	ctx, cancel := context.WithCancel(context.Background())
 	*handlers = append(*handlers, cancel)
 
-	router := exec.CommandContext(ctx, home+"/go/bin/router")
+	var command string
+	if writePcap {
+		command = fmt.Sprintf("%s/go/bin/router -writePcap", home)
+	} else {
+		command = fmt.Sprintf("%s/go/bin/router", home)
+	}
+
+	router := exec.CommandContext(ctx, command)
 	file, castError := connection.(*net.TCPConn).File()
 	if castError != nil {
 		golog.Errorf("error casting to TCPConn %v", castError.Error())

@@ -4,6 +4,8 @@ import (
 	"context"
 	"flag"
 	"fmt"
+	"github.com/google/gopacket/layers"
+	"github.com/google/gopacket/pcapgo"
 	"github.com/kataras/golog"
 	"io"
 	"net"
@@ -22,6 +24,7 @@ func main() {
 
 	logpath := flag.String("logpath", home+"/Persona/router.log", "path for log file")
 	socket := flag.Bool("socket", false, "enable single-connection socket mode for testing, by default uses systemd mode instead")
+	writePcap := flag.Bool("writePcap", false, "write packets to .pcap file")
 	flag.Parse()
 
 	// If the file doesn't exist, create it or append to the file
@@ -35,6 +38,21 @@ func main() {
 
 		golog.AddOutput(logFile)
 		golog.SetLevel("error")
+	}
+
+	var pcapWriter *pcapgo.Writer
+	if *writePcap {
+		pcapFile, openError := os.OpenFile(home+"/persona.pcap", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0666)
+		if openError != nil {
+			golog.Errorf("error opening pcap file %v", openError.Error())
+			pcapWriter = nil
+		} else {
+			pcapWriter = pcapgo.NewWriter(pcapFile)
+			pcapWriter.WriteFileHeader(65536, layers.LinkTypeEthernet) // new file, must do this.
+			defer func() {
+				pcapFile.Close()
+			}()
+		}
 	}
 
 	var client io.Closer
@@ -59,7 +77,7 @@ func main() {
 			clientReader = connection
 			clientWriter = connection
 
-			go handleConnection(home, client, clientReader, clientWriter)
+			go handleConnection(home, client, clientReader, clientWriter, pcapWriter)
 		}
 	} else {
 		systemd := os.NewFile(3, "systemd")
@@ -67,11 +85,11 @@ func main() {
 		clientReader = systemd
 		clientWriter = systemd
 
-		handleConnection(home, client, clientReader, clientWriter)
+		handleConnection(home, client, clientReader, clientWriter, pcapWriter)
 	}
 }
 
-func handleConnection(home string, client io.Closer, clientReader io.Reader, clientWriter io.Writer) {
+func handleConnection(home string, client io.Closer, clientReader io.Reader, clientWriter io.Writer, pcapWriter *pcapgo.Writer) {
 	golog.Debug("launching Persona subprocess")
 	context, cancel := context.WithCancel(context.Background())
 	persona := exec.CommandContext(context, home+"/Persona/Persona")
@@ -96,17 +114,17 @@ func handleConnection(home string, client io.Closer, clientReader io.Reader, cli
 	personaReadChannel := make(chan []byte)
 	personaWriteChannel := make(chan []byte)
 
-	clientToChannel := ReaderToChannel{"client", clientReader, "router", clientReadChannel, func(closeError error) {
+	clientToChannel := ReaderToChannel{"client", clientReader, "router", clientReadChannel, pcapWriter, func(closeError error) {
 		closeWithError(closeError, 0, cancel, client)
 	}}
-	channelToClient := ChannelToWriter{"router", clientWriteChannel, "client", clientWriter, func(closeError error) {
+	channelToClient := ChannelToWriter{"router", clientWriteChannel, "client", clientWriter, pcapWriter, func(closeError error) {
 		closeWithError(closeError, 0, cancel, client)
 	}}
 
-	personaToChannel := ReaderToChannel{"persona", personaOutput, "router", personaReadChannel, func(closeError error) {
+	personaToChannel := ReaderToChannel{"persona", personaOutput, "router", personaReadChannel, nil, func(closeError error) {
 		closeWithError(closeError, 4, cancel, client)
 	}}
-	channelToPersona := ChannelToWriter{"router", personaWriteChannel, "persona", personaInput, func(closeError error) {
+	channelToPersona := ChannelToWriter{"router", personaWriteChannel, "persona", personaInput, nil, func(closeError error) {
 		closeWithError(closeError, 5, cancel, client)
 	}}
 

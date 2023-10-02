@@ -3,8 +3,11 @@ package main
 import (
 	"encoding/binary"
 	"errors"
+	"github.com/google/gopacket"
+	"github.com/google/gopacket/pcapgo"
 	"github.com/kataras/golog"
 	"io"
+	"time"
 )
 
 type ReaderToChannel struct {
@@ -13,6 +16,8 @@ type ReaderToChannel struct {
 
 	OutputName string
 	Output     chan []byte
+
+	PcapWriter *pcapgo.Writer
 
 	Close func(error)
 }
@@ -62,6 +67,11 @@ func (p ReaderToChannel) Pump() {
 		golog.Debugf("ReadToChannel.Pump - writing to channel %v -%d-> %v", p.InputName, len(data), p.OutputName)
 		p.Output <- data
 		golog.Debugf("ReadToChannel.Pump - wrote to channel %d -> %v", len(data), p.Output)
+
+		if p.PcapWriter != nil {
+			info := gopacket.CaptureInfo{time.Now(), len(data), len(data), 0, nil}
+			p.PcapWriter.WritePacket(info, data)
+		}
 	}
 }
 
@@ -71,6 +81,8 @@ type ChannelToWriter struct {
 
 	OutputName string
 	Output     io.Writer
+
+	PcapWriter *pcapgo.Writer
 
 	Close func(error)
 }
