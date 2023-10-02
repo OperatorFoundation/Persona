@@ -42,13 +42,13 @@ func main() {
 
 	var pcapWriter *pcapgo.Writer
 	if *writePcap {
-		pcapFile, openError := os.OpenFile(home+"/persona.pcap", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0666)
+		pcapFile, openError := os.OpenFile(home+"/Persona/persona.pcap", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0666)
 		if openError != nil {
 			golog.Errorf("error opening pcap file %v", openError.Error())
 			pcapWriter = nil
 		} else {
 			pcapWriter = pcapgo.NewWriter(pcapFile)
-			pcapWriter.WriteFileHeader(65536, layers.LinkTypeEthernet) // new file, must do this.
+			pcapWriter.WriteFileHeader(65536, layers.LinkTypeIPv4) // new file, must do this.
 			defer func() {
 				pcapFile.Close()
 			}()
