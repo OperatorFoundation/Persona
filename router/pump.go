@@ -112,5 +112,10 @@ func (p ChannelToWriter) Pump() {
 		if dataWritten != length {
 			p.Close(errors.New("short write on data"))
 		}
+
+		if p.PcapWriter != nil {
+			info := gopacket.CaptureInfo{time.Now(), len(data), len(data), 0, nil}
+			p.PcapWriter.WritePacket(info, data)
+		}
 	}
 }
