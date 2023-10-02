@@ -65,14 +65,14 @@ func handleConnection(home string, connection net.Conn, writePcap bool, handlers
 	ctx, cancel := context.WithCancel(context.Background())
 	*handlers = append(*handlers, cancel)
 
-	var command string
-	if writePcap {
-		command = fmt.Sprintf("%s/go/bin/router -writePcap", home)
-	} else {
-		command = fmt.Sprintf("%s/go/bin/router", home)
-	}
+	command := fmt.Sprintf("%s/go/bin/router", home)
 
-	router := exec.CommandContext(ctx, command)
+	var router *exec.Cmd
+	if writePcap {
+		router = exec.CommandContext(ctx, command, "-writePcap")
+	} else {
+		router = exec.CommandContext(ctx, command)
+	}
 	file, castError := connection.(*net.TCPConn).File()
 	if castError != nil {
 		golog.Errorf("error casting to TCPConn %v", castError.Error())
