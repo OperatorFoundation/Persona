@@ -13,6 +13,11 @@ public class RetransmissionQueue
 {
     static public let retransmitTime: Double = 0.1 // 100 ms in seconds
 
+    public var isEmpty: Bool
+    {
+        return self.queue.isEmpty
+    }
+
     var queue: [Segment] = []
 
     public init()
@@ -40,48 +45,30 @@ public class RetransmissionQueue
         {
             segment in
 
-            return !segment.window.contains(sequenceNumber: acknowledgementNumber)
+            // return true if we should keep this segment in the retransmission queue
+            return acknowledgementNumber.uint32 < segment.window.lowerBound.uint32 // FIXME - handle rollover
         }
     }
 
     public func next() throws -> Segment
     {
-        guard self.queue.count > 0 else
+        guard let segment = self.queue.first else
         {
             throw RetransmissionQueueError.queueIsEmpty
         }
 
-        let now = Date() // now
+        let now = Date().timeIntervalSince1970 // now
+        let then = segment.timestamp.timeIntervalSince1970
+        let elapsed = now - then
 
-        let candidates = self.queue.filter
+        if elapsed >= Self.retransmitTime
         {
-            segment in
-
-            let elapsed = now.timeIntervalSince1970 - segment.timestamp.timeIntervalSince1970
-
-            return elapsed >= Self.retransmitTime
+            return segment
         }
-
-        guard self.queue.count > 0 else
+        else
         {
-            throw RetransmissionQueueError.noCandidates
+            throw RetransmissionQueueError.tooSoonToRetransmit
         }
-
-        let sorted = candidates.sorted
-        {
-            lhs, rhs in
-
-            return lhs.timestamp > rhs.timestamp
-        }
-
-        guard let result = sorted.first else
-        {
-            throw RetransmissionQueueError.noCandidates
-        }
-
-        result.timestamp = now
-
-        return result
     }
 }
 
@@ -89,4 +76,5 @@ public enum RetransmissionQueueError: Error
 {
     case queueIsEmpty
     case noCandidates
+    case tooSoonToRetransmit
 }
