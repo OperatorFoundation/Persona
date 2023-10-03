@@ -201,6 +201,7 @@ public class TcpStateHandler
                 stats.sentestablished += 1
                 stats.sentack += 1
                 stats.sentpayload += 1
+                stats.fresh += 1
 
                 totalPayloadSize = totalPayloadSize + nextPacketSize
                 nextSequenceNumber = nextSequenceNumber.add(nextPacketSize)
@@ -224,6 +225,8 @@ public class TcpStateHandler
             {
                 return []
             }
+
+            stats.retransmission += 1
 
             return [packet]
         }
