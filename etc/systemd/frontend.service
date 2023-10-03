@@ -4,7 +4,7 @@
  Description = frontend server
 
  [Service]
- ExecStart=/root/go/bin/frontend
+ ExecStart=/root/go/bin/frontend -writePcap
 
  [Install]
  WantedBy = multi-user.target
