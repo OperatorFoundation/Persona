@@ -1,3 +1,4 @@
+git stash
 git pull origin main
 
 swift package reset

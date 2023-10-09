@@ -1,3 +1,4 @@
+git stash
 git pull origin main
 swift build -c release
 cp .build/x86_64-unknown-linux-gnu/release/Persona . >/dev/null 2>/dev/null
@@ -12,6 +13,12 @@ pushd router
 go get router
 go install
 popd
+
+rm /etc/systemd/persona*
+rm /etc/systemd/frontend*
+rm /etc/systemd/tcpproxy*
+rm /etc/systemd/udpproxy*
+rm /etc/systemd/router*
 
 cp etc/systemd/* /etc/systemd/system
 systemctl daemon-reload
