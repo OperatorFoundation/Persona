@@ -14,11 +14,11 @@ go get router
 go install
 popd
 
-rm /etc/systemd/persona*
-rm /etc/systemd/frontend*
-rm /etc/systemd/tcpproxy*
-rm /etc/systemd/udpproxy*
-rm /etc/systemd/router*
+rm /etc/systemd/system/persona*
+rm /etc/systemd/system/frontend*
+rm /etc/systemd/system/tcpproxy*
+rm /etc/systemd/system/udpproxy*
+rm /etc/systemd/system/router*
 
 cp etc/systemd/* /etc/systemd/system
 systemctl daemon-reload
