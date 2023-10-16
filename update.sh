@@ -11,11 +11,16 @@ swift build -c release
 cp .build/x86_64-unknown-linux-gnu/release/Persona . >/dev/null 2>/dev/null
 cp .build/arm64-apple-macosx/release/Persona . >/dev/null 2>/dev/null
 
+apt install golang
 pushd frontend
+go mod init frontend
+go mod tidy
 go get frontend
 go install
 popd
 pushd router
+go mod init router
+go mod tidy
 go get router
 go install
 popd
