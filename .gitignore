@@ -1,3 +1,7 @@
+frontend/go.mod
+frontend/go.sum
+router/go.mod
+router/go.sum
 proxies/__pycache__
 *.pid
 dataDatabase
