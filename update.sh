@@ -13,6 +13,7 @@ cp .build/arm64-apple-macosx/release/Persona . >/dev/null 2>/dev/null
 
 apt install golang
 pushd frontend
+go version
 go mod init frontend
 go mod tidy
 go get frontend
