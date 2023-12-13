@@ -2,8 +2,12 @@
 
  [Unit]
  Description = frontend server
+ StartLimitIntervalSec=500
+ StartLimitBurst=5
 
  [Service]
+ Restart=on-failure
+ RestartSec=5s
  ExecStart=/root/go/bin/frontend -writePcap
 
  [Install]
