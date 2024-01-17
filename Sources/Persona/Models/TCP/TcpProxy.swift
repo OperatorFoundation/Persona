@@ -292,4 +292,35 @@ public enum TcpProxyError: Error
     case badMessage
     case frontendError(String)
     case badIdentity
+    
+    var localizedDescription: String
+    {
+        switch(self)
+        {
+            case .upstreamConnectionFailed:
+                return "upstreamConnectionFailed"
+            case .unknownConnectionStatus(_):
+                return "unknownConnectionStatus"
+            case .addressMismatch(_, _):
+                return "addressMismatch"
+            case .invalidAddress(_):
+                return "invalidAddress"
+            case .notIPv4Packet(_):
+                return "notIPv4Packet"
+            case .notTcpPacket(_):
+                return "notTcpPacket"
+            case .badIpv4Packet:
+                return "badIpv4Packet"
+            case .dataConversionFailed:
+                return "dataConversionFailed"
+            case .shortMessage:
+                return "shortMessage"
+            case .badMessage:
+                return "badMessage"
+            case .frontendError(_):
+                return "frontendError"
+            case .badIdentity:
+                return "badIdentity"
+        }
+    }
 }
