@@ -25,10 +25,10 @@ let package = Package(
         .package(url: "https://github.com/Kitura/HeliumLogger.git", from: "2.0.0"),
         .package(url: "https://github.com/OperatorFoundation/InternetProtocols", branch: "release"),
         .package(url: "https://github.com/OperatorFoundation/Net", branch: "release"),
-        .package(url: "https://github.com/OperatorFoundation/Straw", branch: "release"),
+        .package(url: "https://github.com/OperatorFoundation/Straw", branch: "1.0.0"),
         .package(url: "https://github.com/OperatorFoundation/swift-log-file", branch: "release"),
         .package(url: "https://github.com/OperatorFoundation/SwiftHexTools", branch: "1.2.6"),
-        .package(url: "https://github.com/OperatorFoundation/TransmissionAsync", branch: "release"),
+        .package(url: "https://github.com/OperatorFoundation/TransmissionAsync", branch: "0.1.0"),
     ],
     targets: [
         // Targets are the basic building blocks of a package. A target can define a module or a test suite.
