@@ -26,7 +26,7 @@ let package = Package(
         .package(url: "https://github.com/OperatorFoundation/InternetProtocols", branch: "release"),
         .package(url: "https://github.com/OperatorFoundation/Net", branch: "release"),
         .package(url: "https://github.com/OperatorFoundation/Straw", branch: "1.0.0"),
-        .package(url: "https://github.com/OperatorFoundation/swift-log-file", branch: "release"),
+        .package(url: "https://github.com/OperatorFoundation/swift-log-file", branch: "0.1.0"),
         .package(url: "https://github.com/OperatorFoundation/SwiftHexTools", branch: "1.2.6"),
         .package(url: "https://github.com/OperatorFoundation/TransmissionAsync", branch: "0.1.0"),
     ],
