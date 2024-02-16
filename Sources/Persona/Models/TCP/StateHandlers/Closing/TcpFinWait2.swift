@@ -51,7 +51,6 @@ public class TcpFinWait2: TcpStateHandler
             return TcpStateTransition(newState: self)
         }
 
-        // FIXME: TIME WAIT should be the next state
         let ack = try await makeAck(stats: stats)
         return TcpStateTransition(newState: TcpClosed(self), packetsToSend: [ack])
     }

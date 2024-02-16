@@ -18,7 +18,7 @@ extension NWEndpoint.Host: Stringable
             case .ipv4(let ipv4):
                 return ipv4.string
             case .ipv6(_):
-                return "IPv6" // FIXME
+                return "IPv6"
             case .name(let name, _):
                 return name
             default:
