@@ -70,7 +70,7 @@ public class SequenceNumberRange
             // Will adding the new amount put us in an overflow state?
             if UInt32.max - upperBound.uint32 > increaseAmountUInt32
             {
-                // Nah
+                // No
                 upperBound = upperBound.add(increaseAmount)
             }
             else
@@ -113,7 +113,7 @@ public class SequenceNumberRange
             }
             else
             {
-                // Nope
+                // No
                 lowerBound = lowerBound.add(increaseAmount)
             }
         }

@@ -12,7 +12,6 @@ import InternetProtocols
 import Puppy
 import TransmissionAsync
 
-// FIXME me - implement this state
 public class TcpClosed: TcpStateHandler
 {
     public override init(identity: Identity, downstream: AsyncConnection, logger: Logger, tcpLogger: Puppy, writeLogger: Puppy)
