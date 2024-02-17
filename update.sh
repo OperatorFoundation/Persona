@@ -1,5 +1,5 @@
 git stash
-git pull origin main
+git pull
 
 swift package reset
 rm -rf .build >/dev/null
