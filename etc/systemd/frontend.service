@@ -8,7 +8,7 @@
  [Service]
  Restart=on-failure
  RestartSec=5s
- ExecStart=/root/go/bin/frontend -writePcap
+ ExecStart=/root/go/bin/frontend
 
  [Install]
  WantedBy = multi-user.target
