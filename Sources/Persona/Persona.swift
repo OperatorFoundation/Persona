@@ -45,7 +45,7 @@ public class Persona
         // The location of the log files assumes that you have Persona checked out in the home directory of the root user.
         let mainLogURL = File.homeDirectory().appendingPathComponent("Persona/Persona.log", isDirectory: false)
         var logger = try FileLogging.logger(label: "Persona", localFile: mainLogURL)
-        logger.logLevel = .debug
+        logger.logLevel = .error
         self.logger = logger
 
         let logFileURL = File.homeDirectory().appendingPathComponent("Persona/PersonaTcpLog.log", isDirectory: false)
@@ -80,7 +80,7 @@ public class Persona
         }
 
         if let file = try? FileLogger("PersonaTCPLogger",
-                                      logLevel: .debug,
+                                      logLevel: .error,
                                       fileURL: logFileURL,
                                       filePermission: "600")  // Default permission is "640".
         {
@@ -88,7 +88,7 @@ public class Persona
         }
 
         if let file2 = try? FileLogger("PersonaUDPLogger",
-                                      logLevel: .debug,
+                                      logLevel: .error,
                                       fileURL: logFileURL2,
                                       filePermission: "600")  // Default permission is "640".
         {
@@ -96,7 +96,7 @@ public class Persona
         }
 
         if let file3 = try? FileLogger("PersonaPacketLogger",
-                                       logLevel: .debug,
+                                       logLevel: .error,
                                        fileURL: logFileURL3,
                                        filePermission: "600")  // Default permission is "640".
         {
@@ -104,7 +104,7 @@ public class Persona
         }
 
         if let file4 = try? FileLogger("PersonaClientWriteLogger",
-                                       logLevel: .debug,
+                                       logLevel: .error,
                                        fileURL: logFileURL4,
                                        filePermission: "600")  // Default permission is "640".
         {
@@ -112,7 +112,7 @@ public class Persona
         }
 
         if let statusFile = try? FileLogger("PersonaStatusLogger",
-                                       logLevel: .debug,
+                                       logLevel: .error,
                                        fileURL: statusFileURL,
                                        filePermission: "600")  // Default permission is "640".
         {
