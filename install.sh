@@ -1,5 +1,5 @@
 git stash
-git pull origin main
+git pull
 swift build -c release
 cp .build/x86_64-unknown-linux-gnu/release/Persona . >/dev/null 2>/dev/null
 cp .build/arm64-apple-macosx/release/Persona . >/dev/null 2>/dev/null
