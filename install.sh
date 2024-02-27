@@ -1,3 +1,5 @@
+lsb_release -a
+
 git stash
 git pull
 swift build -c release
