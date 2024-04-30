@@ -175,6 +175,12 @@ extension Stats: CustomStringConvertible
         \tnon-IPv4            - \(self.nonIPv4)
         \tnon-TCP/UDP IPv4    - \(self.nonTcpUdpIPv4)
         \tUDP with no payload - \(self.udpNoPayload)
+
+        Bad handshakes:
+        \tfirst packet was not SYN - \(self.firstPacketNotSyn)
+        \tfirst packet was RST     - \(self.firstPacketRst)
+        \tfirst packet was FIN     - \(self.firstPacketFin)
+        \tfirst packet was ACK     - \(self.firstPacketAck)
         """
     }
 }
