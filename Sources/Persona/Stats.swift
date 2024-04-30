@@ -57,6 +57,12 @@ public class Stats
     public var retransmission: Int = 0
     public var fresh: Int = 0
 
+    // Bad handshakes
+    public var firstPacketNotSyn: Int = 0
+    public var firstPacketRst: Int = 0
+    public var firstPacketFin: Int = 0
+    public var firstPacketAck: Int = 0
+
     // Anomalies
     public var udpNoPayload: Int = 0
 
@@ -166,9 +172,9 @@ extension Stats: CustomStringConvertible
         \tpackets per second\t- \(pps) pps
 
         Anomalies:
-        \tUDP with no payload - \(self.udpNoPayload)
         \tnon-IPv4            - \(self.nonIPv4)
         \tnon-TCP/UDP IPv4    - \(self.nonTcpUdpIPv4)
+        \tUDP with no payload - \(self.udpNoPayload)
         """
     }
 }
