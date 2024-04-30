@@ -168,13 +168,13 @@ public class Persona
                 }
                 catch
                 {
-                    self.logger.error("Persona.run - failed to handle message: \(message): \(error). Moving on to next message.")
+                    self.logger.debug("Persona.run: failed to handle a message: \(error).")
                 }
             }
             catch
             {
-                self.logger.error("Persona.run: reading from client failed: \(error) | \(error.localizedDescription)")
-                self.logger.error("Persona.run: assuming client connection closed, exiting Persona.")
+                self.logger.debug("Persona.run: reading from client failed: \(error) | \(error.localizedDescription)")
+                self.logger.debug("Persona.run: assuming client connection closed, exiting Persona.")
 
                 await self.close()
             }
@@ -202,7 +202,7 @@ public class Persona
 
         guard data.count > 0 else
         {
-            self.logger.error("Persona.handleMessage - no data")
+            self.logger.error("Persona.handleMessage - received a message with no data")
             throw PersonaError.noData
         }
 
@@ -237,7 +237,6 @@ public class Persona
         if let ipv4 = packet.ipv4, let tcp = packet.tcp
         {
             // The packet is IPv4/TCP.
-
             self.stats.ipv4 += 1
             self.stats.tcp += 1
 
@@ -267,11 +266,11 @@ public class Persona
             else
             {
                 #if DEBUG
-                self.logger.debug("🏓 UDP: \(ipv4.sourceAddress.ipv4AddressString ?? "not an ipv4 address"):\(udp.sourcePort) -> \(ipv4.destinationAddress.ipv4AddressString ?? "not an ipv4 address"):\(udp.destinationPort) - no payload")
+                // Reject UDP packets without payloads
+                self.logger.debug("🏓 UDP: \(ipv4.sourceAddress.ipv4AddressString ?? "not an ipv4 address"):\(udp.sourcePort) -> \(ipv4.destinationAddress.ipv4AddressString ?? "not an ipv4 address"):\(udp.destinationPort) - received a UDP packet with no payload")
                 #endif
 
-                // Reject UDP packets without payloads
-                throw PersonaError.emptyPayload
+                
             }
         }
         else if let _ = packet.ipv4
