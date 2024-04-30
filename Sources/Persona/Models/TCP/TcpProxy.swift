@@ -240,11 +240,22 @@ public actor TcpProxy
         // We need one udpproxy subsystem for each source address/port pair.
         // This is so we know how to route incoming traffic back to the client.
         let identity = try Identity(ipv4: ipv4, tcp: tcp)
-        let (connection, isPrestablishedConnection) = try await TcpProxyConnection.getConnection(identity: identity, downstream: self.client, ipv4: ipv4, tcp: tcp, payload: payload, logger: logger, tcpLogger: tcpLogger, writeLogger: writeLogger)
-        if isPrestablishedConnection
+        
+        do
         {
-            // Only process packets on preestablished connections. If it's a new connetion, it will process the packet internally in the constructor.
-            try await connection.processDownstreamPacket(stats: self.stats, ipv4: ipv4, tcp: tcp, payload: payload)
+            let (connection, isPrestablishedConnection) = try await TcpProxyConnection.getConnection(identity: identity, downstream: self.client, ipv4: ipv4, tcp: tcp, payload: payload, logger: logger, tcpLogger: tcpLogger, writeLogger: writeLogger, stats: self.stats)
+            
+            if isPrestablishedConnection
+            {
+                // Only process packets on preestablished connections. If it's a new connetion, it will process the packet internally in the constructor.
+                try await connection.processDownstreamPacket(stats: self.stats, ipv4: ipv4, tcp: tcp, payload: payload)
+            }
+        }
+        catch
+        {
+            #if DEBUG
+            self.logger.debug("TCPProxy.processDownstreamPacket: Bad first packet.")
+            #endif
         }
     }
 

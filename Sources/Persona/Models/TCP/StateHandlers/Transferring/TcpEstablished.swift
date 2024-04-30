@@ -58,7 +58,7 @@ public class TcpEstablished: TcpStateHandler
 
         guard self.straw.inWindow(tcp) else
         {
-            self.logger.error("❌ TcpEstablished - \(clientWindow.lowerBound) <= \(packetLowerBound)..<\(packetUpperBound) <= \(clientWindow.upperBound)")
+            self.logger.debug("TcpEstablished - Out of window: \nClient Window: lower bound - \(clientWindow.lowerBound), upper bound - \(clientWindow.upperBound) \nPacket: lower bound - \(packetLowerBound) upper bound - \(packetUpperBound)")
 
             // Send an ACK to let the client know that they are outside of the TCP window.
             stats.sentipv4 += 1

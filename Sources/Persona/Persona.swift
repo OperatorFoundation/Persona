@@ -250,7 +250,6 @@ public class Persona
         else if let ipv4 = packet.ipv4, let udp = packet.udp
         {
             // The packet is IPv4/UDP.
-
             self.stats.ipv4 += 1
             self.stats.udp += 1
 
@@ -265,12 +264,12 @@ public class Persona
             }
             else
             {
+                self.stats.udpNoPayload += 1
+                
                 #if DEBUG
                 // Reject UDP packets without payloads
                 self.logger.debug("🏓 UDP: \(ipv4.sourceAddress.ipv4AddressString ?? "not an ipv4 address"):\(udp.sourcePort) -> \(ipv4.destinationAddress.ipv4AddressString ?? "not an ipv4 address"):\(udp.destinationPort) - received a UDP packet with no payload")
                 #endif
-
-                
             }
         }
         else if let _ = packet.ipv4

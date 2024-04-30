@@ -31,7 +31,7 @@ public actor TcpProxyConnection
         return connection
     }
 
-    static public func getConnection(identity: Identity, downstream: AsyncConnection, ipv4: IPv4, tcp: TCP, payload: Data?, logger: Logger, tcpLogger: Puppy, writeLogger: Puppy) async throws -> (TcpProxyConnection, Bool)
+    static public func getConnection(identity: Identity, downstream: AsyncConnection, ipv4: IPv4, tcp: TCP, payload: Data?, logger: Logger, tcpLogger: Puppy, writeLogger: Puppy, stats: Stats) async throws -> (TcpProxyConnection, Bool)
     {
         if let connection = Self.connections[identity]
         {
@@ -41,12 +41,33 @@ public actor TcpProxyConnection
         {
             guard tcp.syn, !tcp.ack, !tcp.rst, !tcp.fin else
             {
+                if !tcp.syn
+                {
+                    stats.firstPacketNotSyn += 1
+                }
+                
+                if tcp.ack
+                {
+                    stats.firstPacketAck += 1
+                }
+                
+                if tcp.rst
+                {
+                    stats.firstPacketRst += 1
+                }
+                
+                if tcp.fin
+                {
+                    stats.firstPacketFin += 1
+                }
+                
                 throw TcpProxyConnectionError.badFirstPacket
             }
 
             let connection = try await TcpProxyConnection(identity: identity, downstream: downstream, ipv4: ipv4, tcp: tcp, payload: payload, logger: logger, tcpLogger: tcpLogger, writeLogger: writeLogger)
             Self.connections[identity] = connection
             Self.queue.append(identity)
+            
             return (connection, false)
         }
     }
