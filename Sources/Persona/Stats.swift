@@ -57,6 +57,9 @@ public class Stats
     public var retransmission: Int = 0
     public var fresh: Int = 0
 
+    // Anomalies
+    public var udpNoPayload: Int = 0
+
     var lastWrite: Date = Date() // now
     var lastSentPayload: Int = 0
 
@@ -118,8 +121,6 @@ extension Stats: CustomStringConvertible
 
         return """
         Received:
-        non-IPv4         - \(self.nonIPv4)
-        non-TCP/UDP IPv4 - \(self.nonTcpUdpIPv4)
         IPv4                      - \(self.ipv4)
         \tIPv4/UDP                - \(self.udp)
         \tIPv4/TCP                - \(self.tcp)
@@ -163,6 +164,11 @@ extension Stats: CustomStringConvertible
         \tack ratio               - \(ackRatio)%
         \tfreshness\t- \(freshness)%
         \tpackets per second\t- \(pps) pps
+
+        Anomalies:
+        \tUDP with no payload - \(self.udpNoPayload)
+        \tnon-IPv4            - \(self.nonIPv4)
+        \tnon-TCP/UDP IPv4    - \(self.nonTcpUdpIPv4)
         """
     }
 }
