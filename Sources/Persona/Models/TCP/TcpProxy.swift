@@ -185,7 +185,7 @@ public struct TcpProxyResponse: CustomStringConvertible
 // It also receives output from the tcpproxy subsystem and prepares it into a form suitable for sending back to the client.
 public actor TcpProxy
 {
-    static public let optimism: Int = 13
+    static public let optimism: Int = 50
 
     let client: AsyncConnection
     let stats: Stats
