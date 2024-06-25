@@ -52,6 +52,7 @@ public class RetransmissionQueue
             // return true if we should keep this segment in the retransmission queue
             if acknowledgementNumber.uint32 < segment.window.lowerBound.uint32
             {
+                self.logger.debug("🫐🫐 Received ack #: \(acknowledgementNumber). Our segment window lower bound is: \(segment.window.lowerBound.uint32), so we kept it for retransmission! 🫐🫐")
                 return true
             }
             else
