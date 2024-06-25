@@ -47,7 +47,7 @@ public class Persona
         // The location of the log files assumes that you have Persona checked out in the home directory of the root user.
         let mainLogURL = File.homeDirectory().appendingPathComponent("Persona/Persona.log", isDirectory: false)
         var logger = try FileLogging.logger(label: "Persona", localFile: mainLogURL)
-        logger.logLevel = .error
+        logger.logLevel = .debug
         self.logger = logger
 
         let logFileURL = File.homeDirectory().appendingPathComponent("Persona/PersonaTcpLog.log", isDirectory: false)
