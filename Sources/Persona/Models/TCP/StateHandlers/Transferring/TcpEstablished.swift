@@ -81,9 +81,8 @@ public class TcpEstablished: TcpStateHandler
 
             if acknowledgementNumber != self.straw.sequenceNumber
             {
-                let difference = acknowledgementNumber - self.straw.sequenceNumber
-
                 #if DEBUG
+                let difference = acknowledgementNumber - self.straw.sequenceNumber
                 self.logger.debug("New ACK# - clearing \(difference) of \(self.straw.count) bytes")
                 #endif
 

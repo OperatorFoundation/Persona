@@ -46,7 +46,7 @@ public class RetransmissionQueue
             segment in
 
             // return true if we should keep this segment in the retransmission queue
-            return acknowledgementNumber.uint32 <= segment.window.upperBound.uint32 // FIXME - handle rollover
+            return acknowledgementNumber.uint32 < segment.window.lowerBound.uint32 // FIXME - handle rollover
         }
     }
 
