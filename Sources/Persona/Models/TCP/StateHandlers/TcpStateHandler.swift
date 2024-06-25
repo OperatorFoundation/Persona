@@ -45,7 +45,7 @@ public class TcpStateHandler
 
     public var straw: TCPStraw
     public var open: Bool = true
-    var retransmissionQueue: RetransmissionQueue = RetransmissionQueue()
+    var retransmissionQueue: RetransmissionQueue
 
     public init(identity: Identity, downstream: AsyncConnection, logger: Logger, tcpLogger: Puppy, writeLogger: Puppy)
     {
@@ -56,6 +56,7 @@ public class TcpStateHandler
         self.writeLogger = writeLogger
 
         self.straw = TCPStraw(logger: self.logger, sequenceNumber: isn(), acknowledgementNumber: SequenceNumber(0))
+        self.retransmissionQueue = RetransmissionQueue(logger: logger)
     }
 
     public init(_ oldState: TcpStateHandler)
@@ -67,6 +68,7 @@ public class TcpStateHandler
         self.writeLogger = oldState.writeLogger
 
         self.straw = oldState.straw
+        self.retransmissionQueue = RetransmissionQueue(logger: logger)
     }
 
     public func processDownstreamPacket(stats: Stats, ipv4: IPv4, tcp: TCP, payload: Data?) async throws -> TcpStateTransition

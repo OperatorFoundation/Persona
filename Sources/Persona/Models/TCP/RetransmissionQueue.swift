@@ -6,12 +6,15 @@
 //
 
 import Foundation
+import Logging
 
 import InternetProtocols
 
 public class RetransmissionQueue
 {
     static public let retransmitTime: Double = 0.1 // 100 ms in seconds
+    
+    public let logger: Logger
 
     public var isEmpty: Bool
     {
@@ -20,8 +23,9 @@ public class RetransmissionQueue
 
     var queue: [Segment] = []
 
-    public init()
+    public init(logger: Logger)
     {
+        self.logger = logger
     }
 
     public func add(segment: Segment)
@@ -46,7 +50,16 @@ public class RetransmissionQueue
             segment in
 
             // return true if we should keep this segment in the retransmission queue
-            return acknowledgementNumber.uint32 < segment.window.lowerBound.uint32 // FIXME - handle rollover
+            if acknowledgementNumber.uint32 < segment.window.lowerBound.uint32
+            {
+                return true
+            }
+            else
+            {
+                self.logger.debug("🍓🍓 Received ack #: \(acknowledgementNumber), Removed segment from the Retransmission Queue. Our segment window lower bound is: \(segment.window.lowerBound.uint32) 🍓🍓")
+                return false
+            }
+//            return acknowledgementNumber.uint32 < segment.window.lowerBound.uint32 // FIXME - handle rollover
         }
     }
 
