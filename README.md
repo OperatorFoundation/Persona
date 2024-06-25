@@ -72,6 +72,39 @@ accessible when running without Pluggable Transports enabled.
 A systemd service configuration is included. Therefore, there is no need to run it manually. After running the install
 script, you can connect to the Persona port and systemd will automatically launch an instance of Persona.
 
+### Getting .pcap's for Debugging
+
+Edit the frontend.service file to turn on packet capture functionality.
+
+`$ nano /etc/systemd/system/frontend.service`
+
+Update the ExecStart line to include the -writePcap flag.
+
+```
+# frontend.service
+
+ [Unit]
+ Description = frontend server
+ StartLimitIntervalSec=500
+ StartLimitBurst=5
+
+ [Service]
+ Restart=on-failure
+ RestartSec=5s
+ ExecStart=/root/go/bin/frontend -writePcap
+
+ [Install]
+ WantedBy = multi-user.target
+```
+
+Restart the service.
+
+```
+$ systemctl daemon-reload
+$ systemctl restart frontend
+```
+The file can be found in the project directory: Persona/persona.pcap
+
 ## Updating
 
 If you are working on developing Persona, there is an script called update.sh that will update to the latest
