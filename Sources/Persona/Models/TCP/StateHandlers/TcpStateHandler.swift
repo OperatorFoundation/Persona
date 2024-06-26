@@ -145,6 +145,10 @@ public class TcpStateHandler
 
     func pumpStrawToClient(_ stats: Stats, _ tcp: TCP? = nil) async throws -> [IPv4]
     {
+        #if DEBUG
+        self.logger.debug("\(#file).\(#function):\(#line) - RTQ: \(self.retransmissionQueue.count), Straw: \(self.straw.count)")
+        #endif
+
         if self.retransmissionQueue.isEmpty
         {
             // Only send fresh packets when there is nothing to retransmit

@@ -21,6 +21,11 @@ public class RetransmissionQueue
         return self.queue.isEmpty
     }
 
+    public var count: Int
+    {
+        return self.queue.count
+    }
+
     var queue: [Segment] = []
 
     public init(logger: Logger)

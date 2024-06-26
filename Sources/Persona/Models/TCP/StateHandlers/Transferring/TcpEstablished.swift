@@ -87,10 +87,19 @@ public class TcpEstablished: TcpStateHandler
                 #endif
 
                 try self.straw.acknowledge(acknowledgementNumber)
-                self.retransmissionQueue.acknowledge(acknowledgementNumber: acknowledgementNumber)
 
                 #if DEBUG
                 self.logger.debug("Straw now has \(self.straw.count) bytes in the buffer")
+                #endif
+
+                #if DEBUG
+                self.logger.debug("Retransmission queue has \(self.retransmissionQueue.count) segments before ACK")
+                #endif
+
+                self.retransmissionQueue.acknowledge(acknowledgementNumber: acknowledgementNumber)
+
+                #if DEBUG
+                self.logger.debug("Retransmission queue has \(self.retransmissionQueue.count) segments after ACK")
                 #endif
             }
         }
