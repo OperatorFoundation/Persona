@@ -190,17 +190,12 @@ public class TcpStateHandler
             {
                 // Each packet is limited is by the amount left to send and the MTU (which we guess).
                 let nextPacketSize = min(sizeToSend - totalPayloadSize, 1400)
-
-                let window = SequenceNumberRange(lowerBound: nextSequenceNumber, size: UInt32(nextPacketSize))
-
-                let packet = try await self.makeAck(stats: stats, window: window)
-                if let payload = packet.payload
-                {
-                    packets.append(packet)
-
-                    let segment = Segment(data: payload, sequenceNumber: window.lowerBound)
-                    self.retransmissionQueue.add(segment: segment)
-                }
+                let segmentData = try self.straw.read(size: nextPacketSize)
+                let segment = Segment(data: segmentData.data, sequenceNumber: nextSequenceNumber)
+                let packet = try await self.makeAck(stats: stats, segment: segment)
+                
+                packets.append(packet)
+                self.retransmissionQueue.add(segment: segment)
 
                 stats.sentipv4 += 1
                 stats.senttcp += 1
@@ -289,46 +284,16 @@ public class TcpStateHandler
         return try self.makePacket(sequenceNumber: segment.window.lowerBound, acknowledgementNumber: acknowledgementNumber, windowSize: windowSize, ack: true, payload: segment.data)
     }
 
-    func makeAck(stats: Stats, window: SequenceNumberRange? = nil) async throws -> IPv4
+    func makeAck(stats: Stats) async throws -> IPv4
     {
-        if let window
-        {
-            let (_, acknowledgementNumber, windowSize) = self.getState()
-
-            if window.lowerBound.uint32 < self.straw.highWaterMark.uint32 // Ignore wrapover for simple statistics gathering purposes
-            {
-                stats.retransmission += 1
-            }
-            else
-            {
-                stats.fresh += 1
-            }
-
-            let segment = try self.straw.read(window: window)
-
-            return try self.makePacket(sequenceNumber: segment.window.lowerBound, acknowledgementNumber: acknowledgementNumber, windowSize: windowSize, ack: true, payload: segment.data)
-        }
-        else
-        {
-            let (sequenceNumber, acknowledgementNumber, windowSize) = self.getState()
-            return try self.makePacket(sequenceNumber: sequenceNumber, acknowledgementNumber: acknowledgementNumber, windowSize: windowSize, ack: true, payload: nil)
-        }
+        let (sequenceNumber, acknowledgementNumber, windowSize) = self.getState()
+        return try self.makePacket(sequenceNumber: sequenceNumber, acknowledgementNumber: acknowledgementNumber, windowSize: windowSize, ack: true, payload: nil)
     }
     
-    func makeFinAck(window: SequenceNumberRange? = nil) async throws -> IPv4
+    func makeFinAck() async throws -> IPv4
     {
-        if let window
-        {
-            let (_, acknowledgementNumber, windowSize) = self.getState()
-
-            let segment = try self.straw.read(window: window)
-            return try self.makePacket(sequenceNumber: segment.window.lowerBound, acknowledgementNumber: acknowledgementNumber, windowSize: windowSize, ack: true, fin: true)
-        }
-        else
-        {
-            let (sequenceNumber, acknowledgementNumber, windowSize) = self.getState()
-            return try self.makePacket(sequenceNumber: sequenceNumber, acknowledgementNumber: acknowledgementNumber, windowSize: windowSize, ack: true, fin: true)
-        }
+        let (sequenceNumber, acknowledgementNumber, windowSize) = self.getState()
+        return try self.makePacket(sequenceNumber: sequenceNumber, acknowledgementNumber: acknowledgementNumber, windowSize: windowSize, ack: true, fin: true)
     }
 
     func makePacket(sequenceNumber: SequenceNumber, acknowledgementNumber: SequenceNumber, windowSize: UInt16, syn: Bool = false, ack: Bool = false, fin: Bool = false, rst: Bool = false, payload: Data? = nil) throws -> IPv4

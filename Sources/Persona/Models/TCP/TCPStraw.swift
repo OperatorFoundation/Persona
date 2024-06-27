@@ -131,25 +131,6 @@ public class TCPStraw
         return result
     }
 
-    public func read(offset: Int, size: Int) throws -> SegmentData
-    {
-        let data = try self.straw.peek(offset: offset, size: size)
-        let window = SequenceNumberRange(lowerBound: self.sequenceNumber.add(offset), size: UInt32(data.count))
-        let result = SegmentData(data: data, window: window)
-
-        self.highWaterMark = window.upperBound
-
-        return result
-    }
-
-    public func read(window: SequenceNumberRange) throws -> SegmentData
-    {
-        let offset = window.lowerBound - self.sequenceNumber
-        let size = window.upperBound - window.lowerBound
-
-        return try self.read(offset: Int(offset), size: Int(size))
-    }
-
     public func read(maxSize: Int) throws -> SegmentData
     {
         let data = try self.straw.peek(maxSize: maxSize)
@@ -159,20 +140,6 @@ public class TCPStraw
         self.highWaterMark = window.upperBound
 
         return result
-    }
-
-    public func acknowledge(_ ack: SequenceNumber) throws
-    {
-        let size = ack - self.sequenceNumber
-
-        guard size > 0 else
-        {
-            return
-        }
-
-        try self.straw.clear(Int(size))
-
-        self.sequenceNumber = ack
     }
 
     public func incrementSequenceNumber()

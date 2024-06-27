@@ -9,6 +9,8 @@ import TransmissionAsync
 
 final class PersonaTests: XCTestCase
 {
+    // TODO: Test that makes and closes and multitude of connections
+    
     func testUDPProxy() async throws
     {
         print("Starting the UDP Proxy test!")
