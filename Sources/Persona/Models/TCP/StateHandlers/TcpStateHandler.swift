@@ -258,8 +258,11 @@ public class TcpStateHandler
         self.logger.debug("👋 MAKE ACK called!!")
         #endif
         
+        
+        #warning("Placeholder straw read for debugging")
         let (sequenceNumber, acknowledgementNumber, windowSize) = self.getState()
-        return try self.makePacket(sequenceNumber: sequenceNumber, acknowledgementNumber: acknowledgementNumber, windowSize: windowSize, ack: true, payload: nil)
+        let segment = try? self.straw.read(size: Int(windowSize))
+        return try self.makePacket(sequenceNumber: sequenceNumber, acknowledgementNumber: acknowledgementNumber, windowSize: windowSize, ack: true, payload: segment?.data)
     }
     
     func makeFinAck() async throws -> IPv4
