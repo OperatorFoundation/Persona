@@ -45,7 +45,9 @@ public class TcpStateHandler
 
     public var straw: TCPStraw
     public var open: Bool = true
+    internal var windowSize: UInt16 = UInt16.max
     var retransmissionQueue: RetransmissionQueue
+    
 
     public init(identity: Identity, downstream: AsyncConnection, logger: Logger, tcpLogger: Puppy, writeLogger: Puppy)
     {
@@ -148,89 +150,55 @@ public class TcpStateHandler
         #if DEBUG
         self.logger.debug("\(#file).\(#function):\(#line) - RTQ: \(self.retransmissionQueue.count), Straw: \(self.straw.count)")
         #endif
-
-        if self.retransmissionQueue.isEmpty
+        
+        guard !self.straw.isEmpty else
         {
-            // Only send fresh packets when there is nothing to retransmit
+            return []
+        }
 
-            guard !self.straw.isEmpty else
-            {
-                return []
-            }
+        // We're going to split the whole buffer into individual packets.
+        var packets: [IPv4] = []
 
-            // We're going to split the whole buffer into individual packets.
-            var packets: [IPv4] = []
-
-            // The maximum we can send is limited by both the client window size and how much data is in the buffer.
-            let sizeToSend: Int
-            if let tcp
-            {
-                sizeToSend = min(Int(tcp.windowSize), self.straw.count)
-
-                if tcp.ack
-                {
-                    if let segment = try? self.retransmissionQueue.next()
-                    {
-                        let result = try await self.makeAck(stats: stats, segment: segment)
-                        return [result]
-                    }
-                }
-            }
-            else
-            {
-                sizeToSend = self.straw.count
-            }
-
-            var totalPayloadSize = 0
-            var nextSequenceNumber = self.straw.sequenceNumber
-
-            // We're trying to hit this limit exactly, but if we send to many packets at once they'll get discarded.
-            // So try our best, but limit it to 3 packets max.
-            while totalPayloadSize < sizeToSend, packets.count < TcpProxy.optimism
-            {
-                // Each packet is limited is by the amount left to send and the MTU (which we guess).
-                let nextPacketSize = min(sizeToSend - totalPayloadSize, 1400)
-                let segmentData = try self.straw.read(size: nextPacketSize)
-                let segment = Segment(data: segmentData.data, sequenceNumber: nextSequenceNumber)
-                let packet = try await self.makeAck(stats: stats, segment: segment)
-                
-                packets.append(packet)
-                self.retransmissionQueue.add(segment: segment)
-
-                stats.sentipv4 += 1
-                stats.senttcp += 1
-                stats.sentestablished += 1
-                stats.sentack += 1
-                stats.sentpayload += 1
-                stats.fresh += 1
-
-                totalPayloadSize = totalPayloadSize + nextPacketSize
-                nextSequenceNumber = nextSequenceNumber.add(nextPacketSize)
-            }
-
-            return packets
+        // The maximum we can send is limited by both the client window size and how much data is in the buffer.
+        let sizeToSend: Int
+        if let tcp
+        {
+            sizeToSend = min(Int(tcp.windowSize), self.straw.count)
         }
         else
         {
-            // Retransmitting
-
-            guard let segment = try? self.retransmissionQueue.next() else
-            {
-                // We might fail to retrieve anything because it is too soon to retransmit.
-                // In this case, do nothing and wait until it is time to retransmit.
-                
-                return []
-            }
-
-            guard let packet = try? await self.makeAck(stats: stats, segment: segment) else
-            {
-                return []
-            }
-
-            stats.retransmission += 1
-
-            return [packet]
+            #warning("Performance Tuning: Use the TCPState window size here")
+            sizeToSend = self.straw.count
         }
+
+        var totalPayloadSize = 0
+        var nextSequenceNumber = self.straw.sequenceNumber
+
+        // We're trying to hit this limit exactly, but if we send to many packets at once they'll get discarded.
+        // So try our best, but limit it to 3 packets max.
+        while totalPayloadSize < sizeToSend, packets.count < (TcpProxy.optimism - retransmissionQueue.count)
+        {
+            // Each packet is limited is by the amount left to send and the MTU (which we guess).
+            let nextPacketSize = min(sizeToSend - totalPayloadSize, 1400)
+            let segmentData = try self.straw.read(size: nextPacketSize)
+            let segment = Segment(data: segmentData.data, sequenceNumber: nextSequenceNumber)
+            let packet = try await self.makeAck(stats: stats, segment: segment)
+            
+            packets.append(packet)
+            self.retransmissionQueue.add(segment: segment)
+
+            stats.sentipv4 += 1
+            stats.senttcp += 1
+            stats.sentestablished += 1
+            stats.sentack += 1
+            stats.sentpayload += 1
+            stats.fresh += 1
+
+            totalPayloadSize = totalPayloadSize + nextPacketSize
+            nextSequenceNumber = nextSequenceNumber.add(nextPacketSize)
+        }
+
+        return packets
     }
 
     /// In all states except SYN-SENT, all reset (RST) segments are validated by checking their SEQ-fields.
@@ -286,6 +254,10 @@ public class TcpStateHandler
 
     func makeAck(stats: Stats) async throws -> IPv4
     {
+        #if DEBUG
+        self.logger.debug("👋 MAKE ACK called!!")
+        #endif
+        
         let (sequenceNumber, acknowledgementNumber, windowSize) = self.getState()
         return try self.makePacket(sequenceNumber: sequenceNumber, acknowledgementNumber: acknowledgementNumber, windowSize: windowSize, ack: true, payload: nil)
     }
