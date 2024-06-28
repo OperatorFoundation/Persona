@@ -165,7 +165,6 @@ public class TcpStateHandler
 
         // The maximum we can send is limited by both the client window size and how much data is in the buffer.
         var totalPacketsSize = 0
-        var nextSequenceNumber = self.straw.sequenceNumber
         let maxPacketsToCreate = TcpProxy.optimism - retransmissionQueue.count
 
         // We're trying to hit this limit exactly, but if we send too many packets at once they'll get discarded.
@@ -181,7 +180,7 @@ public class TcpStateHandler
             let segmentData = try self.straw.read(maxSize: nextPacketSize)
             self.logger.debug("🪵 \(#fileID).\(#function):\(#line) finished reading maxSize: \(nextPacketSize). Read \(segmentData.data.count) bytes")
             
-            let segment = Segment(data: segmentData.data, sequenceNumber: nextSequenceNumber)
+            let segment = Segment(data: segmentData.data, sequenceNumber: segmentData.window.lowerBound)
             let packet = try await self.makeAck(stats: stats, segment: segment)
             
             packets.append(packet)
@@ -195,7 +194,6 @@ public class TcpStateHandler
             stats.fresh += 1
 
             totalPacketsSize = totalPacketsSize + nextPacketSize
-            nextSequenceNumber = nextSequenceNumber.add(nextPacketSize)
             
             #if DEBUG
             self.logger.debug("🪵🪵 \(#fileID).\(#function):\(#line) is totalPacketsSize \(totalPacketsSize) < windowSize \(self.windowSize)?, is packets.count \(packets.count) < maxPacketsToCreate \(maxPacketsToCreate)?, is self.straw.count \(self.straw.count) > 0?")

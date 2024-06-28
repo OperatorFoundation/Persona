@@ -110,6 +110,7 @@ public class TCPStraw
         let data = try self.straw.read()
         let window = SequenceNumberRange(lowerBound: self.sequenceNumber, size: UInt32(data.count))
         let result = SegmentData(data: data, window: window)
+        self.sequenceNumber = self.sequenceNumber.add(data.count)
 
         return result
     }
@@ -119,7 +120,8 @@ public class TCPStraw
         let data = try self.straw.read(size: size)
         let window = SequenceNumberRange(lowerBound: self.sequenceNumber, size: UInt32(data.count))
         let result = SegmentData(data: data, window: window)
-
+        self.sequenceNumber = self.sequenceNumber.add(data.count)
+        
         return result
     }
 
@@ -128,6 +130,7 @@ public class TCPStraw
         let data = try self.straw.read(maxSize: maxSize)
         let window = SequenceNumberRange(lowerBound: self.sequenceNumber, size: UInt32(data.count))
         let result = SegmentData(data: data, window: window)
+        self.sequenceNumber = self.sequenceNumber.add(data.count)
 
         return result
     }
