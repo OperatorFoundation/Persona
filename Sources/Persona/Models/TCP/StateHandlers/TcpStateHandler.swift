@@ -170,15 +170,12 @@ public class TcpStateHandler
         // We're trying to hit this limit exactly, but if we send too many packets at once they'll get discarded.
         while totalPacketsSize < self.windowSize, packets.count < maxPacketsToCreate, self.straw.count > 0
         {
-            #if DEBUG
-            self.logger.debug("🪵 \(#fileID).\(#function):\(#line) is totalPacketsSize \(totalPacketsSize) < windowSize \(self.windowSize)?, is packets.count \(packets.count) < maxPacketsToCreate \(maxPacketsToCreate)?, is self.straw.count \(self.straw.count) > 0?")
-            #endif
             // Each packet is limited is by the amount left to send and the MTU (which we guess).
             let nextPacketSize = min((Int(self.windowSize) - totalPacketsSize), TcpProxy.mtu)
             
-            self.logger.debug("🪵 \(#fileID).\(#function):\(#line) about to read maxSize: \(nextPacketSize)")
+            self.logger.debug("🪵📖 \(#fileID).\(#function):\(#line) about to read maxSize: \(nextPacketSize)")
             let segmentData = try self.straw.read(maxSize: nextPacketSize)
-            self.logger.debug("🪵 \(#fileID).\(#function):\(#line) finished reading maxSize: \(nextPacketSize). Read \(segmentData.data.count) bytes")
+            self.logger.debug("🪵📙 \(#fileID).\(#function):\(#line) finished reading maxSize: \(nextPacketSize). Read \(segmentData.data.count) bytes, SEQ#: \(segmentData.window.lowerBound)")
             
             let segment = Segment(data: segmentData.data, sequenceNumber: segmentData.window.lowerBound)
             let packet = try await self.makeAck(stats: stats, segment: segment)
@@ -196,12 +193,12 @@ public class TcpStateHandler
             totalPacketsSize = totalPacketsSize + nextPacketSize
             
             #if DEBUG
-            self.logger.debug("🪵🪵 \(#fileID).\(#function):\(#line) is totalPacketsSize \(totalPacketsSize) < windowSize \(self.windowSize)?, is packets.count \(packets.count) < maxPacketsToCreate \(maxPacketsToCreate)?, is self.straw.count \(self.straw.count) > 0?")
+            self.logger.debug("🪵➰ \(#fileID).\(#function):\(#line) is totalPacketsSize \(totalPacketsSize) < windowSize \(self.windowSize)?, is packets.count \(packets.count) < maxPacketsToCreate \(maxPacketsToCreate)?, is self.straw.count \(self.straw.count) > 0?")
             #endif
         }
         
         #if DEBUG
-        self.logger.debug("🪵 \(#fileID).\(#function):\(#line) returning \(packets.count) packets.")
+        self.logger.debug("🪵💌 \(#fileID).\(#function):\(#line) returning \(packets.count) packets.")
         #endif
         
         return packets

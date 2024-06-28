@@ -86,7 +86,6 @@ public class TcpEstablished: TcpStateHandler
             let acknowledgementNumber = SequenceNumber(tcp.acknowledgementNumber)
 
             #if DEBUG
-            self.logger.debug("Ack#: \(acknowledgementNumber.uint32), straw🥤#: \(self.straw.sequenceNumber.uint32)")
             self.logger.debug("Retransmission queue has \(self.retransmissionQueue.count) segments before ACK")
             #endif
 
