@@ -148,7 +148,7 @@ public class TcpStateHandler
     func pumpStrawToClient(_ stats: Stats, _ tcp: TCP? = nil) async throws -> [IPv4]
     {
         #if DEBUG
-        self.logger.debug("\(#fileID).\(#function):\(#line) - RTQ: \(self.retransmissionQueue.count), Straw: \(self.straw.count)")
+        self.logger.debug("🪵 \(#fileID).\(#function):\(#line) - RTQ: \(self.retransmissionQueue.count), Straw: \(self.straw.count)")
         #endif
         
         guard self.straw.count > 0 else
@@ -162,9 +162,10 @@ public class TcpStateHandler
         // The maximum we can send is limited by both the client window size and how much data is in the buffer.
         var totalPacketsSize = 0
         var nextSequenceNumber = self.straw.sequenceNumber
+        let maxPacketsToCreate = TcpProxy.optimism - retransmissionQueue.count
 
         // We're trying to hit this limit exactly, but if we send too many packets at once they'll get discarded.
-        while totalPacketsSize < self.windowSize, packets.count < (TcpProxy.optimism - retransmissionQueue.count), self.straw.count > 0
+        while totalPacketsSize < self.windowSize, packets.count < maxPacketsToCreate, self.straw.count > 0
         {
             // Each packet is limited is by the amount left to send and the MTU (which we guess).
             let nextPacketSize = min((Int(self.windowSize) - totalPacketsSize), TcpProxy.mtu)
@@ -184,11 +185,16 @@ public class TcpStateHandler
 
             totalPacketsSize = totalPacketsSize + nextPacketSize
             nextSequenceNumber = nextSequenceNumber.add(nextPacketSize)
+            
+            #if DEBUG
+            self.logger.debug("🪵 \(#fileID).\(#function):\(#line) is totalPacketsSize \(totalPacketsSize) < windowSize \(self.windowSize)?, is packets.count \(packets.count) < maxPacketsToCreate \(maxPacketsToCreate)?, is self.straw.count \(self.straw.count) > 0?")
+            #endif
         }
         
         #if DEBUG
-        self.logger.debug("\(#fileID).\(#function):\(#line) returning \(packets.count) packets.")
+        self.logger.debug("🪵 \(#fileID).\(#function):\(#line) returning \(packets.count) packets.")
         #endif
+        
         return packets
     }
 
