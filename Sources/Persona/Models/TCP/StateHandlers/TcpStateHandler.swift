@@ -104,6 +104,16 @@ public class TcpStateHandler
         return self.panicOnUpstreamClose()
     }
 
+    public func processTimeout(stats: Stats, lowerBound: SequenceNumber) async throws -> IPv4
+    {
+        let segment = try self.retransmissionQueue.get(lowerBound: lowerBound)
+
+        // Log this retransmission in the stats
+        stats.retransmission += 1
+
+        return try await self.makeAck(stats: stats, segment: segment)
+    }
+
     public func write(payload: Data) async throws
     {
         let message = TcpProxyRequest(type: .RequestWrite, identity: self.identity, payload: payload)
@@ -181,6 +191,8 @@ public class TcpStateHandler
             let packet = try await self.makeAck(stats: stats, segment: segment)
             
             packets.append(packet)
+
+            // This is a new packet, so add it to the retransmission queue.
             self.retransmissionQueue.add(segment: segment)
 
             stats.sentipv4 += 1
@@ -238,9 +250,6 @@ public class TcpStateHandler
     func makeAck(stats: Stats, segment: Segment) async throws -> IPv4
     {
         let (_, acknowledgementNumber, windowSize) = self.getState()
-
-        stats.retransmission += 1
-
         return try self.makePacket(sequenceNumber: segment.window.lowerBound, acknowledgementNumber: acknowledgementNumber, windowSize: windowSize, ack: true, payload: segment.data)
     }
 

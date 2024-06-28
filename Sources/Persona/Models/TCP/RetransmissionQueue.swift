@@ -12,8 +12,6 @@ import InternetProtocols
 
 public class RetransmissionQueue
 {
-    static public let retransmitTime: Double = 0.1 // 100 ms in seconds
-    
     public let logger: Logger
 
     public var isEmpty: Bool
@@ -24,6 +22,12 @@ public class RetransmissionQueue
     public var count: Int
     {
         return self.queue.count
+    }
+
+    public var bytes: Int
+    {
+        // Return the sum of the size of the data in each segment in the queue.
+        return self.queue.map { $0.data.count }.reduce(0, +)
     }
 
     var queue: [Segment] = []
@@ -38,16 +42,7 @@ public class RetransmissionQueue
         self.queue.append(segment)
     }
 
-    public func remove(sequenceNumber: SequenceNumber)
-    {
-        self.queue = self.queue.filter
-        {
-            segment in
-
-            segment.window.lowerBound != sequenceNumber
-        }
-    }
-
+    // FIXME - handle rollover
     public func acknowledge(acknowledgementNumber: SequenceNumber)
     {
         self.queue = self.queue.filter
@@ -65,29 +60,19 @@ public class RetransmissionQueue
                 self.logger.debug("🍓🍓 Received ack #: \(acknowledgementNumber), Removed segment from the Retransmission Queue. Our segment window lower bound is: \(segment.window.lowerBound.uint32) 🍓🍓")
                 return false
             }
-//            return acknowledgementNumber.uint32 < segment.window.lowerBound.uint32 // FIXME - handle rollover
         }
     }
 
-    public func next() throws -> Segment
+    public func get(lowerBound: SequenceNumber) throws -> Segment
     {
-        guard let segment = self.queue.first else
+        let result = self.queue.first { $0.window.lowerBound == lowerBound }
+
+        guard let result else
         {
-            throw RetransmissionQueueError.queueIsEmpty
+            throw RetransmissionQueueError.noCandidates
         }
 
-        let now = Date().timeIntervalSince1970 // now
-        let then = segment.timestamp.timeIntervalSince1970
-        let elapsed = now - then
-
-        if elapsed >= Self.retransmitTime
-        {
-            return segment
-        }
-        else
-        {
-            throw RetransmissionQueueError.tooSoonToRetransmit
-        }
+        return result
     }
 }
 

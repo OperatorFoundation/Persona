@@ -310,6 +310,27 @@ public actor TcpProxyConnection
         }
     }
 
+    public func processTimeout(stats: Stats, lowerBound: SequenceNumber) async throws
+    {
+        guard let packet = try? await self.state.processTimeout(stats: stats, lowerBound: lowerBound) else
+        {
+            // The segment for this timeout has already been cleared from the retransmission queue.
+            // Do nothing.
+            return
+        }
+
+        // Retransmit the segment
+        let outPacket = Packet(ipv4Bytes: packet.data, timestamp: Date())
+        if let outTcp = outPacket.tcp
+        {
+            #if DEBUG
+            self.logger.debug("$ <-R \(description(packet, outTcp))")
+            #endif
+        }
+
+        try await self.sendPacket(packet)
+    }
+
     func close() async throws
     {
         try await self.state.close()
@@ -327,7 +348,23 @@ public actor TcpProxyConnection
 
             let clientMessage = Data(array: [Subsystem.Client.rawValue]) + ipv4.data
             try await self.downstream.writeWithLengthPrefix(clientMessage, 32)
+
+            let sequenceNumber = SequenceNumber(data: tcp.sequenceNumber)
+
+            try await self.setTimeout(sequenceNumber)
         }
+    }
+
+    func setTimeout(_ sequenceNumber: SequenceNumber) async throws
+    {
+        let request = TcpProxyTimerRequest(identity: self.identity, sequenceNumber: sequenceNumber)
+
+        #if DEBUG
+        self.logger.debug("<<-🕕 \(request.description)")
+        #endif
+
+        let clientMessage = Data(array: [Subsystem.Client.rawValue]) + request.data
+        try await self.downstream.writeWithLengthPrefix(clientMessage, 32)
     }
 }
 

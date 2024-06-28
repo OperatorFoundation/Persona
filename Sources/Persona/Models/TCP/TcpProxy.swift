@@ -237,18 +237,13 @@ public actor TcpProxy
 
     public func handleTimerMessage(_ data: Data) async throws
     {
-//        let message = try TimerResponse(data: data)
-//
-//        #if DEBUG
-//        self.logger.debug(">🕕> \(message)")
-//        #endif
-//
-//        guard let data = message.payload else
-//        {
-//            throw TcpProxyError.badMessage
-//        }
-//
-//        try await self.processUpstreamData(identity: message.identity, data: data)
+        let message = try TcpProxyTimerResponse(data: data)
+
+        #if DEBUG
+        self.logger.debug(">🕕> \(message)")
+        #endif
+
+        try await self.processTimeout(identity: message.identity, lowerBound: message.sequenceNumber)
     }
 
     // An IPVv4-TCP packet has been received from the client. Check that we know how to handle it and then send it to the tcpproxy subsystem.
@@ -303,6 +298,13 @@ public actor TcpProxy
     public func processUpstreamClose(identity: Identity) async throws
     {
         try await TcpProxyConnection.close(identity: identity)
+    }
+
+    public func processTimeout(identity: Identity, lowerBound: SequenceNumber) async throws
+    {
+        let connection = try TcpProxyConnection.getConnection(identity: identity)
+
+        try await connection.processTimeout(stats: self.stats, lowerBound: lowerBound)
     }
 }
 

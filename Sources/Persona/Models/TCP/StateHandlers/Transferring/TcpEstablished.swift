@@ -102,34 +102,17 @@ public class TcpEstablished: TcpStateHandler
         {
             try await self.write(payload: payload)
             self.straw.increaseAcknowledgementNumber(payload.count)
-        }
-        
-        // We have something to retransmit
-        #warning("Performance tuning: let's get more than one segment to send if we can")
-        if let segment = try? self.retransmissionQueue.next()
-        {
-            let result = try await self.makeAck(stats: stats, segment: segment)
-            packets = [result]
-            
-            // FIXME: Do this in retransmissionQueue.next() instead
-            stats.retransmission += 1
-        }
-        else // Nothing to retransmit
-        {
-            if self.straw.isEmpty
-            {
-                // Nothing in the straw to send. Do we have a payload?
-                if tcp.payload != nil
-                {
-                    // ACK the payload
-                    let ackPacket = try await self.makeAck(stats: stats)
-                    packets = [ackPacket]
-                }
-                // else, no need to send anything
-            }
-            else
+
+            // We have new data. We need to send an ACK.
+            // Is there room in the receive window to send a payload with the ACK?
+            // And do we have a payload to include in the ACK?
+            if self.retransmissionQueue.bytes < self.windowSize, self.straw.count > 0
             {
                 packets = try await self.pumpStrawToClient(stats, tcp)
+            }
+            else // No room in the receive window or no data to send, send a bare ACK instead.
+            {
+                packets = [try await self.makeAck(stats: stats)]
             }
         }
 
@@ -156,19 +139,10 @@ public class TcpEstablished: TcpStateHandler
             return TcpStateTransition(newState: self)
         }
 
-        let wasEmpty = self.straw.isEmpty
-
         try self.straw.write(data)
 
-        if wasEmpty
-        {
-            let packets = try await self.pumpStrawToClient(stats)
-            return TcpStateTransition(newState: self, packetsToSend: packets)
-        }
-        else
-        {
-            return TcpStateTransition(newState: self)
-        }
+        let packets = try await self.pumpStrawToClient(stats)
+        return TcpStateTransition(newState: self, packetsToSend: packets)
     }
 
     override public func processUpstreamClose(stats: Stats) async throws -> TcpStateTransition
