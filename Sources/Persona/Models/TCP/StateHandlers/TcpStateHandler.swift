@@ -151,7 +151,7 @@ public class TcpStateHandler
         self.logger.debug("\(#fileID).\(#function):\(#line) - RTQ: \(self.retransmissionQueue.count), Straw: \(self.straw.count)")
         #endif
         
-        guard !self.straw.isEmpty else
+        guard self.straw.count > 0 else
         {
             return []
         }
@@ -163,8 +163,7 @@ public class TcpStateHandler
         var totalPacketsSize = 0
         var nextSequenceNumber = self.straw.sequenceNumber
 
-        // We're trying to hit this limit exactly, but if we send to many packets at once they'll get discarded.
-        // So try our best, but limit it to 3 packets max.
+        // We're trying to hit this limit exactly, but if we send too many packets at once they'll get discarded.
         while totalPacketsSize < self.windowSize, packets.count < (TcpProxy.optimism - retransmissionQueue.count), self.straw.count > 0
         {
             // Each packet is limited is by the amount left to send and the MTU (which we guess).
@@ -186,7 +185,10 @@ public class TcpStateHandler
             totalPacketsSize = totalPacketsSize + nextPacketSize
             nextSequenceNumber = nextSequenceNumber.add(nextPacketSize)
         }
-
+        
+        #if DEBUG
+        self.logger.debug("\(#fileID).\(#function):\(#line) returning \(packets.count) packets.")
+        #endif
         return packets
     }
 
