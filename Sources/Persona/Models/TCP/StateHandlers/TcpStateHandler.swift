@@ -176,7 +176,11 @@ public class TcpStateHandler
             #endif
             // Each packet is limited is by the amount left to send and the MTU (which we guess).
             let nextPacketSize = min((Int(self.windowSize) - totalPacketsSize), TcpProxy.mtu)
+            
+            self.logger.debug("🪵 \(#fileID).\(#function):\(#line) about to read maxSize: \(nextPacketSize)")
             let segmentData = try self.straw.read(maxSize: nextPacketSize)
+            self.logger.debug("🪵 \(#fileID).\(#function):\(#line) finished reading maxSize: \(nextPacketSize). Read \(segmentData.data.count) bytes")
+            
             let segment = Segment(data: segmentData.data, sequenceNumber: nextSequenceNumber)
             let packet = try await self.makeAck(stats: stats, segment: segment)
             
