@@ -29,8 +29,6 @@ public class TCPStraw
         return self.straw.count
     }
 
-    public var highWaterMark: SequenceNumber
-
     // Private let properties
     let straw = UnsafeStraw() // No need for thread safety in this implementation as only one thread accesses the Straw.
 
@@ -51,8 +49,6 @@ public class TCPStraw
         self.logger = logger
         self.sequenceNumber = sequenceNumber
         self.acknowledgementNumber = acknowledgementNumber
-
-        self.highWaterMark = sequenceNumber
     }
 
     public func getState() -> (SequenceNumber, SequenceNumber, UInt16)
@@ -111,33 +107,27 @@ public class TCPStraw
 
     public func read() throws -> SegmentData
     {
-        let data = try self.straw.peekAllData()
+        let data = try self.straw.read()
         let window = SequenceNumberRange(lowerBound: self.sequenceNumber, size: UInt32(data.count))
         let result = SegmentData(data: data, window: window)
-
-        self.highWaterMark = window.upperBound
 
         return result
     }
 
     public func read(size: Int) throws -> SegmentData
     {
-        let data = try self.straw.peek(size: size)
+        let data = try self.straw.read(size: size)
         let window = SequenceNumberRange(lowerBound: self.sequenceNumber, size: UInt32(data.count))
         let result = SegmentData(data: data, window: window)
-
-        self.highWaterMark = window.upperBound
 
         return result
     }
 
     public func read(maxSize: Int) throws -> SegmentData
     {
-        let data = try self.straw.peek(maxSize: maxSize)
+        let data = try self.straw.read(maxSize: maxSize)
         let window = SequenceNumberRange(lowerBound: self.sequenceNumber, size: UInt32(data.count))
         let result = SegmentData(data: data, window: window)
-
-        self.highWaterMark = window.upperBound
 
         return result
     }
