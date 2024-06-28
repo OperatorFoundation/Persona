@@ -185,7 +185,7 @@ public class TcpStateHandler
             var nextSequenceNumber = self.straw.sequenceNumber
 
             // We're trying to hit this limit exactly, but if we send to many packets at once they'll get discarded.
-            // So try our best, but limit it to 3 packets max.
+            // So try our best, but limit it to the optimism setting size.
             while totalPayloadSize < sizeToSend, packets.count < TcpProxy.optimism
             {
                 // Each packet is limited is by the amount left to send and the MTU (which we guess).

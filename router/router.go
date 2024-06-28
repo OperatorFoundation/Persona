@@ -4,13 +4,15 @@ import (
 	"errors"
 	"github.com/kataras/golog"
 	"router/tcpproxy"
+	"router/timer"
 	"router/udpproxy"
 	"time"
 )
 
 type Router struct {
-	Tcp *tcpproxy.Proxy
-	Udp *udpproxy.Proxy
+	Tcp   *tcpproxy.Proxy
+	Udp   *udpproxy.Proxy
+	Timer *timer.Proxy
 
 	ClientReadChannel  chan []byte
 	ClientWriteChannel chan []byte
@@ -40,9 +42,16 @@ func NewRouter(clientRead chan []byte, clientWrite chan []byte, personaRead chan
 	go udp.Run()
 	golog.Debug("udpproxy was run")
 
+	timerProxy := timer.New()
+	if timerProxy == nil {
+		return nil, errors.New("could not initialize timer proxy")
+	}
+	go timerProxy.Run()
+	golog.Debug("timer proxy was run")
+
 	now := time.Now()
 
-	return &Router{tcp, udp, clientRead, clientWrite, personaRead, personaWrite, now}, nil
+	return &Router{tcp, udp, timerProxy, clientRead, clientWrite, personaRead, personaWrite, now}, nil
 }
 
 func (r *Router) Route() {
@@ -50,6 +59,7 @@ func (r *Router) Route() {
 	go r.RoutePersona()
 	go r.RouteTcpproxy()
 	go r.RouteUdpproxy()
+	go r.RouteTimerProxy()
 
 	golog.Debug("Router.Route - all router goroutines started, starting client router main loop")
 	r.RouteClient()
@@ -109,6 +119,14 @@ func (r *Router) RoutePersona() {
 				golog.Debug("sending Persona request to tcpproxy")
 				r.Tcp.PersonaInput <- request
 				golog.Debug("sent Persona request to tcpproxy")
+			}
+		case Timer:
+			request := timer.NewRequest(data)
+			if request == nil {
+				golog.Debug("error, bad timer request")
+				continue
+			} else {
+				r.Timer.PersonaInput <- request
 			}
 		default:
 			golog.Debug("bad message type")
@@ -229,5 +247,23 @@ func (r *Router) RouteUdpproxy() {
 				r.PersonaWriteChannel <- message
 			}
 		}
+	}
+}
+
+func (r *Router) RouteTimerProxy() {
+	for {
+		timerProxyResponse := <-r.Timer.PersonaOutput
+		golog.Debug("Router.Route - TimerProxyReadChannel")
+		messageData, dataError := timerProxyResponse.Data()
+		if dataError != nil {
+			golog.Debug(dataError.Error())
+			continue
+		}
+
+		message := make([]byte, 0)
+		message = append(message, byte(Timer))
+		message = append(message, messageData...)
+
+		r.PersonaWriteChannel <- message
 	}
 }
