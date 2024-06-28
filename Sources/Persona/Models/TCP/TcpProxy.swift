@@ -234,6 +234,22 @@ public actor TcpProxy
         }
     }
 
+    public func handleTimerMessage(_ data: Data) async throws
+    {
+//        let message = try TimerResponse(data: data)
+//
+//        #if DEBUG
+//        self.logger.debug(">🕕> \(message)")
+//        #endif
+//
+//        guard let data = message.payload else
+//        {
+//            throw TcpProxyError.badMessage
+//        }
+//
+//        try await self.processUpstreamData(identity: message.identity, data: data)
+    }
+
     // An IPVv4-TCP packet has been received from the client. Check that we know how to handle it and then send it to the tcpproxy subsystem.
     public func processDownstreamPacket(ipv4: IPv4, tcp: TCP, payload: Data?) async throws
     {

@@ -22,6 +22,7 @@ public enum Subsystem: UInt8
     case Client   = 1
     case Udpproxy = 2
     case Tcpproxy = 3
+    case Timer    = 4
 }
 
 public class Persona
@@ -227,6 +228,9 @@ public class Persona
 
             case .Udpproxy:
                 try await self.handleUdpproxyMessage(rest)
+
+            case .Timer:
+                try await self.handleTimerMessage(rest)
         }
     }
 
@@ -299,6 +303,11 @@ public class Persona
     public func handleUdpproxyMessage(_ data: Data) async throws
     {
         try await self.udpProxy.handleMessage(data)
+    }
+
+    public func handleTimerMessage(_ data: Data) async throws
+    {
+        try await self.tcpProxy.handleTimerMessage(data)
     }
 }
 

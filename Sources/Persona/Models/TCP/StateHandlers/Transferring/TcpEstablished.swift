@@ -70,47 +70,68 @@ public class TcpEstablished: TcpStateHandler
             let ack = try await self.makeAck(stats: stats)
             return TcpStateTransition(newState: self, packetsToSend: [ack])
         }
-
         #if DEBUG
         self.logger.debug("✅ TcpEstablished - \(clientWindow.lowerBound) <= \(packetLowerBound)..<\(packetUpperBound) <= \(clientWindow.upperBound)")
         #endif
 
         if tcp.ack
         {
+            #if DEBUG
+            self.logger.debug("👋 New ACK# Received - \(tcp.acknowledgementNumber)")
+            #endif
+            
             let acknowledgementNumber = SequenceNumber(tcp.acknowledgementNumber)
 
-            if acknowledgementNumber != self.straw.sequenceNumber
-            {
-                #if DEBUG
-                let difference = acknowledgementNumber - self.straw.sequenceNumber
-                self.logger.debug("New ACK# - clearing \(difference) of \(self.straw.count) bytes")
-                #endif
+            #if DEBUG
+            self.logger.debug("Ack#: \(acknowledgementNumber.uint32), straw🥤#: \(self.straw.sequenceNumber.uint32)")
+            self.logger.debug("Retransmission queue has \(self.retransmissionQueue.count) segments before ACK")
+            #endif
 
-                try self.straw.acknowledge(acknowledgementNumber)
+            self.retransmissionQueue.acknowledge(acknowledgementNumber: acknowledgementNumber)
 
-                #if DEBUG
-                self.logger.debug("Straw now has \(self.straw.count) bytes in the buffer")
-                #endif
-
-                #if DEBUG
-                self.logger.debug("Retransmission queue has \(self.retransmissionQueue.count) segments before ACK")
-                #endif
-
-                self.retransmissionQueue.acknowledge(acknowledgementNumber: acknowledgementNumber)
-
-                #if DEBUG
-                self.logger.debug("Retransmission queue has \(self.retransmissionQueue.count) segments after ACK")
-                #endif
-            }
+            #if DEBUG
+            self.logger.debug("Retransmission queue has \(self.retransmissionQueue.count) segments after ACK")
+            #endif
         }
-
+        
+        var packets: [IPv4] = []
+        
         if let payload = tcp.payload
         {
             try await self.write(payload: payload)
             self.straw.increaseAcknowledgementNumber(payload.count)
         }
-
-        var packets = try await self.pumpStrawToClient(stats, tcp)
+        
+        // We have something to retransmit
+        #warning("Performance tuning: let's get more than one segment to send if we can")
+        if let segment = try? self.retransmissionQueue.next()
+        {
+            let result = try await self.makeAck(stats: stats, segment: segment)
+            packets = [result]
+            
+            // FIXME: Do this in retransmissionQueue.next() instead
+            stats.retransmission += 1
+        }
+        else
+        {
+            // Nothing to retransmit
+            
+            if self.straw.isEmpty
+            {
+                // Nothing in the straw to send. Do we have a payload?
+                if tcp.payload != nil
+                {
+                    // ACK the payload
+                    let ackPacket = try await self.makeAck(stats: stats)
+                    packets = [ackPacket]
+                }
+                // else, no need to send anything
+            }
+            else
+            {
+                packets = try await self.pumpStrawToClient(stats, tcp)
+            }
+        }
 
         if tcp.fin
         {
