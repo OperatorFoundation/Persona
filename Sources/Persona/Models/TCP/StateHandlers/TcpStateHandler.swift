@@ -148,7 +148,7 @@ public class TcpStateHandler
     func pumpStrawToClient(_ stats: Stats, _ tcp: TCP? = nil) async throws -> [IPv4]
     {
         #if DEBUG
-        self.logger.debug("\(#file).\(#function):\(#line) - RTQ: \(self.retransmissionQueue.count), Straw: \(self.straw.count)")
+        self.logger.debug("\(#fileID).\(#function):\(#line) - RTQ: \(self.retransmissionQueue.count), Straw: \(self.straw.count)")
         #endif
         
         guard !self.straw.isEmpty else
@@ -160,27 +160,16 @@ public class TcpStateHandler
         var packets: [IPv4] = []
 
         // The maximum we can send is limited by both the client window size and how much data is in the buffer.
-        let sizeToSend: Int
-        if let tcp
-        {
-            sizeToSend = min(Int(tcp.windowSize), self.straw.count)
-        }
-        else
-        {
-            #warning("Performance Tuning: Use the TCPState window size here")
-            sizeToSend = self.straw.count
-        }
-
-        var totalPayloadSize = 0
+        var totalPacketsSize = 0
         var nextSequenceNumber = self.straw.sequenceNumber
 
         // We're trying to hit this limit exactly, but if we send to many packets at once they'll get discarded.
         // So try our best, but limit it to 3 packets max.
-        while totalPayloadSize < sizeToSend, packets.count < (TcpProxy.optimism - retransmissionQueue.count)
+        while totalPacketsSize < self.windowSize, packets.count < (TcpProxy.optimism - retransmissionQueue.count), self.straw.count > 0
         {
             // Each packet is limited is by the amount left to send and the MTU (which we guess).
-            let nextPacketSize = min(sizeToSend - totalPayloadSize, 1400)
-            let segmentData = try self.straw.read(size: nextPacketSize)
+            let nextPacketSize = min((Int(self.windowSize) - totalPacketsSize), TcpProxy.mtu)
+            let segmentData = try self.straw.read(maxSize: nextPacketSize)
             let segment = Segment(data: segmentData.data, sequenceNumber: nextSequenceNumber)
             let packet = try await self.makeAck(stats: stats, segment: segment)
             
@@ -194,7 +183,7 @@ public class TcpStateHandler
             stats.sentpayload += 1
             stats.fresh += 1
 
-            totalPayloadSize = totalPayloadSize + nextPacketSize
+            totalPacketsSize = totalPacketsSize + nextPacketSize
             nextSequenceNumber = nextSequenceNumber.add(nextPacketSize)
         }
 
@@ -251,18 +240,16 @@ public class TcpStateHandler
 
         return try self.makePacket(sequenceNumber: segment.window.lowerBound, acknowledgementNumber: acknowledgementNumber, windowSize: windowSize, ack: true, payload: segment.data)
     }
-
+    
+    /// Make an ACK with no payload
     func makeAck(stats: Stats) async throws -> IPv4
     {
         #if DEBUG
-        self.logger.debug("👋 MAKE ACK called!!")
+        self.logger.debug("👋 MAKE empty ACK called!!")
         #endif
         
-        
-        #warning("Placeholder straw read for debugging")
         let (sequenceNumber, acknowledgementNumber, windowSize) = self.getState()
-        let segment = try? self.straw.read(size: Int(windowSize))
-        return try self.makePacket(sequenceNumber: sequenceNumber, acknowledgementNumber: acknowledgementNumber, windowSize: windowSize, ack: true, payload: segment?.data)
+        return try self.makePacket(sequenceNumber: sequenceNumber, acknowledgementNumber: acknowledgementNumber, windowSize: windowSize, ack: true, payload: nil)
     }
     
     func makeFinAck() async throws -> IPv4

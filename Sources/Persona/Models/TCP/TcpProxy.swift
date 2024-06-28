@@ -186,6 +186,7 @@ public struct TcpProxyResponse: CustomStringConvertible
 public actor TcpProxy
 {
     static public let optimism: Int = 30
+    static public let mtu: Int = 1400 // Maximum Transmission Unit
 
     let client: AsyncConnection
     let stats: Stats

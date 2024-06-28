@@ -70,9 +70,12 @@ public class TcpEstablished: TcpStateHandler
             let ack = try await self.makeAck(stats: stats)
             return TcpStateTransition(newState: self, packetsToSend: [ack])
         }
+        
         #if DEBUG
         self.logger.debug("✅ TcpEstablished - \(clientWindow.lowerBound) <= \(packetLowerBound)..<\(packetUpperBound) <= \(clientWindow.upperBound)")
         #endif
+        
+        self.windowSize = tcp.windowSize
 
         if tcp.ack
         {
@@ -112,10 +115,8 @@ public class TcpEstablished: TcpStateHandler
             // FIXME: Do this in retransmissionQueue.next() instead
             stats.retransmission += 1
         }
-        else
+        else // Nothing to retransmit
         {
-            // Nothing to retransmit
-            
             if self.straw.isEmpty
             {
                 // Nothing in the straw to send. Do we have a payload?
