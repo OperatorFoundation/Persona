@@ -363,8 +363,7 @@ public actor TcpProxyConnection
         self.logger.debug("<<-🕕 \(request.description)")
         #endif
 
-        let clientMessage = Data(array: [Subsystem.Client.rawValue]) + request.data
-        try await self.downstream.writeWithLengthPrefix(clientMessage, 32)
+        try await self.downstream.writeWithLengthPrefix(request.data, 32)
     }
 }
 
