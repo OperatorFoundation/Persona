@@ -90,7 +90,6 @@ func main() {
 }
 
 func handleConnection(home string, client io.Closer, clientReader io.Reader, clientWriter io.Writer, pcapWriter *pcapgo.Writer) {
-	golog.Debug("launching Persona subprocess")
 	context, cancel := context.WithCancel(context.Background())
 	persona := exec.CommandContext(context, home+"/Persona/Persona")
 	personaInput, inputError := persona.StdinPipe()

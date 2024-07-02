@@ -29,25 +29,21 @@ func NewRouter(clientRead chan []byte, clientWrite chan []byte, personaRead chan
 		return nil, errors.New("could not initialize TCP proxy")
 	}
 
-	golog.Debug("about to run tcpproxy")
 	go tcp.Run()
-	golog.Debug("tcpproxy was run")
 
 	udp := udpproxy.New()
 	if udp == nil {
 		return nil, errors.New("could not initialize UDP proxy")
 	}
 
-	golog.Debug("about to run udpproxy")
 	go udp.Run()
-	golog.Debug("udpproxy was run")
 
 	timerProxy := timer.New()
 	if timerProxy == nil {
 		return nil, errors.New("could not initialize timer proxy")
 	}
+
 	go timerProxy.Run()
-	golog.Debug("timer proxy was run")
 
 	now := time.Now()
 
@@ -55,13 +51,11 @@ func NewRouter(clientRead chan []byte, clientWrite chan []byte, personaRead chan
 }
 
 func (r *Router) Route() {
-	golog.Debug("Router.Route()")
 	go r.RoutePersona()
 	go r.RouteTcpproxy()
 	go r.RouteUdpproxy()
 	go r.RouteTimerProxy()
 
-	golog.Debug("Router.Route - all router goroutines started, starting client router main loop")
 	r.RouteClient()
 }
 
@@ -69,7 +63,7 @@ func (r *Router) RouteClient() {
 	for {
 		// Received data from the client
 		clientData := <-r.ClientReadChannel
-		golog.Debugf("Client to Persona message is %v bytes: %x", len(clientData), clientData)
+		golog.Debugf("-> Client -> Persona message is %v bytes: %x", len(clientData), clientData)
 		// Forward data to Persona
 		message := make([]byte, 0)
 		message = append(message, byte(Client))
@@ -87,8 +81,7 @@ func (r *Router) RoutePersona() {
 			golog.Debug("error, personaData was empty")
 			continue
 		} else {
-			golog.Debugf("RoutePersona() received %v bytes of personaData:", len(personaData))
-			golog.Debugf("~ %x", personaData)
+			golog.Debugf("--> RoutePersona [%v bytes]: %x", len(personaData), personaData)
 		}
 
 		subsystem := Subsystem(personaData[0])
@@ -96,15 +89,7 @@ func (r *Router) RoutePersona() {
 
 		switch subsystem {
 		case Client:
-			golog.Debugf("~ Persona to Client message: %x", data)
-			//targetTime := int64(10) // 10 ms
-			//now := time.Now().Unix()
-			//elapsed := now - r.LastClientWrite.Unix()
-			//if elapsed < targetTime {
-			//	time.Sleep(time.Duration(targetTime-elapsed) * time.Millisecond)
-			//}
-			//
-			//r.LastClientWrite = time.Now()
+			golog.Debugf("---> Persona -> Client: [%v bytes]:%x", len(data), data)
 			r.ClientWriteChannel <- data
 		case Udpproxy:
 			request := udpproxy.NewRequest(data)
@@ -113,7 +98,7 @@ func (r *Router) RoutePersona() {
 				golog.Debug("~ error, bad udpproxy request")
 				continue
 			} else {
-				golog.Debugf("~ Persona to Udpproxy message: %v", request)
+				golog.Debugf("---> Persona -> Udpproxy: %v", request)
 				r.Udp.PersonaInput <- request
 			}
 		case Tcpproxy:
@@ -122,17 +107,18 @@ func (r *Router) RoutePersona() {
 				golog.Debug("~ error, bad Tcpproxy request")
 				continue
 			} else {
-				golog.Debugf("~ Persona to Tcpproxy message: %v", request)
+				golog.Debugf("---> Persona -> Tcpproxy: %v", request)
 				r.Tcp.PersonaInput <- request
 			}
-		//case Timer:
-		//request := timer.NewRequest(data)
-		//if request == nil {
-		//golog.Debug("error, bad timer request")
-		//continue
-		//} else {
-		//r.Timer.PersonaInput <- request
-		//}
+		case Timer:
+		  request := timer.NewRequest(data)
+		  if request == nil {
+		    golog.Debug("error, bad timer request")
+		    continue
+		  } else {
+            golog.Debugf("---> Persona -> Timer: %v", request)
+		    r.Timer.PersonaInput <- request
+		  }
 		default:
 			golog.Debugf("~ 💥 bad message type %v", subsystem)
 		}
@@ -141,9 +127,10 @@ func (r *Router) RoutePersona() {
 
 func (r *Router) RouteTcpproxy() {
 	for {
-		golog.Debug("Router.RouteTcpproxy - waiting for message")
 		tcpProxyResponse := <-r.Tcp.PersonaOutput
-		golog.Debug("Router.RouteTcpproxy - read message")
+
+        golog.Debugf("<-- RouteTcpproxy: Persona <- Tcpproxy: %v", tcpProxyRequest)
+
 		switch tcpProxyResponse.Type {
 		case tcpproxy.ResponseData:
 			messageData, dataError := tcpProxyResponse.Data()
@@ -220,7 +207,9 @@ func (r *Router) RouteTcpproxy() {
 func (r *Router) RouteUdpproxy() {
 	for {
 		udpProxyResponse := <-r.Udp.PersonaOutput
-		golog.Debug("Router.Route - UdpProxyReadChannel")
+
+        golog.Debugf("<-- RouteUdpproxy: Persona <- Udpproxy: %v", udpProxyRequest)
+
 		switch udpProxyResponse.Type {
 		case udpproxy.ResponseData:
 			messageData, dataError := udpProxyResponse.Data()
@@ -258,7 +247,9 @@ func (r *Router) RouteUdpproxy() {
 func (r *Router) RouteTimerProxy() {
 	for {
 		timerProxyResponse := <-r.Timer.PersonaOutput
-		golog.Debug("Router.Route - TimerProxyReadChannel")
+
+        golog.Debugf("<-- RouteTimerProxy: Persona <- TimerProxy: %v", timerProxyRequest)
+
 		messageData, dataError := timerProxyResponse.Data()
 		if dataError != nil {
 			golog.Debug(dataError.Error())

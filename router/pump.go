@@ -24,7 +24,6 @@ type ReaderToChannel struct {
 
 func (p ReaderToChannel) Pump() {
 	for {
-		golog.Debug("ReadToChannel.Pump() - reading from reader")
 		lengthBytes := make([]byte, 4)
 		lengthRead, lengthReadError := p.Input.Read(lengthBytes)
 		if lengthReadError != nil {
@@ -62,11 +61,7 @@ func (p ReaderToChannel) Pump() {
 			}
 		}
 
-		golog.Debugf("read %d total bytes", length)
-
-		golog.Debugf("ReadToChannel.Pump - writing to channel %v -%d-> %v", p.InputName, len(data), p.OutputName)
 		p.Output <- data
-		golog.Debugf("ReadToChannel.Pump - wrote to channel %d -> %v", len(data), p.Output)
 
 		if p.PcapWriter != nil {
 			info := gopacket.CaptureInfo{time.Now(), len(data), len(data), 0, nil}
@@ -89,7 +84,6 @@ type ChannelToWriter struct {
 
 func (p ChannelToWriter) Pump() {
 	for {
-		golog.Debug("ChannelToWriter.Pump() - reading data to from channel")
 		data := <-p.Input
 
 		length := len(data)
@@ -104,7 +98,6 @@ func (p ChannelToWriter) Pump() {
 			p.Close(errors.New("short write on length"))
 		}
 
-		golog.Debugf("ChannelToWriter.Pump() - writing data to writer: %v -%d-> %v", p.InputName, len(data), p.OutputName)
 		dataWritten, dataWriteError := p.Output.Write(data)
 		if dataWriteError != nil {
 			p.Close(dataWriteError)
