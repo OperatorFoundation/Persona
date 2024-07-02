@@ -19,7 +19,7 @@ type ReaderToChannel struct {
 
 	PcapWriter *pcapgo.Writer
 
-	Close func(error)
+	Close func(string, error)
 }
 
 func (p ReaderToChannel) Pump() {
@@ -27,7 +27,7 @@ func (p ReaderToChannel) Pump() {
 		lengthBytes := make([]byte, 4)
 		lengthRead, lengthReadError := p.Input.Read(lengthBytes)
 		if lengthReadError != nil {
-			p.Close(lengthReadError)
+			p.Close(p.InputName, lengthReadError)
 			return
 		}
 
@@ -36,7 +36,7 @@ func (p ReaderToChannel) Pump() {
 			buffer := make([]byte, 4-totalLengthRead)
 			lengthRead, lengthReadError = p.Input.Read(buffer)
 			if lengthReadError != nil {
-				p.Close(lengthReadError)
+				p.Close(p.InputName, lengthReadError)
 				return
 			}
 			copy(lengthBytes[totalLengthRead:totalLengthRead+lengthRead], buffer[:lengthRead])
@@ -56,7 +56,7 @@ func (p ReaderToChannel) Pump() {
 			}
 			if dataReadError != nil {
 				golog.Errorf("error reading from %v: %v", p.InputName, dataReadError.Error())
-				p.Close(dataReadError)
+				p.Close(p.InputName, dataReadError)
 				return
 			}
 		}
@@ -79,7 +79,7 @@ type ChannelToWriter struct {
 
 	PcapWriter *pcapgo.Writer
 
-	Close func(error)
+	Close func(string, error)
 }
 
 func (p ChannelToWriter) Pump() {
@@ -92,18 +92,18 @@ func (p ChannelToWriter) Pump() {
 
 		lengthWritten, lengthWriteError := p.Output.Write(lengthBytes)
 		if lengthWriteError != nil {
-			p.Close(lengthWriteError)
+			p.Close(p.OutputName, lengthWriteError)
 		}
 		if lengthWritten != 4 {
-			p.Close(errors.New("short write on length"))
+			p.Close(p.OutputName, errors.New("short write on length"))
 		}
 
 		dataWritten, dataWriteError := p.Output.Write(data)
 		if dataWriteError != nil {
-			p.Close(dataWriteError)
+			p.Close(p.OutputName, dataWriteError)
 		}
 		if dataWritten != length {
-			p.Close(errors.New("short write on data"))
+			p.Close(p.OutputName, errors.New("short write on data"))
 		}
 
 		if p.PcapWriter != nil {
