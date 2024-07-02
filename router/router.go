@@ -120,14 +120,14 @@ func (r *Router) RoutePersona() {
 				r.Tcp.PersonaInput <- request
 				golog.Debug("sent Persona request to tcpproxy")
 			}
-		case Timer:
-			request := timer.NewRequest(data)
-			if request == nil {
-				golog.Debug("error, bad timer request")
-				continue
-			} else {
-				r.Timer.PersonaInput <- request
-			}
+		//case Timer:
+			//request := timer.NewRequest(data)
+			//if request == nil {
+				//golog.Debug("error, bad timer request")
+				//continue
+			//} else {
+				//r.Timer.PersonaInput <- request
+			//}
 		default:
 			golog.Debug("bad message type")
 		}

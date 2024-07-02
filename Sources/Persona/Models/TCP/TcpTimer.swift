@@ -36,7 +36,7 @@ public struct TcpProxyTimerRequest: CustomStringConvertible
             // This should never happen.
             // It's a hack to avoid force-unwrapping because this data property is non-optional,
             // but self.sequenceNumber.uint32.maybeNetworkData is optional due to protocol
-            // comformance to MaybeNetworkDatable, but not actually optional in its implementation.
+            // conformance to MaybeNetworkDatable, but not actually optional in its implementation.
             lowerBoundBytes = Data(repeating: 0, count: 4)
         }
 

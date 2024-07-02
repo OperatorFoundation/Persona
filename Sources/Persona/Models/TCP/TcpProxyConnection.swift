@@ -357,14 +357,14 @@ public actor TcpProxyConnection
 
     func setTimeout(_ sequenceNumber: SequenceNumber) async throws
     {
-//        let request = TcpProxyTimerRequest(identity: self.identity, sequenceNumber: sequenceNumber)
-//
-//        #if DEBUG
-//        self.logger.debug("<<-🕕 \(request.description)")
-//        #endif
-//
-//        let clientMessage = Data(array: [Subsystem.Client.rawValue]) + request.data
-//        try await self.downstream.writeWithLengthPrefix(clientMessage, 32)
+        let request = TcpProxyTimerRequest(identity: self.identity, sequenceNumber: sequenceNumber)
+
+        #if DEBUG
+        self.logger.debug("<<-🕕 \(request.description)")
+        #endif
+
+        let clientMessage = Data(array: [Subsystem.Client.rawValue]) + request.data
+        try await self.downstream.writeWithLengthPrefix(clientMessage, 32)
     }
 }
 
