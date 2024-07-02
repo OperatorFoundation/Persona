@@ -111,14 +111,14 @@ func (r *Router) RoutePersona() {
 				r.Tcp.PersonaInput <- request
 			}
 		case Timer:
-		  request := timer.NewRequest(data)
-		  if request == nil {
-		    golog.Debug("error, bad timer request")
-		    continue
-		  } else {
-            golog.Debugf("---> Persona -> Timer: %v", request)
-		    r.Timer.PersonaInput <- request
-		  }
+			request := timer.NewRequest(data)
+			if request == nil {
+				golog.Debug("error, bad timer request")
+				continue
+			} else {
+				golog.Debugf("---> Persona -> Timer: %v", request)
+				r.Timer.PersonaInput <- request
+			}
 		default:
 			golog.Debugf("~ 💥 bad message type %v", subsystem)
 		}
@@ -129,7 +129,7 @@ func (r *Router) RouteTcpproxy() {
 	for {
 		tcpProxyResponse := <-r.Tcp.PersonaOutput
 
-        golog.Debugf("<-- RouteTcpproxy: Persona <- Tcpproxy: %v", tcpProxyRequest)
+		golog.Debugf("<-- RouteTcpproxy: Persona <- Tcpproxy: %v", tcpProxyResponse)
 
 		switch tcpProxyResponse.Type {
 		case tcpproxy.ResponseData:
@@ -208,7 +208,7 @@ func (r *Router) RouteUdpproxy() {
 	for {
 		udpProxyResponse := <-r.Udp.PersonaOutput
 
-        golog.Debugf("<-- RouteUdpproxy: Persona <- Udpproxy: %v", udpProxyRequest)
+		golog.Debugf("<-- RouteUdpproxy: Persona <- Udpproxy: %v", udpProxyResponse)
 
 		switch udpProxyResponse.Type {
 		case udpproxy.ResponseData:
@@ -248,7 +248,7 @@ func (r *Router) RouteTimerProxy() {
 	for {
 		timerProxyResponse := <-r.Timer.PersonaOutput
 
-        golog.Debugf("<-- RouteTimerProxy: Persona <- TimerProxy: %v", timerProxyRequest)
+		golog.Debugf("<-- RouteTimerProxy: Persona <- TimerProxy: %v", timerProxyResponse)
 
 		messageData, dataError := timerProxyResponse.Data()
 		if dataError != nil {
