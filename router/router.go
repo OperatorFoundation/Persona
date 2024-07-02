@@ -86,7 +86,9 @@ func (r *Router) RoutePersona() {
 		if len(personaData) < 1 {
 			golog.Debug("error, personaData was empty")
 			continue
-		}
+		} else {
+            golog.Debugf("RoutePersona() received personaData: %v", len(personaData))
+        }
 
 		subsystem := Subsystem(personaData[0])
 		data := personaData[1:]
@@ -129,7 +131,7 @@ func (r *Router) RoutePersona() {
 				//r.Timer.PersonaInput <- request
 			//}
 		default:
-			golog.Debug("bad message type")
+			golog.Debugf("💥 bad message type %v", subsytem)
 		}
 	}
 }
