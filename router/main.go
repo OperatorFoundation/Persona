@@ -37,7 +37,7 @@ func main() {
 		}()
 
 		golog.AddOutput(logFile)
-		golog.SetLevel("error")
+		golog.SetLevel("debug")
 	}
 
 	var pcapWriter *pcapgo.Writer
