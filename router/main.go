@@ -145,7 +145,7 @@ func handleConnection(home string, client io.Closer, clientReader io.Reader, cli
 }
 
 func closeWithError(closeError error, exitCode int, cancel context.CancelFunc, client io.Closer) {
-	golog.Debug(closeError.Error() + "")
+	golog.Debugf("Closing with an error: %v", closeError.Error())
 	cancel()
 	_ = client.Close()
 	os.Exit(exitCode)

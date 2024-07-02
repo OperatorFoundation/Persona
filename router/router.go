@@ -69,7 +69,7 @@ func (r *Router) RouteClient() {
 	for {
 		// Received data from the client
 		clientData := <-r.ClientReadChannel
-		golog.Debug("Router.RouteClient message is %v bytes: %x", len(clientData), clientData)
+		golog.Debugf("Client to Persona message is %v bytes: %x", len(clientData), clientData)
 		// Forward data to Persona
 		message := make([]byte, 0)
 		message = append(message, byte(Client))
