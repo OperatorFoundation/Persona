@@ -131,7 +131,7 @@ func (r *Router) RoutePersona() {
 				//r.Timer.PersonaInput <- request
 			//}
 		default:
-			golog.Debugf("💥 bad message type %v", subsytem)
+			golog.Debugf("💥 bad message type %v", subsystem)
 		}
 	}
 }
