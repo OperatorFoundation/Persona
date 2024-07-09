@@ -119,12 +119,12 @@ public class TcpEstablished: TcpStateHandler
         if tcp.fin
         {
             self.straw.increaseAcknowledgementNumber(1)
-            let ack = try await makeAck(stats: stats)
-            packets.append(ack) // ACK the FIN
+            let finack = try await makeFinAck()
+            packets.append(finack) // ACK and FIN
 
             try await self.close()
 
-            return TcpStateTransition(newState: TcpCloseWait(self), packetsToSend: packets)
+            return TcpStateTransition(newState: TcpLastAck(self), packetsToSend: packets)
         }
         else
         {
