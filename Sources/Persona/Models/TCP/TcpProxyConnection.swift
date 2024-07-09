@@ -289,7 +289,7 @@ public actor TcpProxyConnection
     func sendPacket(_ ipv4: IPv4) async throws
     {
         let packet = Packet(ipv4Bytes: ipv4.data, timestamp: Date())
-        if let ipv4 = packet.ipv4, let tcp = packet.tcp, tcp.payload != nil
+        if let ipv4 = packet.ipv4, let tcp = packet.tcp
         {
             #if DEBUG
             self.logger.debug("<<- \(description(ipv4, tcp))")
@@ -298,9 +298,12 @@ public actor TcpProxyConnection
             let clientMessage = Data(array: [Subsystem.Client.rawValue]) + ipv4.data
             try await self.downstream.writeWithLengthPrefix(clientMessage, 32)
 
-            let sequenceNumber = SequenceNumber(data: tcp.sequenceNumber)
-
-            try await self.setTimeout(sequenceNumber)
+            if tcp.payload != nil
+            {
+                let sequenceNumber = SequenceNumber(data: tcp.sequenceNumber)
+                
+                try await self.setTimeout(sequenceNumber)
+            }
         }
     }
 
