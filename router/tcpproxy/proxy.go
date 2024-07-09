@@ -132,7 +132,6 @@ func (p *Proxy) ReadFromServer(server net.Conn, identity *ip.Identity, output ch
 				}
 			}
 
-			output <- NewErrorResponse(identity, readError)
 			delete(p.Connections, identity.String())
 			return
 		}

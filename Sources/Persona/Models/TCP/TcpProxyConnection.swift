@@ -155,64 +155,13 @@ public actor TcpProxyConnection
         #endif
 
         let transition = try await self.state.processDownstreamPacket(stats: stats, ipv4: ipv4, tcp: tcp, payload: nil)
+        let packetsToSend: [IPv4] = transition.packetsToSend
 
-        var packetsToSend: [IPv4]
-        
-        switch transition.newState
-        {
-            case is TcpCloseWait:
-                // Close Wait prep here
-                let closeWaitTransition = try await transition.newState.pump()
-                
-                if transition.packetsToSend.count > 0
-                {
-                    let lastPacketIPv4 = transition.packetsToSend[transition.packetsToSend.endIndex - 1]
-                    
-                    let lastPacket = Packet(ipv4Bytes: lastPacketIPv4.data, timestamp: Date())
-                    
-                    if let lastPacketTCP = lastPacket.tcp
-                    {
-                        if let newLastPacketTCP = try TCP(sourcePort: lastPacketTCP.sourcePort, destinationPort: lastPacketTCP.destinationPort, sequenceNumber: SequenceNumber(lastPacketTCP.sequenceNumber), acknowledgementNumber: SequenceNumber(lastPacketTCP.acknowledgementNumber), syn: lastPacketTCP.syn, ack: lastPacketTCP.ack, fin: true, rst: lastPacketTCP.rst, windowSize: lastPacketTCP.windowSize, payload: lastPacketTCP.payload, ipv4: lastPacketIPv4)
-                        {
-                            if let newLastPacketIPv4 = IPv4(version: lastPacketIPv4.version, IHL: lastPacketIPv4.IHL, DSCP: lastPacketIPv4.DSCP, ECN: lastPacketIPv4.ECN, length: lastPacketIPv4.length, identification: lastPacketIPv4.identification, reservedBit: lastPacketIPv4.reservedBit, dontFragment: lastPacketIPv4.dontFragment, moreFragments: lastPacketIPv4.moreFragments, fragmentOffset: lastPacketIPv4.fragmentOffset, ttl: lastPacketIPv4.ttl, protocolNumber: lastPacketIPv4.protocolNumber, checksum: lastPacketIPv4.checksum, sourceAddress: lastPacketIPv4.sourceAddress, destinationAddress: lastPacketIPv4.destinationAddress, options: lastPacketIPv4.options, payload: newLastPacketTCP.data, ethernetPadding: lastPacketIPv4.ethernetPadding)
-                            {
-                                packetsToSend = transition.packetsToSend
-                                
-                                packetsToSend[transition.packetsToSend.endIndex - 1] = newLastPacketIPv4
+        #if DEBUG
+        self.logger.debug("@ \(self.state) => \(transition.newState), \(packetsToSend.count) packets to send")
+        #endif
 
-                            }
-                            else
-                            {
-                                packetsToSend = transition.packetsToSend + closeWaitTransition.packetsToSend
-                            }
-                        } else
-                        {
-                            packetsToSend = transition.packetsToSend + closeWaitTransition.packetsToSend
-                        }
-                    }
-                    else
-                    {
-                        packetsToSend = transition.packetsToSend + closeWaitTransition.packetsToSend
-                    }
-                }
-                else
-                {
-                    packetsToSend = transition.packetsToSend + closeWaitTransition.packetsToSend
-                }
-            
-                self.logger.debug("@ \(self.state) => \(transition.newState) => \(closeWaitTransition.newState), \(packetsToSend.count) packets to send")
-                self.state = closeWaitTransition.newState
-                
-            default:
-                // Nothing to do here
-                packetsToSend = transition.packetsToSend
-
-                #if DEBUG
-                self.logger.debug("@ \(self.state) => \(transition.newState), \(packetsToSend.count) packets to send")
-                #endif
-
-                self.state = transition.newState
-        }
+        self.state = transition.newState
         
         for packet in packetsToSend
         {
