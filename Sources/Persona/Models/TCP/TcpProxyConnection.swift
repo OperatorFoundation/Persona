@@ -289,7 +289,7 @@ public actor TcpProxyConnection
     func sendPacket(_ ipv4: IPv4) async throws
     {
         let packet = Packet(ipv4Bytes: ipv4.data, timestamp: Date())
-        if let ipv4 = packet.ipv4, let tcp = packet.tcp
+        if let ipv4 = packet.ipv4, let tcp = packet.tcp, tcp.payload != nil
         {
             #if DEBUG
             self.logger.debug("<<- \(description(ipv4, tcp))")
