@@ -188,8 +188,11 @@ public class TcpStateHandler
             self.logger.debug("🪵📙 \(#fileID).\(#function):\(#line) finished reading maxSize: \(nextPacketSize). Read \(segmentData.data.count) bytes, SEQ#: \(segmentData.window.lowerBound)")
             
             let segment = Segment(data: segmentData.data, sequenceNumber: segmentData.window.lowerBound)
-            let packet = try await self.makeAck(stats: stats, segment: segment)
-            
+
+            let push = self.straw.isEmpty
+
+            let packet = try await self.makeAck(stats: stats, segment: segment, push: push)
+
             packets.append(packet)
 
             // This is a new packet, so add it to the retransmission queue.
@@ -247,10 +250,10 @@ public class TcpStateHandler
         return try self.makePacket(sequenceNumber: sequenceNumber, acknowledgementNumber: acknowledgementNumber, windowSize: windowSize, rst: true)
     }
 
-    func makeAck(stats: Stats, segment: Segment) async throws -> IPv4
+    func makeAck(stats: Stats, segment: Segment, push: Bool = false) async throws -> IPv4
     {
         let (_, acknowledgementNumber, windowSize) = self.getState()
-        return try self.makePacket(sequenceNumber: segment.window.lowerBound, acknowledgementNumber: acknowledgementNumber, windowSize: windowSize, ack: true, payload: segment.data)
+        return try self.makePacket(sequenceNumber: segment.window.lowerBound, acknowledgementNumber: acknowledgementNumber, windowSize: windowSize, ack: true, psh: push, payload: segment.data)
     }
 
     func makeAck(stats: Stats, maxSize: Int) async throws -> IPv4
@@ -281,11 +284,11 @@ public class TcpStateHandler
         return try self.makePacket(sequenceNumber: sequenceNumber, acknowledgementNumber: acknowledgementNumber, windowSize: windowSize, ack: true, fin: true)
     }
 
-    func makePacket(sequenceNumber: SequenceNumber, acknowledgementNumber: SequenceNumber, windowSize: UInt16, syn: Bool = false, ack: Bool = false, fin: Bool = false, rst: Bool = false, payload: Data? = nil) throws -> IPv4
+    func makePacket(sequenceNumber: SequenceNumber, acknowledgementNumber: SequenceNumber, windowSize: UInt16, syn: Bool = false, ack: Bool = false, fin: Bool = false, rst: Bool = false, psh: Bool = false, payload: Data? = nil) throws -> IPv4
     {
         do
         {
-            guard let ipv4 = try IPv4(sourceAddress: self.identity.remoteAddress, destinationAddress: self.identity.localAddress, sourcePort: self.identity.remotePort, destinationPort: self.identity.localPort, sequenceNumber: sequenceNumber, acknowledgementNumber: acknowledgementNumber, syn: syn, ack: ack, fin: fin, rst: rst, windowSize: windowSize, payload: payload) else
+            guard let ipv4 = try IPv4(sourceAddress: self.identity.remoteAddress, destinationAddress: self.identity.localAddress, sourcePort: self.identity.remotePort, destinationPort: self.identity.localPort, sequenceNumber: sequenceNumber, acknowledgementNumber: acknowledgementNumber, syn: syn, ack: ack, fin: fin, rst: rst, psh: psh, windowSize: windowSize, payload: payload) else
             {
                 self.logger.debug("* sendPacket() failed to initialize IPv4 packet.")
                 self.tcpLogger.debug("* sendPacket() failed to initialize IPv4 packet.")

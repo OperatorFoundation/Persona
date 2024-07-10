@@ -1,11 +1,11 @@
-// swift-tools-version:5.8
+// swift-tools-version:5.10
 // The swift-tools-version declares the minimum version of Swift required to build this package.
 
 import PackageDescription
 
 let package = Package(
     name: "Persona",
-    platforms: [.macOS(.v13)],
+    platforms: [.macOS(.v14)],
     products: [
         // Products define the executables and libraries a package produces, and make them visible to other packages.
         .executable(
@@ -16,7 +16,7 @@ let package = Package(
     dependencies: [
         // Dependencies declare other packages that this package depends on.
         // .package(url: /* package url */, from: "1.0.0"),
-        .package(url: "https://github.com/sushichop/Puppy.git", from: "0.6.0"),
+        .package(url: "https://github.com/sushichop/Puppy.git", from: "0.7.0"),
         .package(url: "https://github.com/apple/swift-argument-parser.git", from: "1.2.3"),
         .package(url: "https://github.com/apple/swift-log.git", from: "1.5.2"),
 
