@@ -124,7 +124,7 @@ public class TcpEstablished: TcpStateHandler
 
             try await self.close()
 
-            return TcpStateTransition(newState: TcpLastAck(self), packetsToSend: packets)
+            return TcpStateTransition(newState: TcpCloseWait(self), packetsToSend: packets)
         }
         else
         {
