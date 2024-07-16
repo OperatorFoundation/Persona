@@ -221,6 +221,9 @@ public actor TcpProxyConnection
 
     public func processUpstreamData(stats: Stats, data: Data) async throws
     {
+        #if DEBUG
+        self.logger.debug("\(#file).\(#function):\(#line) - self.state: \(self.state)")
+        #endif
         let transition = try await self.state.processUpstreamData(stats: stats, data: data)
 
         for packet in transition.packetsToSend
