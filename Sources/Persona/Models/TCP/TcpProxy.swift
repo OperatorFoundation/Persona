@@ -240,7 +240,7 @@ public actor TcpProxy
         let message = try TcpProxyTimerResponse(data: data)
 
         #if DEBUG
-        self.logger.debug(">🕕> \(message)")
+        self.logger.debug(">🕕> \(message) \(Date().timeIntervalSince1970)")
         #endif
 
         try await self.processTimeout(identity: message.identity, lowerBound: message.sequenceNumber)

@@ -312,7 +312,7 @@ public actor TcpProxyConnection
         let request = TcpProxyTimerRequest(identity: self.identity, sequenceNumber: sequenceNumber)
 
         #if DEBUG
-        self.logger.debug("<<-🕕 \(request.description)")
+        self.logger.debug("<<-🕕 \(request.description) \(Date().timeIntervalSince1970)")
         #endif
 
         try await self.downstream.writeWithLengthPrefix(request.data, 32)
