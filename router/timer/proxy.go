@@ -44,12 +44,14 @@ func (p *Proxy) Run() {
 			continue
 		} else {
 			timer := time.NewTimer(TcpRetransmissionTimeout)
+			golog.Debugf("new timer for %s, %v : %v", request.Identity, TcpRetransmissionTimeout, time.Now().Unix())
 			p.Timers[request.Identity.String()] = timer
 
 			// Start a goroutine to wait on the time.
 			go func() {
 				// Wait for the timer to fire by reading from the timer's channel.
 				<-timer.C
+				golog.Debugf("timer trigger for %s, %v : %v", request.Identity, TcpRetransmissionTimeout, time.Now().Unix())
 
 				// Send a timer firing message to Persona. Persona will ignore timers that are out of date.
 				p.PersonaOutput <- NewResponse(request.Identity, request.LowerBound)
