@@ -14,7 +14,7 @@ There is no way to cancel timers, as there is no need to do so.
 Timers that fire for segments that have already been acked are ignored by Persona.
 */
 
-var TcpRetransmissionTimeout = time.Duration(time.Duration.Seconds(6)) // 3 seconds
+var TcpRetransmissionTimeout = 3 * time.Second // 3 seconds
 
 type Proxy struct {
 	Timers        map[string]*time.Timer
