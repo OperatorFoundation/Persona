@@ -77,12 +77,24 @@ public class TcpEstablished: TcpStateHandler
         
         self.windowSize = tcp.windowSize
 
+        var packets: [IPv4] = []
+        
+        // We have new data from downstream to send to upstream.
+        // This has
+        if let payload = tcp.payload
+        {
+            try await self.write(payload: payload)
+            self.straw.increaseAcknowledgementNumber(payload.count)
+        }
+
         if tcp.ack
         {
+            // This is an ACK. We need to clear the transmission queue and then possibly send more packets.
+
             #if DEBUG
             self.logger.debug("👋 New ACK# Received - \(tcp.acknowledgementNumber)")
             #endif
-            
+
             let acknowledgementNumber = SequenceNumber(tcp.acknowledgementNumber)
 
             #if DEBUG
@@ -94,16 +106,8 @@ public class TcpEstablished: TcpStateHandler
             #if DEBUG
             self.logger.debug("Retransmission queue has \(self.retransmissionQueue.count) segments after ACK")
             #endif
-        }
-        
-        var packets: [IPv4] = []
-        
-        if let payload = tcp.payload
-        {
-            try await self.write(payload: payload)
-            self.straw.increaseAcknowledgementNumber(payload.count)
 
-            // We have new data. We need to send an ACK.
+            // We need to send an ACK.
             // Is there room in the receive window to send a payload with the ACK?
             // And do we have a payload to include in the ACK?
             if self.retransmissionQueue.bytes < self.windowSize, self.straw.count > 0
