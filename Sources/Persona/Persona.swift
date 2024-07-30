@@ -15,11 +15,14 @@ import Puppy
 import Net
 import TransmissionAsync
 
+
+
 public enum Subsystem: UInt8
 {
     case Client   = 1
     case Udpproxy = 2
     case Tcpproxy = 3
+    case Timer    = 4
 }
 
 public class Persona
@@ -45,7 +48,7 @@ public class Persona
         // The location of the log files assumes that you have Persona checked out in the home directory of the root user.
         let mainLogURL = File.homeDirectory().appendingPathComponent("Persona/Persona.log", isDirectory: false)
         var logger = try FileLogging.logger(label: "Persona", localFile: mainLogURL)
-        logger.logLevel = .error
+        logger.logLevel = .debug
         self.logger = logger
 
         let logFileURL = File.homeDirectory().appendingPathComponent("Persona/PersonaTcpLog.log", isDirectory: false)
@@ -225,6 +228,9 @@ public class Persona
 
             case .Udpproxy:
                 try await self.handleUdpproxyMessage(rest)
+
+            case .Timer:
+                try await self.handleTimerMessage(rest)
         }
     }
 
@@ -250,7 +256,6 @@ public class Persona
         else if let ipv4 = packet.ipv4, let udp = packet.udp
         {
             // The packet is IPv4/UDP.
-
             self.stats.ipv4 += 1
             self.stats.udp += 1
 
@@ -265,12 +270,12 @@ public class Persona
             }
             else
             {
+                self.stats.udpNoPayload += 1
+                
                 #if DEBUG
                 // Reject UDP packets without payloads
                 self.logger.debug("🏓 UDP: \(ipv4.sourceAddress.ipv4AddressString ?? "not an ipv4 address"):\(udp.sourcePort) -> \(ipv4.destinationAddress.ipv4AddressString ?? "not an ipv4 address"):\(udp.destinationPort) - received a UDP packet with no payload")
                 #endif
-
-                
             }
         }
         else if let _ = packet.ipv4
@@ -298,6 +303,11 @@ public class Persona
     public func handleUdpproxyMessage(_ data: Data) async throws
     {
         try await self.udpProxy.handleMessage(data)
+    }
+
+    public func handleTimerMessage(_ data: Data) async throws
+    {
+        try await self.tcpProxy.handleTimerMessage(data)
     }
 }
 

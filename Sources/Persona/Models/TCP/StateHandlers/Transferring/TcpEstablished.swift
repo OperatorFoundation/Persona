@@ -58,7 +58,7 @@ public class TcpEstablished: TcpStateHandler
 
         guard self.straw.inWindow(tcp) else
         {
-            self.logger.error("❌ TcpEstablished - \(clientWindow.lowerBound) <= \(packetLowerBound)..<\(packetUpperBound) <= \(clientWindow.upperBound)")
+            self.logger.debug("TcpEstablished - Out of window: \nClient Window: lower bound - \(clientWindow.lowerBound), upper bound - \(clientWindow.upperBound) \nPacket: lower bound - \(packetLowerBound) upper bound - \(packetUpperBound)")
 
             // Send an ACK to let the client know that they are outside of the TCP window.
             stats.sentipv4 += 1
@@ -70,45 +70,61 @@ public class TcpEstablished: TcpStateHandler
             let ack = try await self.makeAck(stats: stats)
             return TcpStateTransition(newState: self, packetsToSend: [ack])
         }
-
+        
         #if DEBUG
         self.logger.debug("✅ TcpEstablished - \(clientWindow.lowerBound) <= \(packetLowerBound)..<\(packetUpperBound) <= \(clientWindow.upperBound)")
         #endif
+        
+        self.windowSize = tcp.windowSize
 
-        if tcp.ack
-        {
-            let acknowledgementNumber = SequenceNumber(tcp.acknowledgementNumber)
-
-            if acknowledgementNumber != self.straw.sequenceNumber
-            {
-                let difference = acknowledgementNumber - self.straw.sequenceNumber
-
-                #if DEBUG
-                self.logger.debug("New ACK# - clearing \(difference) of \(self.straw.count) bytes")
-                #endif
-
-                try self.straw.acknowledge(acknowledgementNumber)
-                self.retransmissionQueue.acknowledge(acknowledgementNumber: acknowledgementNumber)
-
-                #if DEBUG
-                self.logger.debug("Straw now has \(self.straw.count) bytes in the buffer")
-                #endif
-            }
-        }
-
+        var packets: [IPv4] = []
+        
+        // We have new data from downstream to send to upstream.
+        // This has
         if let payload = tcp.payload
         {
             try await self.write(payload: payload)
             self.straw.increaseAcknowledgementNumber(payload.count)
         }
 
-        var packets = try await self.pumpStrawToClient(stats, tcp)
+        if tcp.ack
+        {
+            // This is an ACK. We need to clear the transmission queue and then possibly send more packets.
+
+            #if DEBUG
+            self.logger.debug("👋 New ACK# Received - \(tcp.acknowledgementNumber)")
+            #endif
+
+            let acknowledgementNumber = SequenceNumber(tcp.acknowledgementNumber)
+
+            #if DEBUG
+            self.logger.debug("Retransmission queue has \(self.retransmissionQueue.count) segments before ACK")
+            #endif
+
+            self.retransmissionQueue.acknowledge(acknowledgementNumber: acknowledgementNumber)
+
+            #if DEBUG
+            self.logger.debug("Retransmission queue has \(self.retransmissionQueue.count) segments after ACK")
+            #endif
+
+            // We need to send an ACK.
+            // Is there room in the receive window to send a payload with the ACK?
+            // And do we have a payload to include in the ACK?
+            if self.retransmissionQueue.bytes < self.windowSize, self.straw.count > 0
+            {
+                packets = try await self.pumpStrawToClient(stats, tcp)
+            }
+            else // No room in the receive window or no data to send, send a bare ACK instead.
+            {
+                packets = [try await self.makeAck(stats: stats)]
+            }
+        }
 
         if tcp.fin
         {
             self.straw.increaseAcknowledgementNumber(1)
-            let ack = try await makeAck(stats: stats)
-            packets.append(ack) // ACK the FIN
+            let finack = try await makeFinAck()
+            packets.append(finack) // ACK and FIN
 
             try await self.close()
 
@@ -127,19 +143,10 @@ public class TcpEstablished: TcpStateHandler
             return TcpStateTransition(newState: self)
         }
 
-        let wasEmpty = self.straw.isEmpty
-
         try self.straw.write(data)
 
-        if wasEmpty
-        {
-            let packets = try await self.pumpStrawToClient(stats)
-            return TcpStateTransition(newState: self, packetsToSend: packets)
-        }
-        else
-        {
-            return TcpStateTransition(newState: self)
-        }
+        let packets = try await self.pumpStrawToClient(stats)
+        return TcpStateTransition(newState: self, packetsToSend: packets)
     }
 
     override public func processUpstreamClose(stats: Stats) async throws -> TcpStateTransition

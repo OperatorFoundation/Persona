@@ -37,7 +37,7 @@ func main() {
 		}()
 
 		golog.AddOutput(logFile)
-		golog.SetLevel("error")
+		golog.SetLevel("debug")
 	}
 
 	var pcapWriter *pcapgo.Writer
@@ -90,7 +90,6 @@ func main() {
 }
 
 func handleConnection(home string, client io.Closer, clientReader io.Reader, clientWriter io.Writer, pcapWriter *pcapgo.Writer) {
-	golog.Debug("launching Persona subprocess")
 	context, cancel := context.WithCancel(context.Background())
 	persona := exec.CommandContext(context, home+"/Persona/Persona")
 	personaInput, inputError := persona.StdinPipe()
@@ -114,18 +113,18 @@ func handleConnection(home string, client io.Closer, clientReader io.Reader, cli
 	personaReadChannel := make(chan []byte)
 	personaWriteChannel := make(chan []byte)
 
-	clientToChannel := ReaderToChannel{"client", clientReader, "router", clientReadChannel, pcapWriter, func(closeError error) {
-		closeWithError(closeError, 0, cancel, client)
+	clientToChannel := ReaderToChannel{"client", clientReader, "router", clientReadChannel, pcapWriter, func(closer string, closeError error) {
+		closeWithError(closer, closeError, 0, cancel, client)
 	}}
-	channelToClient := ChannelToWriter{"router", clientWriteChannel, "client", clientWriter, pcapWriter, func(closeError error) {
-		closeWithError(closeError, 0, cancel, client)
+	channelToClient := ChannelToWriter{"router", clientWriteChannel, "client", clientWriter, pcapWriter, func(closer string, closeError error) {
+		closeWithError(closer, closeError, 0, cancel, client)
 	}}
 
-	personaToChannel := ReaderToChannel{"persona", personaOutput, "router", personaReadChannel, nil, func(closeError error) {
-		closeWithError(closeError, 4, cancel, client)
+	personaToChannel := ReaderToChannel{"persona", personaOutput, "router", personaReadChannel, nil, func(closer string, closeError error) {
+		closeWithError(closer, closeError, 4, cancel, client)
 	}}
-	channelToPersona := ChannelToWriter{"router", personaWriteChannel, "persona", personaInput, nil, func(closeError error) {
-		closeWithError(closeError, 5, cancel, client)
+	channelToPersona := ChannelToWriter{"router", personaWriteChannel, "persona", personaInput, nil, func(closer string, closeError error) {
+		closeWithError(closer, closeError, 5, cancel, client)
 	}}
 
 	// Non-blocking
@@ -137,15 +136,15 @@ func handleConnection(home string, client io.Closer, clientReader io.Reader, cli
 
 	router, routerError := NewRouter(clientReadChannel, clientWriteChannel, personaReadChannel, personaWriteChannel)
 	if routerError != nil {
-		closeWithError(routerError, 6, cancel, client)
+		closeWithError("router", routerError, 6, cancel, client)
 	}
 	router.Route() // blocking
 
 	golog.Debug("exiting router abnormally, something isn't blocking")
 }
 
-func closeWithError(closeError error, exitCode int, cancel context.CancelFunc, client io.Closer) {
-	golog.Debug(closeError.Error() + "")
+func closeWithError(closer string, closeError error, exitCode int, cancel context.CancelFunc, client io.Closer) {
+	golog.Debugf("Closing %s with an error: %v", closer, closeError.Error())
 	cancel()
 	_ = client.Close()
 	os.Exit(exitCode)

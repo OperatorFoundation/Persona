@@ -31,7 +31,7 @@ public actor TcpProxyConnection
         return connection
     }
 
-    static public func getConnection(identity: Identity, downstream: AsyncConnection, ipv4: IPv4, tcp: TCP, payload: Data?, logger: Logger, tcpLogger: Puppy, writeLogger: Puppy) async throws -> (TcpProxyConnection, Bool)
+    static public func getConnection(identity: Identity, downstream: AsyncConnection, ipv4: IPv4, tcp: TCP, payload: Data?, logger: Logger, tcpLogger: Puppy, writeLogger: Puppy, stats: Stats) async throws -> (TcpProxyConnection, Bool)
     {
         if let connection = Self.connections[identity]
         {
@@ -41,12 +41,33 @@ public actor TcpProxyConnection
         {
             guard tcp.syn, !tcp.ack, !tcp.rst, !tcp.fin else
             {
+                if !tcp.syn
+                {
+                    stats.firstPacketNotSyn += 1
+                }
+                
+                if tcp.ack
+                {
+                    stats.firstPacketAck += 1
+                }
+                
+                if tcp.rst
+                {
+                    stats.firstPacketRst += 1
+                }
+                
+                if tcp.fin
+                {
+                    stats.firstPacketFin += 1
+                }
+                
                 throw TcpProxyConnectionError.badFirstPacket
             }
 
             let connection = try await TcpProxyConnection(identity: identity, downstream: downstream, ipv4: ipv4, tcp: tcp, payload: payload, logger: logger, tcpLogger: tcpLogger, writeLogger: writeLogger)
             Self.connections[identity] = connection
             Self.queue.append(identity)
+            
             return (connection, false)
         }
     }
@@ -134,64 +155,13 @@ public actor TcpProxyConnection
         #endif
 
         let transition = try await self.state.processDownstreamPacket(stats: stats, ipv4: ipv4, tcp: tcp, payload: nil)
+        let packetsToSend: [IPv4] = transition.packetsToSend
 
-        var packetsToSend: [IPv4]
-        
-        switch transition.newState
-        {
-            case is TcpCloseWait:
-                // Close Wait prep here
-                let closeWaitTransition = try await transition.newState.pump()
-                
-                if transition.packetsToSend.count > 0
-                {
-                    let lastPacketIPv4 = transition.packetsToSend[transition.packetsToSend.endIndex - 1]
-                    
-                    let lastPacket = Packet(ipv4Bytes: lastPacketIPv4.data, timestamp: Date())
-                    
-                    if let lastPacketTCP = lastPacket.tcp
-                    {
-                        if let newLastPacketTCP = try TCP(sourcePort: lastPacketTCP.sourcePort, destinationPort: lastPacketTCP.destinationPort, sequenceNumber: SequenceNumber(lastPacketTCP.sequenceNumber), acknowledgementNumber: SequenceNumber(lastPacketTCP.acknowledgementNumber), syn: lastPacketTCP.syn, ack: lastPacketTCP.ack, fin: true, rst: lastPacketTCP.rst, windowSize: lastPacketTCP.windowSize, payload: lastPacketTCP.payload, ipv4: lastPacketIPv4)
-                        {
-                            if let newLastPacketIPv4 = IPv4(version: lastPacketIPv4.version, IHL: lastPacketIPv4.IHL, DSCP: lastPacketIPv4.DSCP, ECN: lastPacketIPv4.ECN, length: lastPacketIPv4.length, identification: lastPacketIPv4.identification, reservedBit: lastPacketIPv4.reservedBit, dontFragment: lastPacketIPv4.dontFragment, moreFragments: lastPacketIPv4.moreFragments, fragmentOffset: lastPacketIPv4.fragmentOffset, ttl: lastPacketIPv4.ttl, protocolNumber: lastPacketIPv4.protocolNumber, checksum: lastPacketIPv4.checksum, sourceAddress: lastPacketIPv4.sourceAddress, destinationAddress: lastPacketIPv4.destinationAddress, options: lastPacketIPv4.options, payload: newLastPacketTCP.data, ethernetPadding: lastPacketIPv4.ethernetPadding)
-                            {
-                                packetsToSend = transition.packetsToSend
-                                
-                                packetsToSend[transition.packetsToSend.endIndex - 1] = newLastPacketIPv4
+        #if DEBUG
+        self.logger.debug("@ \(self.state) => \(transition.newState), \(packetsToSend.count) packets to send")
+        #endif
 
-                            }
-                            else
-                            {
-                                packetsToSend = transition.packetsToSend + closeWaitTransition.packetsToSend
-                            }
-                        } else
-                        {
-                            packetsToSend = transition.packetsToSend + closeWaitTransition.packetsToSend
-                        }
-                    }
-                    else
-                    {
-                        packetsToSend = transition.packetsToSend + closeWaitTransition.packetsToSend
-                    }
-                }
-                else
-                {
-                    packetsToSend = transition.packetsToSend + closeWaitTransition.packetsToSend
-                }
-            
-                self.logger.debug("@ \(self.state) => \(transition.newState) => \(closeWaitTransition.newState), \(packetsToSend.count) packets to send")
-                self.state = closeWaitTransition.newState
-                
-            default:
-                // Nothing to do here
-                packetsToSend = transition.packetsToSend
-
-                #if DEBUG
-                self.logger.debug("@ \(self.state) => \(transition.newState), \(packetsToSend.count) packets to send")
-                #endif
-
-                self.state = transition.newState
-        }
+        self.state = transition.newState
         
         for packet in packetsToSend
         {
@@ -251,6 +221,9 @@ public actor TcpProxyConnection
 
     public func processUpstreamData(stats: Stats, data: Data) async throws
     {
+        #if DEBUG
+        self.logger.debug("\(#file).\(#function):\(#line) - self.state: \(self.state)")
+        #endif
         let transition = try await self.state.processUpstreamData(stats: stats, data: data)
 
         for packet in transition.packetsToSend
@@ -289,6 +262,27 @@ public actor TcpProxyConnection
         }
     }
 
+    public func processTimeout(stats: Stats, lowerBound: SequenceNumber) async throws
+    {
+        guard let packet = try? await self.state.processTimeout(stats: stats, lowerBound: lowerBound) else
+        {
+            // The segment for this timeout has already been cleared from the retransmission queue.
+            // Do nothing.
+            return
+        }
+
+        // Retransmit the segment
+        let outPacket = Packet(ipv4Bytes: packet.data, timestamp: Date())
+        if let outTcp = outPacket.tcp
+        {
+            #if DEBUG
+            self.logger.debug("$ <-R \(description(packet, outTcp))")
+            #endif
+        }
+
+        try await self.sendPacket(packet)
+    }
+
     func close() async throws
     {
         try await self.state.close()
@@ -306,7 +300,25 @@ public actor TcpProxyConnection
 
             let clientMessage = Data(array: [Subsystem.Client.rawValue]) + ipv4.data
             try await self.downstream.writeWithLengthPrefix(clientMessage, 32)
+
+            if tcp.payload != nil
+            {
+                let sequenceNumber = SequenceNumber(data: tcp.sequenceNumber)
+                
+                try await self.setTimeout(sequenceNumber)
+            }
         }
+    }
+
+    func setTimeout(_ sequenceNumber: SequenceNumber) async throws
+    {
+        let request = TcpProxyTimerRequest(identity: self.identity, sequenceNumber: sequenceNumber)
+
+        #if DEBUG
+        self.logger.debug("<<-🕕 \(request.description) \(Date().timeIntervalSince1970)")
+        #endif
+
+        try await self.downstream.writeWithLengthPrefix(request.data, 32)
     }
 }
 

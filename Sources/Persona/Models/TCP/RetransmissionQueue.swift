@@ -6,22 +6,35 @@
 //
 
 import Foundation
+import Logging
 
 import InternetProtocols
 
 public class RetransmissionQueue
 {
-    static public let retransmitTime: Double = 0.1 // 100 ms in seconds
+    public let logger: Logger
 
     public var isEmpty: Bool
     {
         return self.queue.isEmpty
     }
 
+    public var count: Int
+    {
+        return self.queue.count
+    }
+
+    public var bytes: Int
+    {
+        // Return the sum of the size of the data in each segment in the queue.
+        return self.queue.map { $0.data.count }.reduce(0, +)
+    }
+
     var queue: [Segment] = []
 
-    public init()
+    public init(logger: Logger)
     {
+        self.logger = logger
     }
 
     public func add(segment: Segment)
@@ -29,16 +42,7 @@ public class RetransmissionQueue
         self.queue.append(segment)
     }
 
-    public func remove(sequenceNumber: SequenceNumber)
-    {
-        self.queue = self.queue.filter
-        {
-            segment in
-
-            segment.window.lowerBound != sequenceNumber
-        }
-    }
-
+    // FIXME - handle rollover
     public func acknowledge(acknowledgementNumber: SequenceNumber)
     {
         self.queue = self.queue.filter
@@ -46,29 +50,29 @@ public class RetransmissionQueue
             segment in
 
             // return true if we should keep this segment in the retransmission queue
-            return acknowledgementNumber.uint32 < segment.window.lowerBound.uint32 // FIXME - handle rollover
+            if acknowledgementNumber.uint32 < segment.window.lowerBound.uint32
+            {
+                self.logger.debug("🫐🫐 Received ack #: \(acknowledgementNumber). Our segment window lower bound is: \(segment.window.lowerBound.uint32), so we kept it for retransmission! 🫐🫐")
+                return true
+            }
+            else
+            {
+                self.logger.debug("🍓🍓 Received ack #: \(acknowledgementNumber), Removed segment from the Retransmission Queue. Our segment window lower bound is: \(segment.window.lowerBound.uint32) 🍓🍓")
+                return false
+            }
         }
     }
 
-    public func next() throws -> Segment
+    public func get(lowerBound: SequenceNumber) throws -> Segment
     {
-        guard let segment = self.queue.first else
+        let result = self.queue.first { $0.window.lowerBound == lowerBound }
+
+        guard let result else
         {
-            throw RetransmissionQueueError.queueIsEmpty
+            throw RetransmissionQueueError.noCandidates
         }
 
-        let now = Date().timeIntervalSince1970 // now
-        let then = segment.timestamp.timeIntervalSince1970
-        let elapsed = now - then
-
-        if elapsed >= Self.retransmitTime
-        {
-            return segment
-        }
-        else
-        {
-            throw RetransmissionQueueError.tooSoonToRetransmit
-        }
+        return result
     }
 }
 
