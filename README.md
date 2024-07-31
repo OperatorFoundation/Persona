@@ -107,11 +107,10 @@ The file can be found in the project directory: Persona/persona.pcap
 
 ## Updating
 
-If you are working on developing Persona, there is an script called update.sh that will update to the latest
-versiona and restart the Persona daemon.
+If you are working on developing Persona, there is are two scripts in the main directory that will update Persona and restart the daemon. Use update.sh for most cases, use update-debug.sh to turn on verbose logging. Note that debugging mode can take up a lot of disk space.
 
 ## Pluggable Transport Support
 
 Persona is designed to be run behind a Pluggable Transport server such as Shapeshifter Dispatcher. The dispatcher
-takes care of encryption and obfuscation of the VPN connection.
+takes care of obfuscation of the VPN connection. Certain transports also use encryption.
 
